@@ -3,7 +3,6 @@ pragma solidity 0.8.17;
 
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
-import "hardhat/console.sol";
 
 contract SmartVault {
     uint256 public constant rateHundredPC = 100000;
@@ -25,9 +24,7 @@ contract SmartVault {
     modifier ifFullyCollateralised(uint256 _amount) {
         uint256 decDiff = clEurUsd.decimals() - clEthUsd.decimals();
         uint256 maxMint = collateral * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
-        console.log(maxMint);
         uint256 potentialMinted = minted + _amount;
-        console.log(potentialMinted);
         require(potentialMinted <= maxMint, "err-under-coll");
         _;
     }
