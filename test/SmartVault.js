@@ -21,5 +21,13 @@ describe('SmartVault', async () => {
       await vault.addCollateralETH({value: value});
       expect(await vault.collateral()).to.equal(value);
     });
+
+    it('allows adding collateral multiple times', async () => {
+      const value = ethers.utils.parseEther('1');
+      // add 1 eth twice
+      await vault.addCollateralETH({value: value});
+      await vault.addCollateralETH({value: value});
+      expect(await vault.collateral()).to.equal(value.mul(2));
+    });
   });
 });

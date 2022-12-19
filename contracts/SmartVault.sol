@@ -6,6 +6,6 @@ contract SmartVault {
     uint256 public minted;
 
     function addCollateralETH() external payable {
-        collateral = msg.value;
+        collateral += msg.value;
     }
 }
