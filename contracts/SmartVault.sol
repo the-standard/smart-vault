@@ -3,34 +3,38 @@ pragma solidity 0.8.17;
 
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
+import "contracts/interfaces/ISmartVaultManager.sol";
 
 contract SmartVault {
     uint256 public constant hundredPC = 100000;
 
-    address public protocol;
+    address public owner;
     uint256 public collateral;
     uint256 public minted;
-    uint256 public collateralRate;
-    uint256 public feeRate;
-    IChainlink public clEthUsd;
-    IChainlink public clEurUsd;
+    ISmartVaultManager public manager;
     ISEuro public seuro;
 
-    constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _clEthUsd, address _clEurUsd, address _protocol) {
-        collateralRate = _collateralRate;
-        clEthUsd = IChainlink(_clEthUsd);
-        clEurUsd = IChainlink(_clEurUsd);
+    struct Status { uint256 collateral; uint256 minted; }
+
+    constructor(address _manager, address _owner, address _seuro) {
+        owner = _owner;
+        manager = ISmartVaultManager(_manager);
         seuro = ISEuro(_seuro);
-        feeRate = _feeRate;
-        protocol = _protocol;
     }
 
     modifier ifFullyCollateralised(uint256 _amount) {
+        IChainlink clEurUsd = IChainlink(manager.clEurUsd());
+        IChainlink clEthUsd = IChainlink(manager.clEthUsd());
         uint256 decDiff = clEurUsd.decimals() - clEthUsd.decimals();
-        uint256 maxMint = collateral * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+        uint256 euroCollateral = collateral * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+        uint256 maxMint = euroCollateral * hundredPC / manager.collateralRate();
         uint256 potentialMinted = minted + _amount;
         require(potentialMinted <= maxMint, "err-under-coll");
         _;
+    }
+
+    function status() external view returns (Status memory) {
+        return Status(collateral, minted);
     }
 
     function addCollateralETH() external payable {
@@ -39,8 +43,8 @@ contract SmartVault {
 
     function mint(address _to, uint256 _amount) external ifFullyCollateralised(_amount) {
         minted += _amount;
-        uint256 fee = _amount * feeRate / hundredPC;
+        uint256 fee = _amount * manager.feeRate() / hundredPC;
         seuro.mint(_to, _amount - fee);
-        seuro.mint(protocol, fee);
+        seuro.mint(manager.protocol(), fee);
     }
 }
