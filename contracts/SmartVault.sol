@@ -22,6 +22,11 @@ contract SmartVault {
         seuro = ISEuro(_seuro);
     }
 
+    modifier onlyOwnerOrVaultManager {
+        require(msg.sender == owner || msg.sender == address(manager), "err-not-owner");
+        _;
+    }
+
     modifier ifFullyCollateralised(uint256 _amount) {
         IChainlink clEurUsd = IChainlink(manager.clEurUsd());
         IChainlink clEthUsd = IChainlink(manager.clEthUsd());
@@ -37,11 +42,11 @@ contract SmartVault {
         return Status(collateral, minted);
     }
 
-    function addCollateralETH() external payable {
+    function addCollateralETH() external payable onlyOwnerOrVaultManager {
         collateral += msg.value;
     }
 
-    function mint(address _to, uint256 _amount) external ifFullyCollateralised(_amount) {
+    function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {
         minted += _amount;
         uint256 fee = _amount * manager.feeRate() / hundredPC;
         seuro.mint(_to, _amount - fee);
