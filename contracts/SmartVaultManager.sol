@@ -69,7 +69,6 @@ contract SmartVaultManager is ERC721 {
     }
 
     function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
-        // TODO check sender is token owner (with test)
         getVault(_tokenId).addCollateralETH{value: msg.value}();
     }
 
