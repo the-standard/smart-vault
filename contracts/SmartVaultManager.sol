@@ -31,6 +31,11 @@ contract SmartVaultManager is ERC721 {
         protocol = _protocol;
     }
 
+    modifier onlyVaultOwner(uint256 _tokenId) {
+        require(msg.sender == ownerOf(_tokenId), "err-not-owner");
+        _;
+    }
+
     function getVault(uint256 _tokenId) private view returns (SmartVault) {
         return SmartVault(vaultAddresses[_tokenId]);
     }
@@ -63,12 +68,12 @@ contract SmartVaultManager is ERC721 {
         // TODO give minter rights to new vault (manager will have to be minter admin)
     }
 
-    function addCollateralETH(uint256 _tokenId) external payable {
+    function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
         // TODO check sender is token owner (with test)
         getVault(_tokenId).addCollateralETH{value: msg.value}();
     }
 
-    function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external {
+    function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
         getVault(_tokenId).mint(_to, _amount);
     }
 }
