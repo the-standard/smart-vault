@@ -85,5 +85,6 @@ contract SmartVaultManager is ERC721 {
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         removeTokenId(_from, _tokenId);
         tokenIds[_to].push(_tokenId);
+        SmartVault(vaultAddresses[_tokenId]).setOwner(_to);
     }
 }

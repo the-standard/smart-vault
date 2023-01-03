@@ -42,4 +42,11 @@ describe('SmartVault', async () => {
       await expect(mint).not.to.be.reverted;
     });
   });
+
+  describe('ownership', async () => {
+    it('will not allow setting of new owner if not manager', async () => {
+      const ownerUpdate = Vault.connect(user).setOwner(otherUser.address);
+      await expect(ownerUpdate).to.be.revertedWith('err-not-manager');
+    });
+  });
 });

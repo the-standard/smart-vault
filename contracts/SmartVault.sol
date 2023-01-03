@@ -27,6 +27,11 @@ contract SmartVault {
         _;
     }
 
+    modifier onlyVaultManager {
+        require(msg.sender == address(manager), "err-not-manager");
+        _;
+    }
+
     modifier ifFullyCollateralised(uint256 _amount) {
         IChainlink clEurUsd = IChainlink(manager.clEurUsd());
         IChainlink clEthUsd = IChainlink(manager.clEthUsd());
@@ -51,5 +56,10 @@ contract SmartVault {
         uint256 fee = _amount * manager.feeRate() / hundredPC;
         seuro.mint(_to, _amount - fee);
         seuro.mint(manager.protocol(), fee);
+    }
+
+    function setOwner(address _newOwner) external onlyVaultManager {
+        require(_newOwner != address(0), "invalid-owner-addr");
+        owner = _newOwner;
     }
 }
