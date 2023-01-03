@@ -4,7 +4,6 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/SmartVault.sol";
-import "hardhat/console.sol";
 
 contract SmartVaultManager is ERC721 {
     uint256 public constant hundredPC = 100000;
@@ -62,7 +61,6 @@ contract SmartVaultManager is ERC721 {
         SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = address(smartVault);
         tokenId = ++currentToken;
-        tokenIds[msg.sender].push(tokenId);
         vaultAddresses[tokenId] = vault;
         _mint(msg.sender, tokenId);
         // TODO give minter rights to new vault (manager will have to be minter admin)
@@ -74,5 +72,18 @@ contract SmartVaultManager is ERC721 {
 
     function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
         getVault(_tokenId).mint(_to, _amount);
+    }
+
+    function removeTokenId(address _user, uint256 _tokenId) private {
+        uint256[] memory currentIds = tokenIds[_user];
+        delete tokenIds[_user];
+        for (uint256 i = 0; i < currentIds.length; i++) {
+            if (currentIds[i] != _tokenId) tokenIds[_user].push(currentIds[i]);
+        }
+    }
+
+    function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
+        removeTokenId(_from, _tokenId);
+        tokenIds[_to].push(_tokenId);
     }
 }

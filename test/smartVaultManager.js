@@ -93,6 +93,19 @@ describe('SmartVaultManager', async () => {
         expect(await seuro.balanceOf(protocol.address)).to.equal(mintFee);
       });
     });
+
+    describe('transfer of vault', async () => {
+      it('will update the ownership data in SmartVaultManager', async () => {
+        expect(await vaultManager.connect(user).vaults()).to.have.length(1);
+        const otherUserVaults = await vaultManager.connect(otherUser).vaults();
+        expect(otherUserVaults).to.have.length(1);
+
+        await vaultManager.connect(otherUser).transferFrom(otherUser.address, user.address, otherUserVaults[0].tokenId);
+
+        expect(await vaultManager.connect(user).vaults()).to.have.length(2);
+        expect(await vaultManager.connect(otherUser).vaults()).to.have.length(0);
+      });
+    });
   });
 
 });
