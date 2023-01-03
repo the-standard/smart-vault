@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/SmartVault.sol";
+import "hardhat/console.sol";
 
 contract SmartVaultManager is ERC721 {
     uint256 public constant hundredPC = 100000;
@@ -85,6 +86,6 @@ contract SmartVaultManager is ERC721 {
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         removeTokenId(_from, _tokenId);
         tokenIds[_to].push(_tokenId);
-        SmartVault(vaultAddresses[_tokenId]).setOwner(_to);
+        if (address(_from) != address(0)) SmartVault(vaultAddresses[_tokenId]).setOwner(_to);
     }
 }
