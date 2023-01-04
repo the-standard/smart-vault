@@ -4,7 +4,6 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/SmartVault.sol";
-import "hardhat/console.sol";
 
 contract SmartVaultManager is ERC721 {
     uint256 public constant hundredPC = 100000;
@@ -20,7 +19,7 @@ contract SmartVaultManager is ERC721 {
 
     uint256 private currentToken;
 
-    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateral; uint256 minted; uint256 collateralRate; uint256 feeRate; }
+    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateral; uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; uint256 collateralRate; uint256 feeRate; }
 
     constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _clEthUsd, address _clEurUsd, address _protocol) ERC721("The Standard Smart Vault Manager", "TSTVAULTMAN") {
         collateralRate = _collateralRate;
@@ -51,6 +50,8 @@ contract SmartVaultManager is ERC721 {
                 vaultAddress: vaultAddresses[tokenId],
                 collateral: status.collateral,
                 minted: status.minted,
+                maxMintable: status.maxMintable,
+                currentCollateralPercentage: status.currentCollateralPercentage,
                 collateralRate: collateralRate,
                 feeRate: feeRate
             });

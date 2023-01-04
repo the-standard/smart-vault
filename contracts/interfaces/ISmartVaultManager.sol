@@ -2,13 +2,13 @@
 pragma solidity ^0.8.17;
 
 interface ISmartVaultManager {
-    function protocol() external returns (address);
+    function protocol() external view returns (address);
 
-    function feeRate() external returns (uint256);
+    function feeRate() external view returns (uint256);
 
-    function collateralRate() external returns (uint256);
+    function collateralRate() external view returns (uint256);
 
-    function clEurUsd() external returns (address);
+    function clEurUsd() external view returns (address);
 
-    function clEthUsd() external returns (address);
+    function clEthUsd() external view returns (address);
 }

@@ -1,5 +1,5 @@
-const { ethers } = require('hardhat');
 const { expect } = require('chai');
+const { ethers } = require('hardhat');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC } = require('./common');
 
 let vaultManager, seuro, admin, user, protocol, otherUser;
@@ -72,6 +72,12 @@ describe('SmartVaultManager', async () => {
   
         mint = vaultManager.connect(user).mintSEuro(tokenId, user.address, maxMint);
         await expect(mint).not.to.be.reverted;
+
+        const vault = (await vaultManager.connect(user).vaults())[0];
+        expect(vault.collateral).to.equal(collateralValue);
+        expect(vault.minted).to.equal(maxMint);
+        expect(vault.maxMintable).to.equal(maxMint);
+        expect(vault.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
   
         // should overflow into under-collateralised
         mint = vaultManager.connect(user).mintSEuro(tokenId, user.address, 1);

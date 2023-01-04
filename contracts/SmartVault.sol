@@ -14,7 +14,7 @@ contract SmartVault {
     ISmartVaultManager public manager;
     ISEuro public seuro;
 
-    struct Status { uint256 collateral; uint256 minted; }
+    struct Status { uint256 collateral; uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; }
 
     constructor(address _manager, address _owner, address _seuro) {
         owner = _owner;
@@ -33,18 +33,28 @@ contract SmartVault {
     }
 
     modifier ifFullyCollateralised(uint256 _amount) {
-        IChainlink clEurUsd = IChainlink(manager.clEurUsd());
-        IChainlink clEthUsd = IChainlink(manager.clEthUsd());
-        uint256 decDiff = clEurUsd.decimals() - clEthUsd.decimals();
-        uint256 euroCollateral = collateral * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
-        uint256 maxMint = euroCollateral * hundredPC / manager.collateralRate();
         uint256 potentialMinted = minted + _amount;
-        require(potentialMinted <= maxMint, "err-under-coll");
+        require(potentialMinted <= maxMintable(), "err-under-coll");
         _;
     }
 
+    function euroCollateral() private view returns (uint256) {
+        IChainlink clEurUsd = IChainlink(manager.clEurUsd());
+        IChainlink clEthUsd = IChainlink(manager.clEthUsd());
+        uint256 decDiff = clEurUsd.decimals() - clEthUsd.decimals();
+        return collateral * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+    }
+
+    function maxMintable() private view returns (uint256) {
+        return euroCollateral() * hundredPC / manager.collateralRate();
+    }
+
+    function currentCollateralPercentage() private view returns (uint256) {
+        return minted == 0 ? 0 : euroCollateral() * hundredPC / minted;
+    }
+
     function status() external view returns (Status memory) {
-        return Status(collateral, minted);
+        return Status(collateral, minted, maxMintable(), currentCollateralPercentage());
     }
 
     function addCollateralETH() external payable onlyOwnerOrVaultManager {
