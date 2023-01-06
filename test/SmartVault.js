@@ -9,7 +9,7 @@ describe('SmartVault', async () => {
     [ user, otherUser, protocol ] = await ethers.getSigners();
     clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     clEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    const seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, seuro.address,
       clEthUsd.address, clEurUsd.address, protocol.address
