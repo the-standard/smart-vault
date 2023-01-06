@@ -30,6 +30,28 @@ describe('SmartVaultManager', async () => {
     });
   });
 
+  describe('TokenManager dependency', async () => {
+    it('allows the owner to update the dependency, if not zero address', async () => {
+      const NewTokenManager = await (await ethers.getContractFactory('TokenManager')).deploy();
+      let update = VaultManager.connect(user).setTokenManager(NewTokenManager.address);
+      await expect(update).to.be.revertedWith('Ownable: caller is not the owner');
+
+      update = VaultManager.setTokenManager(NewTokenManager.address);
+      await expect(update).not.to.be.reverted;
+      expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
+
+      // not a new address
+      update = VaultManager.setTokenManager(NewTokenManager.address);
+      await expect(update).to.be.revertedWith('err-invalid-address');
+      expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
+
+      // address zero
+      update = VaultManager.setTokenManager(ethers.constants.AddressZero);
+      await expect(update).to.be.revertedWith('err-invalid-address');
+      expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
+    });
+  });
+
   context('open vault', async () => {
     let tokenId;
     beforeEach(async () => {

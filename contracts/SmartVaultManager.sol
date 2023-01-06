@@ -95,4 +95,9 @@ contract SmartVaultManager is ERC721, Ownable {
         tokenIds[_to].push(_tokenId);
         if (address(_from) != address(0)) SmartVault(vaultAddresses[_tokenId]).setOwner(_to);
     }
+
+    function setTokenManager(address _tokenManager) external onlyOwner {
+        require(_tokenManager != address(tokenManager) && _tokenManager != address(0), "err-invalid-address");
+        tokenManager = TokenManager(_tokenManager);
+    }
 }
