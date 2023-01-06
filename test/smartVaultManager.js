@@ -2,27 +2,26 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC } = require('./common');
 
-let vaultManager, seuro, tether, admin, user, protocol, otherUser, clUsdUsd;
+let VaultManager, Seuro, admin, user, protocol, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
     [ admin, user, protocol, otherUser ] = await ethers.getSigners();
-    const clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
-    clUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
-    const clEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
-    tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    vaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, seuro.address,
-      clEthUsd.address, clEurUsd.address, protocol.address
+    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
+    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
+    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy();
+    Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
+    VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address,
+      ClEthUsd.address, ClEurUsd.address, protocol.address, TokenManager.address
     );
   });
 
   describe('opening', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
-      await vaultManager.connect(user).mint();
+      await VaultManager.connect(user).mint();
       
-      const vaults = await vaultManager.connect(user).vaults();
+      const vaults = await VaultManager.connect(user).vaults();
       expect(vaults).to.be.length(1);
       expect(vaults[0].collateral).to.equal(0);
       expect(vaults[0].minted).to.equal(0);
@@ -34,30 +33,30 @@ describe('SmartVaultManager', async () => {
   context('open vault', async () => {
     let tokenId;
     beforeEach(async () => {
-      await vaultManager.connect(user).mint();
-      await vaultManager.connect(otherUser).mint();
-      ({ tokenId } = (await vaultManager.connect(user).vaults())[0]);
+      await VaultManager.connect(user).mint();
+      await VaultManager.connect(otherUser).mint();
+      ({ tokenId } = (await VaultManager.connect(user).vaults())[0]);
     });
 
     describe('addCollateralETH', async () => {
       it('accepts ETH as collateral, if sent by vault owner', async () => {
         const value = ethers.utils.parseEther('1');
 
-        let collateral = vaultManager.connect(otherUser).addCollateralETH(tokenId, {value: value});
+        let collateral = VaultManager.connect(otherUser).addCollateralETH(tokenId, {value: value});
         await expect(collateral).to.be.revertedWith('err-not-owner');
 
-        collateral = vaultManager.connect(user).addCollateralETH(tokenId, {value: value});
+        collateral = VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
         await expect(collateral).not.to.be.reverted;
-        const vault = (await vaultManager.connect(user).vaults())[0];
+        const vault = (await VaultManager.connect(user).vaults())[0];
         expect(vault.collateral).to.equal(value);
       });
   
       it('allows adding collateral multiple times', async () => {
         const value = ethers.utils.parseEther('1');
         // add 1 eth twice
-        await vaultManager.connect(user).addCollateralETH(tokenId, {value: value});
-        await vaultManager.connect(user).addCollateralETH(tokenId, {value: value});
-        const vault = (await vaultManager.connect(user).vaults())[0];
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
+        const vault = (await VaultManager.connect(user).vaults())[0];
         expect(vault.collateral).to.equal(value.mul(2));
       });
     });
@@ -67,22 +66,22 @@ describe('SmartVaultManager', async () => {
         const collateralValue = ethers.utils.parseEther('1');
         const eurCollateralValue = collateralValue.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
         const maxMint = eurCollateralValue.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
-        await vaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
 
-        let mint = vaultManager.connect(otherUser).mintSEuro(tokenId, user.address, maxMint);
+        let mint = VaultManager.connect(otherUser).mintSEuro(tokenId, user.address, maxMint);
         await expect(mint).to.be.revertedWith('err-not-owner');
   
-        mint = vaultManager.connect(user).mintSEuro(tokenId, user.address, maxMint);
+        mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, maxMint);
         await expect(mint).not.to.be.reverted;
 
-        const vault = (await vaultManager.connect(user).vaults())[0];
+        const vault = (await VaultManager.connect(user).vaults())[0];
         expect(vault.collateral).to.equal(collateralValue);
         expect(vault.minted).to.equal(maxMint);
         expect(vault.maxMintable).to.equal(maxMint);
         expect(vault.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
   
         // should overflow into under-collateralised
-        mint = vaultManager.connect(user).mintSEuro(tokenId, user.address, 1);
+        mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, 1);
         await expect(mint).to.be.revertedWith('err-under-coll');
       });
     });
@@ -90,32 +89,32 @@ describe('SmartVaultManager', async () => {
     describe('protocol fees', async () => {
       it('will send fee to protocol when minting', async () => {
         const collateralValue = ethers.utils.parseEther('1');
-        await vaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
   
         const mintAmount = ethers.utils.parseEther('100');
         const mintFee = mintAmount.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
   
-        await vaultManager.connect(user).mintSEuro(tokenId, user.address, mintAmount);
+        await VaultManager.connect(user).mintSEuro(tokenId, user.address, mintAmount);
   
-        expect(await seuro.balanceOf(user.address)).to.equal(mintAmount.sub(mintFee));
-        expect(await seuro.balanceOf(protocol.address)).to.equal(mintFee);
+        expect(await Seuro.balanceOf(user.address)).to.equal(mintAmount.sub(mintFee));
+        expect(await Seuro.balanceOf(protocol.address)).to.equal(mintFee);
       });
     });
 
     describe('transfer of vault', async () => {
       it('will update the ownership data in SmartVaultManager', async () => {
-        expect(await vaultManager.connect(user).vaults()).to.have.length(1);
-        const otherUserVaults = await vaultManager.connect(otherUser).vaults();
+        expect(await VaultManager.connect(user).vaults()).to.have.length(1);
+        const otherUserVaults = await VaultManager.connect(otherUser).vaults();
         expect(otherUserVaults).to.have.length(1);
         const {tokenId, vaultAddress} = otherUserVaults[0];
-        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
-        expect(await vault.owner()).to.equal(otherUser.address);
+        const Vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        expect(await Vault.owner()).to.equal(otherUser.address);
 
-        await vaultManager.connect(otherUser).transferFrom(otherUser.address, user.address, tokenId);
+        await VaultManager.connect(otherUser).transferFrom(otherUser.address, user.address, tokenId);
 
-        expect(await vaultManager.connect(user).vaults()).to.have.length(2);
-        expect(await vaultManager.connect(otherUser).vaults()).to.have.length(0);
-        expect(await vault.owner()).to.equal(user.address);
+        expect(await VaultManager.connect(user).vaults()).to.have.length(2);
+        expect(await VaultManager.connect(otherUser).vaults()).to.have.length(0);
+        expect(await Vault.owner()).to.equal(user.address);
       });
     });
   });

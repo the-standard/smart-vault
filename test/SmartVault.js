@@ -7,12 +7,13 @@ let VaultManager, Vault, user, otherUser, protocol;
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ user, otherUser, protocol ] = await ethers.getSigners();
-    clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
-    clEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
+    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
+    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
+    const Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
+    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, seuro.address,
-      clEthUsd.address, clEurUsd.address, protocol.address
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address,
+      ClEthUsd.address, ClEurUsd.address, protocol.address, TokenManager.address
     );
     await VaultManager.connect(user).mint();
     const { vaultAddress } = (await VaultManager.connect(user).vaults())[0];
