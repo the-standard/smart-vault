@@ -4,12 +4,15 @@ pragma solidity 0.8.17;
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
+import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVault {
-    uint256 public constant hundredPC = 100000;
+    uint256 private constant HUNDRED_PC = 100000;
+    string private constant INVALID_USER = "err-invalid-user";
+    bytes32 private constant ETH = bytes32("ETH");
 
     address public owner;
-    uint256 public minted;
+    uint256 private minted;
     ISmartVaultManager public manager;
     ISEuro public seuro;
 
@@ -23,12 +26,12 @@ contract SmartVault {
     }
 
     modifier onlyOwnerOrVaultManager {
-        require(msg.sender == owner || msg.sender == address(manager), "err-not-owner");
+        require(msg.sender == owner || msg.sender == address(manager), INVALID_USER);
         _;
     }
 
     modifier onlyVaultManager {
-        require(msg.sender == address(manager), "err-not-manager");
+        require(msg.sender == address(manager), INVALID_USER);
         _;
     }
 
@@ -38,41 +41,51 @@ contract SmartVault {
         _;
     }
 
-    function euroCollateral() private view returns (uint256) {
-        IChainlink clEurUsd = IChainlink(manager.clEurUsd());
-        IChainlink clEthUsd = IChainlink(manager.clEthUsd());
-        uint256 decDiff = clEurUsd.decimals() - clEthUsd.decimals();
-        return getCollateral(bytes32("ETH")) * 10 ** decDiff * uint256(clEthUsd.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+    function euroCollateral() private view returns (uint256 euros) {
+        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+        ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
+        IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
+            ITokenManager.Token memory token = acceptedTokens[i];
+            IChainlink tokenUsdClFeed = IChainlink(acceptedTokens[i].clAddr);
+            uint256 decDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
+            euros += getCollateral(token.symbol, token.addr) * 10 ** decDiff * uint256(tokenUsdClFeed.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+        }
     }
 
     function maxMintable() private view returns (uint256) {
-        return euroCollateral() * hundredPC / manager.collateralRate();
+        return euroCollateral() * HUNDRED_PC / manager.collateralRate();
     }
 
     function currentCollateralPercentage() private view returns (uint256) {
-        return minted == 0 ? 0 : euroCollateral() * hundredPC / minted;
+        return minted == 0 ? 0 : euroCollateral() * HUNDRED_PC / minted;
     }
 
-    function getCollateral(bytes32 _symbol) private view returns (uint256) {
-        if (_symbol == bytes32("ETH")) return address(this).balance;
-        return 0;
+    function getCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256) {
+        if (_symbol == ETH) return address(this).balance;
+        return IERC20(_tokenAddress).balanceOf(address(this));
+    }
+
+    function getAssets() private view returns (Asset[] memory) {
+        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+        ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
+        Asset[] memory assets = new Asset[](acceptedTokens.length);
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
+            ITokenManager.Token memory token = acceptedTokens[i];
+            assets[i] = Asset(token.symbol, getCollateral(token.symbol, token.addr));
+        }
+        return assets;
     }
 
     function status() external view returns (Status memory) {
-        Asset[] memory assets = new Asset[](1);
-        assets[0] = Asset(bytes32("ETH"), address(this).balance);
-        return Status(minted, maxMintable(), currentCollateralPercentage(), assets);
-    }
-
-    function eqlStrings(string memory _a, string memory _b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((_a))) == keccak256(abi.encodePacked((_b))));
+        return Status(minted, maxMintable(), currentCollateralPercentage(), getAssets());
     }
 
     receive() external payable {}
 
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {
         minted += _amount;
-        uint256 fee = _amount * manager.feeRate() / hundredPC;
+        uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
         seuro.mint(_to, _amount - fee);
         seuro.mint(manager.protocol(), fee);
     }

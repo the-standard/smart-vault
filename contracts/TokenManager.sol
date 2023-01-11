@@ -6,10 +6,19 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "contracts/interfaces/IChainlink.sol";
 
 contract TokenManager is Ownable {
+    bytes32 private constant ETH = bytes32("ETH");
 
     Token[] private acceptedTokens;
+    IChainlink public clEthUsd;
+    IChainlink public clEurUsd;
 
     struct Token { bytes32 symbol; address addr; uint8 dec; address clAddr; uint8 clDec; }
+
+    constructor(address _clEthUsd, address _clEurUsd) {
+        clEthUsd = IChainlink(_clEthUsd);
+        clEurUsd = IChainlink(_clEurUsd);
+        acceptedTokens.push(Token(ETH, address(0), 18, _clEthUsd, clEthUsd.decimals()));
+    }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
         return acceptedTokens;
@@ -23,9 +32,10 @@ contract TokenManager is Ownable {
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
     }
 
-    function removeAcceptedToken(string memory _symbol) external onlyOwner {
+    function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
+        require(_symbol != ETH);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
-            if (acceptedTokens[i].symbol == bytes32(bytes(_symbol))) {
+            if (acceptedTokens[i].symbol == _symbol) {
                 acceptedTokens[i] = acceptedTokens[acceptedTokens.length - 1];
                 acceptedTokens.pop();
             }

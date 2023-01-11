@@ -3,18 +3,17 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf } = require('./common');
 
-let VaultManager, Seuro, admin, user, protocol, otherUser;
+let VaultManager, Seuro, ClEthUsd, ClEurUsd, admin, user, protocol, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
     [ admin, user, protocol, otherUser ] = await ethers.getSigners();
-    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy();
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
+    ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
+    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address,
-      ClEthUsd.address, ClEurUsd.address, protocol.address, TokenManager.address
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address, TokenManager.address
     );
   });
 
@@ -36,7 +35,7 @@ describe('SmartVaultManager', async () => {
 
   describe('TokenManager dependency', async () => {
     it('allows the owner to update the dependency, if not zero address', async () => {
-      const NewTokenManager = await (await ethers.getContractFactory('TokenManager')).deploy();
+      const NewTokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
       let update = VaultManager.connect(user).setTokenManager(NewTokenManager.address);
       await expect(update).to.be.revertedWith('Ownable: caller is not the owner');
 
@@ -46,12 +45,12 @@ describe('SmartVaultManager', async () => {
 
       // not a new address
       update = VaultManager.setTokenManager(NewTokenManager.address);
-      await expect(update).to.be.revertedWith('err-invalid-address');
+      await expect(update).to.be.reverted;
       expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
 
       // address zero
       update = VaultManager.setTokenManager(ethers.constants.AddressZero);
-      await expect(update).to.be.revertedWith('err-invalid-address');
+      await expect(update).to.be.reverted;
       expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
     });
   });
