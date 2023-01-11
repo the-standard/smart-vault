@@ -9,7 +9,7 @@ contract TokenManager is Ownable {
 
     Token[] private acceptedTokens;
 
-    struct Token { string symbol; address addr; string name; uint8 dec; address clAddr; uint8 clDec; }
+    struct Token { bytes32 symbol; address addr; uint8 dec; address clAddr; uint8 clDec; }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
         return acceptedTokens;
@@ -17,21 +17,18 @@ contract TokenManager is Ownable {
 
     function addAcceptedToken(address _token, address _chainlinkFeed) external onlyOwner {
         ERC20 token = ERC20(_token);
-        for (uint256 i = 0; i < acceptedTokens.length; i++) if (eqlStrings(acceptedTokens[i].symbol, token.symbol())) revert("err-token-exists");
+        bytes32 symbol = bytes32(bytes(token.symbol()));
+        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == symbol) revert("err-token-exists");
         IChainlink dataFeed = IChainlink(_chainlinkFeed);
-        acceptedTokens.push(Token(token.symbol(), _token, token.name(), token.decimals(), _chainlinkFeed, dataFeed.decimals()));
+        acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
     }
 
     function removeAcceptedToken(string memory _symbol) external onlyOwner {
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
-            if(eqlStrings(acceptedTokens[i].symbol, _symbol)) {
+            if (acceptedTokens[i].symbol == bytes32(bytes(_symbol))) {
                 acceptedTokens[i] = acceptedTokens[acceptedTokens.length - 1];
                 acceptedTokens.pop();
             }
         }
-    }
-
-    function eqlStrings(string memory _a, string memory _b) private pure returns (bool) {
-        return (keccak256(abi.encodePacked((_a))) == keccak256(abi.encodePacked((_b))));
     }
 }

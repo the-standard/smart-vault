@@ -24,9 +24,8 @@ describe('TokenManager', async () => {
     expect(tokens.length).to.equal(1);
     
     const token = tokens[0];
-    expect(token.symbol).to.equal('USDT');
+    expect(token.symbol).to.equal(ethers.utils.formatBytes32String('USDT'));
     expect(token.addr).to.equal(Tether.address);
-    expect(token.name).to.equal('Tether');
     expect(token.dec).to.equal(6);
     expect(token.clAddr).to.equal(ClUsdUsd.address);
     expect(token.clDec).to.equal(8);
