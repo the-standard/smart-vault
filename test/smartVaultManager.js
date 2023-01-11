@@ -3,14 +3,14 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf } = require('./common');
 
-let VaultManager, Seuro, ClEthUsd, ClEurUsd, admin, user, protocol, otherUser;
+let VaultManager, TokenManager, Seuro, ClEthUsd, ClEurUsd, admin, user, protocol, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
     [ admin, user, protocol, otherUser ] = await ethers.getSigners();
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
+    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
@@ -87,6 +87,29 @@ describe('SmartVaultManager', async () => {
         const { status } = (await VaultManager.connect(user).vaults())[0];
         const ethCollateral = getCollateralOf('ETH', status.collateral).amount;
         expect(ethCollateral).to.equal(value.mul(2));
+      });
+
+      it('facilitates adding ERC20s', async () => {
+        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
+        await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
+        const USDTBytes = ethers.utils.formatBytes32String('USDT');
+        
+        const value = 100000000;
+        await Tether.mint(user.address, value)
+
+        let collateral = VaultManager.connect(otherUser).addCollateral(tokenId, USDTBytes, value);
+        await expect(collateral).to.be.revertedWith('err-not-owner');
+
+        collateral = VaultManager.connect(user).addCollateral(tokenId, USDTBytes, value);
+        await expect(collateral).to.be.revertedWith('ERC20: insufficient allowance');
+
+        await Tether.connect(user).approve(VaultManager.address, value);
+        collateral = VaultManager.connect(user).addCollateral(tokenId, USDTBytes, value);
+        await expect(collateral).not.to.be.reverted;
+        const { status } = (await VaultManager.connect(user).vaults())[0];
+        const ethCollateral = getCollateralOf('USDT', status.collateral).amount;
+        expect(ethCollateral).to.equal(value);
       });
     });
   

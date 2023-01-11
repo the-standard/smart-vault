@@ -3,10 +3,11 @@ pragma solidity 0.8.17;
 
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
+import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
-contract SmartVault {
+contract SmartVault is ISmartVault {
     uint256 private constant HUNDRED_PC = 100000;
     string private constant INVALID_USER = "err-invalid-user";
     bytes32 private constant ETH = bytes32("ETH");
@@ -15,9 +16,6 @@ contract SmartVault {
     uint256 private minted;
     ISmartVaultManager public manager;
     ISEuro public seuro;
-
-    struct Asset { bytes32 symbol; uint256 amount; }
-    struct Status { uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; Asset[] collateral; }
 
     constructor(address _manager, address _owner, address _seuro) {
         owner = _owner;

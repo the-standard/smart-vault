@@ -4,24 +4,30 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "contracts/interfaces/IChainlink.sol";
+import "contracts/interfaces/ITokenManager.sol";
 
-contract TokenManager is Ownable {
+contract TokenManager is ITokenManager, Ownable {
     bytes32 private constant ETH = bytes32("ETH");
 
     Token[] private acceptedTokens;
-    IChainlink public clEthUsd;
-    IChainlink public clEurUsd;
-
-    struct Token { bytes32 symbol; address addr; uint8 dec; address clAddr; uint8 clDec; }
+    address public clEthUsd;
+    address public clEurUsd;
 
     constructor(address _clEthUsd, address _clEurUsd) {
-        clEthUsd = IChainlink(_clEthUsd);
-        clEurUsd = IChainlink(_clEurUsd);
-        acceptedTokens.push(Token(ETH, address(0), 18, _clEthUsd, clEthUsd.decimals()));
+        clEthUsd = _clEthUsd;
+        clEurUsd = _clEurUsd;
+        acceptedTokens.push(Token(ETH, address(0), 18, _clEthUsd, IChainlink(clEthUsd).decimals()));
     }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
         return acceptedTokens;
+    }
+
+    function getAddressOf(bytes32 _symbol) external view returns (address) {
+        for (uint256 i = 0; i < acceptedTokens.length; i++)
+            if (acceptedTokens[i].symbol == _symbol)
+                return acceptedTokens[i].addr;
+        revert("token-not-found");
     }
 
     function addAcceptedToken(address _token, address _chainlinkFeed) external onlyOwner {

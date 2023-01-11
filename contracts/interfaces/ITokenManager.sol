@@ -7,4 +7,6 @@ interface ITokenManager {
     function clEurUsd() external view returns (address);
 
     function getAcceptedTokens() external view returns (Token[] memory);
+
+    function getAddressOf(bytes32 _symbol) external view returns (address);
 }

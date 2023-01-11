@@ -11,6 +11,4 @@ interface ISmartVaultManager {
     function feeRate() external view returns (uint256);
 
     function collateralRate() external view returns (uint256);
-
-    function getAcceptedTokens() external view returns (ITokenManager.Token[] memory);
 }
