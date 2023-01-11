@@ -65,7 +65,7 @@ contract SmartVaultManager is ERC721, Ownable {
 
     function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
         (bool sent,) = vaultAddresses[_tokenId].call{value: msg.value}("");
-        require(sent);
+        require(sent, "err-eth-transfer");
     }
 
     function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
@@ -87,7 +87,7 @@ contract SmartVaultManager is ERC721, Ownable {
     }
 
     function setTokenManager(address _tokenManager) external onlyOwner {
-        require(_tokenManager != address(tokenManager) && _tokenManager != address(0));
+        require(_tokenManager != address(tokenManager) && _tokenManager != address(0), "err-invalid-address");
         tokenManager = _tokenManager;
     }
 }

@@ -47,12 +47,12 @@ describe('SmartVaultManager', async () => {
 
       // not a new address
       update = VaultManager.setTokenManager(NewTokenManager.address);
-      await expect(update).to.be.reverted;
+      await expect(update).to.be.revertedWith('err-invalid-address');
       expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
 
       // address zero
       update = VaultManager.setTokenManager(ethers.constants.AddressZero);
-      await expect(update).to.be.reverted;
+      await expect(update).to.be.revertedWith('err-invalid-address');
       expect(await VaultManager.tokenManager()).to.equal(NewTokenManager.address);
     });
   });
