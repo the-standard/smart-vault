@@ -3,7 +3,8 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "contracts/SmartVault.sol";
+import "contracts/interfaces/ISmartVault.sol";
+import "contracts/interfaces/ISmartVaultDeployer.sol";
 
 contract SmartVaultManager is ERC721, Ownable {
     address public protocol;
@@ -11,19 +12,21 @@ contract SmartVaultManager is ERC721, Ownable {
     uint256 public collateralRate;
     uint256 public feeRate;
     address public tokenManager;
+    ISmartVaultDeployer public smartVaultDeployer;
     mapping(address => uint256[]) private tokenIds;
     mapping(uint256 => address payable) private vaultAddresses;
 
     uint256 private currentToken;
 
-    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; SmartVault.Status status; }
+    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; ISmartVault.Status status; }
 
-    constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager) ERC721("The Standard Smart Vault Manager", "TSVAULTMAN") {
+    constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer) ERC721("The Standard Smart Vault Manager", "TSVAULTMAN") {
         collateralRate = _collateralRate;
         seuro = _seuro;
         feeRate = _feeRate;
         protocol = _protocol;
         tokenManager = _tokenManager;
+        smartVaultDeployer = ISmartVaultDeployer(_smartVaultDeployer);
     }
 
     modifier onlyVaultOwner(uint256 _tokenId) {
@@ -31,8 +34,8 @@ contract SmartVaultManager is ERC721, Ownable {
         _;
     }
 
-    function getVault(uint256 _tokenId) private view returns (SmartVault) {
-        return SmartVault(vaultAddresses[_tokenId]);
+    function getVault(uint256 _tokenId) private view returns (ISmartVault) {
+        return ISmartVault(vaultAddresses[_tokenId]);
     }
 
     function vaults() external view returns (SmartVaultData[] memory) {
@@ -52,8 +55,8 @@ contract SmartVaultManager is ERC721, Ownable {
     }
 
     function mint() external returns (address vault, uint256 tokenId) {
-        SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
-        vault = address(smartVault);
+        // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
+        vault = smartVaultDeployer.deploy(address(this), msg.sender, seuro);
         tokenId = ++currentToken;
         vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);
@@ -80,7 +83,7 @@ contract SmartVaultManager is ERC721, Ownable {
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         removeTokenId(_from, _tokenId);
         tokenIds[_to].push(_tokenId);
-        if (address(_from) != address(0)) SmartVault(vaultAddresses[_tokenId]).setOwner(_to);
+        if (address(_from) != address(0)) ISmartVault(vaultAddresses[_tokenId]).setOwner(_to);
     }
 
     function setTokenManager(address _tokenManager) external onlyOwner {

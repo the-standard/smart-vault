@@ -12,8 +12,10 @@ describe('SmartVaultManager', async () => {
     ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
     const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address, TokenManager.address
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
+      TokenManager.address, SmartVaultDeployer.address
     );
   });
 
