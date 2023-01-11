@@ -1,6 +1,6 @@
 const { ethers } = require('hardhat');
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
 
 let VaultManager, Vault, user, otherUser, protocol;
 
@@ -23,18 +23,17 @@ describe('SmartVault', async () => {
   describe('collateral', async () => {
     it('only allows the vault owner to add collateral directly to smart vault', async () => {
       const value = ethers.utils.parseEther('1');
-      let collateral = Vault.connect(otherUser).addCollateralETH({value});
-      await expect(collateral).to.be.revertedWith('err-not-owner');
+      await user.sendTransaction({to: Vault.address, value});
 
-      collateral = Vault.connect(user).addCollateralETH({value});
-      await expect(collateral).not.to.be.reverted;
+      const { collateral } = await Vault.status();
+      expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
     });
   });
 
   describe('minting', async () => {
     it('only allows the vault owner to mint from smart vault directly', async () => {
       const value = ethers.utils.parseEther('1');
-      await Vault.connect(user).addCollateralETH({value});
+      await user.sendTransaction({to: Vault.address, value});
       
       let mint = Vault.connect(otherUser).mint(user.address, value);
       await expect(mint).to.be.revertedWith('err-not-owner');

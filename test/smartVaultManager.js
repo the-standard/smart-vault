@@ -1,6 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC } = require('./common');
+const { BigNumber } = ethers;
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf } = require('./common');
 
 let VaultManager, Seuro, admin, user, protocol, otherUser;
 
@@ -23,8 +24,11 @@ describe('SmartVaultManager', async () => {
       
       const vaults = await VaultManager.connect(user).vaults();
       expect(vaults).to.be.length(1);
-      expect(vaults[0].collateral).to.equal(0);
-      expect(vaults[0].minted).to.equal(0);
+      const totalCollateral = vaults[0].status.collateral.reduce((a, b) => a.add(b.amount), BigNumber.from(0));
+      expect(totalCollateral).to.equal(0);
+      expect(vaults[0].status.minted).to.equal(0);
+      expect(vaults[0].status.maxMintable).to.equal(0);
+      expect(vaults[0].status.currentCollateralPercentage).to.equal(0);
       expect(vaults[0].collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
       expect(vaults[0].feeRate).to.equal(PROTOCOL_FEE_RATE);
     });
@@ -69,8 +73,9 @@ describe('SmartVaultManager', async () => {
 
         collateral = VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
         await expect(collateral).not.to.be.reverted;
-        const vault = (await VaultManager.connect(user).vaults())[0];
-        expect(vault.collateral).to.equal(value);
+        const { status } = (await VaultManager.connect(user).vaults())[0];
+        const ethCollateral = getCollateralOf('ETH', status.collateral).amount;
+        expect(ethCollateral).to.equal(value);
       });
   
       it('allows adding collateral multiple times', async () => {
@@ -78,8 +83,9 @@ describe('SmartVaultManager', async () => {
         // add 1 eth twice
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
-        const vault = (await VaultManager.connect(user).vaults())[0];
-        expect(vault.collateral).to.equal(value.mul(2));
+        const { status } = (await VaultManager.connect(user).vaults())[0];
+        const ethCollateral = getCollateralOf('ETH', status.collateral).amount;
+        expect(ethCollateral).to.equal(value.mul(2));
       });
     });
   
@@ -96,11 +102,11 @@ describe('SmartVaultManager', async () => {
         mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, maxMint);
         await expect(mint).not.to.be.reverted;
 
-        const vault = (await VaultManager.connect(user).vaults())[0];
-        expect(vault.collateral).to.equal(collateralValue);
-        expect(vault.minted).to.equal(maxMint);
-        expect(vault.maxMintable).to.equal(maxMint);
-        expect(vault.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
+        const { status } = (await VaultManager.connect(user).vaults())[0];
+        expect(getCollateralOf('ETH', status.collateral).amount).to.equal(collateralValue);
+        expect(status.minted).to.equal(maxMint);
+        expect(status.maxMintable).to.equal(maxMint);
+        expect(status.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
   
         // should overflow into under-collateralised
         mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, 1);

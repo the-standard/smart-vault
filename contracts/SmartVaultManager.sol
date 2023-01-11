@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/SmartVault.sol";
-import "contracts/TokenManager.sol";
+import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVaultManager is ERC721, Ownable {
     uint256 public constant hundredPC = 100000;
@@ -16,24 +16,22 @@ contract SmartVaultManager is ERC721, Ownable {
     uint256 public feeRate;
     IChainlink public clEthUsd;
     IChainlink public clEurUsd;
-    TokenManager public tokenManager;
-    Token[] public acceptedTokens;
+    ITokenManager public tokenManager;
     mapping(address => uint256[]) public tokenIds;
-    mapping(uint256 => address) public vaultAddresses;
+    mapping(uint256 => address payable) public vaultAddresses;
 
     uint256 private currentToken;
 
-    struct Token { string symbol; address addr; address clAddr; }
-    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateral; uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; uint256 collateralRate; uint256 feeRate; }
+    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; SmartVault.Status status; }
 
-    constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _clEthUsd, address _clEurUsd, address _protocol, address _tokenManager) ERC721("The Standard Smart Vault Manager", "TSTVAULTMAN") {
+    constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _clEthUsd, address _clEurUsd, address _protocol, address _tokenManager) ERC721("The Standard Smart Vault Manager", "TSVAULTMAN") {
         collateralRate = _collateralRate;
         clEthUsd = IChainlink(_clEthUsd);
         clEurUsd = IChainlink(_clEurUsd);
         seuro = _seuro;
         feeRate = _feeRate;
         protocol = _protocol;
-        tokenManager = TokenManager(_tokenManager);
+        tokenManager = ITokenManager(_tokenManager);
     }
 
     modifier onlyVaultOwner(uint256 _tokenId) {
@@ -50,16 +48,12 @@ contract SmartVaultManager is ERC721, Ownable {
         SmartVaultData[] memory vaultData = new SmartVaultData[](userTokens.length);
         for (uint256 i = 0; i < userTokens.length; i++) {
             uint256 tokenId = userTokens[i];
-            SmartVault.Status memory status = getVault(tokenId).status();
             vaultData[i] = SmartVaultData({
                 tokenId: tokenId,
                 vaultAddress: vaultAddresses[tokenId],
-                collateral: status.collateral,
-                minted: status.minted,
-                maxMintable: status.maxMintable,
-                currentCollateralPercentage: status.currentCollateralPercentage,
                 collateralRate: collateralRate,
-                feeRate: feeRate
+                feeRate: feeRate,
+                status: getVault(tokenId).status()
             });
         }
         return vaultData;
@@ -69,13 +63,14 @@ contract SmartVaultManager is ERC721, Ownable {
         SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = address(smartVault);
         tokenId = ++currentToken;
-        vaultAddresses[tokenId] = vault;
+        vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);
         // TODO give minter rights to new vault (manager will have to be minter admin)
     }
 
     function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
-        getVault(_tokenId).addCollateralETH{value: msg.value}();
+        (bool sent,) = vaultAddresses[_tokenId].call{value: msg.value}("");
+        require(sent, "err-send-eth");
     }
 
     function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
@@ -98,6 +93,6 @@ contract SmartVaultManager is ERC721, Ownable {
 
     function setTokenManager(address _tokenManager) external onlyOwner {
         require(_tokenManager != address(tokenManager) && _tokenManager != address(0), "err-invalid-address");
-        tokenManager = TokenManager(_tokenManager);
+        tokenManager = ITokenManager(_tokenManager);
     }
 }
