@@ -1,6 +1,7 @@
+require('dotenv').config();
 require("@nomicfoundation/hardhat-toolbox");
 require('hardhat-contract-sizer');
-require('dotenv').config();
+require('solidity-coverage')
 
 const { INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
