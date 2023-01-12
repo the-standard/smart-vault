@@ -1,4 +1,5 @@
 const { ethers } = require('hardhat');
+const { BigNumber } = ethers;
 const { expect } = require('chai');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
 
@@ -26,22 +27,49 @@ describe('SmartVault', async () => {
     const value = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value});
 
-      const { collateral } = await Vault.status();
+      const { collateral, maxMintable } = await Vault.status();
       expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
+      const euroCollateral = value.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
+      const maximumMint = euroCollateral.mul(100).div(120);
+      expect(maxMintable).to.equal(maximumMint);
     });
 
-    it('accepts certain ERC20s as collateral', async () => {
+    it('accepts certain 6 decimal ERC20s as collateral', async () => {
       const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
+      const clUsdUsdPrice = 100000000;
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
       await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
       // mint user 100 USDT
-      const value = 100000000;
+      const value = BigNumber.from(100000000);
       await Tether.mint(user.address, value);
 
       await Tether.connect(user).transfer(Vault.address, value);
 
-      const { collateral } = await Vault.status();
+      const { collateral, maxMintable } = await Vault.status();
       expect(getCollateralOf('USDT', collateral).amount).to.equal(value);
+      // scale up power of twelve because usdt is 6 dec
+      const euroCollateral = value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
+      const maximumMint = euroCollateral.mul(100).div(120);
+      expect(maxMintable).to.equal(maximumMint);
+    });
+
+    it('accepts certain 18 decimal ERC20s as collateral', async () => {
+      const Dai = await (await ethers.getContractFactory('ERC20Mock')).deploy('Dai Stablecoin', 'DAI', 18);
+      const clUsdUsdPrice = 100000000;
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
+      await TokenManager.addAcceptedToken(Dai.address, ClUsdUsd.address);
+      // mint user 100 DAI
+      const value = ethers.utils.parseEther('100');
+      await Dai.mint(user.address, value);
+
+      await Dai.connect(user).transfer(Vault.address, value);
+
+      const { collateral, maxMintable } = await Vault.status();
+      expect(getCollateralOf('DAI', collateral).amount).to.equal(value);
+      // scale up power of twelve because usdt is 6 dec
+      const euroCollateral = value.mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
+      const maximumMint = euroCollateral.mul(100).div(120);
+      expect(maxMintable).to.equal(maximumMint);
     });
   });
 

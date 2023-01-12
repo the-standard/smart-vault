@@ -4,12 +4,15 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
+    using SafeERC20 for IERC20;
+    
     address public protocol;
     address public seuro;
     uint256 public collateralRate;
@@ -72,9 +75,8 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     }
 
     function addCollateral(uint256 _tokenId, bytes32 _token, uint256 _value) external onlyVaultOwner(_tokenId) {
-        SafeERC20.safeTransferFrom(
-            IERC20(ITokenManager(tokenManager).getAddressOf(_token)),
-            msg.sender, vaultAddresses[_tokenId], _value);
+        IERC20(ITokenManager(tokenManager).getAddressOf(_token))
+            .safeTransferFrom(msg.sender, vaultAddresses[_tokenId], _value);
     }
 
     function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {

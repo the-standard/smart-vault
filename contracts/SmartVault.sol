@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/ISmartVault.sol";
@@ -46,8 +47,11 @@ contract SmartVault is ISmartVault {
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
             IChainlink tokenUsdClFeed = IChainlink(acceptedTokens[i].clAddr);
-            uint256 decDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
-            euros += getCollateral(token.symbol, token.addr) * 10 ** decDiff * uint256(tokenUsdClFeed.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+            uint256 clDecDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
+            // TODO refactor this
+            uint256 tokenDecDiff;
+            if (token.symbol != ETH) tokenDecDiff = 18 - ERC20(token.addr).decimals();
+            euros += getCollateral(token.symbol, token.addr) * 10 ** tokenDecDiff * 10 ** clDecDiff * uint256(tokenUsdClFeed.latestAnswer()) / uint256(clEurUsd.latestAnswer());
         }
     }
 
