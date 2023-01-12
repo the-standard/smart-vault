@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
@@ -63,6 +64,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     function mint() external returns (address vault, uint256 tokenId) {
         // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = smartVaultDeployer.deploy(address(this), msg.sender, seuro);
+        ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         tokenId = ++currentToken;
         vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);

@@ -10,13 +10,14 @@ describe('SmartVault', async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const Seuro = await (await ethers.getContractFactory('ERC20Mock')).deploy('sEURO', 'SEURO', 18);
+    const Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address
     );
+    await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const { vaultAddress } = (await VaultManager.connect(user).vaults())[0];
     Vault = await ethers.getContractAt('SmartVault', vaultAddress);
