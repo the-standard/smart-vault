@@ -64,11 +64,10 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     function mint() external returns (address vault, uint256 tokenId) {
         // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = smartVaultDeployer.deploy(address(this), msg.sender, seuro);
-        ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         tokenId = ++currentToken;
         vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);
-        // TODO give minter rights to new vault (manager will have to be minter admin)
+        ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
     }
 
     function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
