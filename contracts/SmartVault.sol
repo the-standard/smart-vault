@@ -105,8 +105,11 @@ contract SmartVault is ISmartVault {
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
-        minted -= _amount;
-        seuro.burn(msg.sender, _amount);
+        uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
+        uint256 burnValue = _amount - fee;
+        minted -= burnValue;
+        seuro.burn(msg.sender, burnValue);
+        IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

@@ -87,6 +87,9 @@ describe('SmartVault', async () => {
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
       expect(minted).to.equal(mintedValue);
+
+      const fee = mintedValue.div(100)
+      expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue.sub(fee));
     });
   });
 
@@ -101,14 +104,22 @@ describe('SmartVault', async () => {
 
       const mintedValue = ethers.utils.parseEther('100');
       await Vault.connect(user).mint(user.address, mintedValue);
-      let minted = (await Vault.status()).minted;
-      expect(minted).to.equal(mintedValue);
 
+      burn = Vault.connect(user).burn(burnedValue);
+      await expect(burn).to.be.revertedWith('ERC20: insufficient allowance');
+
+      const mintingFee = mintedValue.div(100);
+      const burningFee = burnedValue.div(100);
+
+      // must allow transfer to protocol
+      await Seuro.connect(user).approve(Vault.address, burningFee);
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).not.to.be.reverted;
 
       minted = (await Vault.status()).minted;
-      expect(minted).to.equal(mintedValue.sub(burnedValue));
+      expect(minted).to.equal(mintedValue.sub(burnedValue.sub(burningFee)));
+
+      expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(mintingFee).sub(burningFee));
     });
   });
 
