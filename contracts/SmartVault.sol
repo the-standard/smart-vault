@@ -47,11 +47,11 @@ contract SmartVault is ISmartVault {
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
             IChainlink tokenUsdClFeed = IChainlink(acceptedTokens[i].clAddr);
-            uint256 clDecDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
+            uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
             // TODO refactor this
-            uint256 tokenDecDiff;
-            if (token.symbol != ETH) tokenDecDiff = 18 - ERC20(token.addr).decimals();
-            euros += getCollateral(token.symbol, token.addr) * 10 ** tokenDecDiff * 10 ** clDecDiff * uint256(tokenUsdClFeed.latestAnswer()) / uint256(clEurUsd.latestAnswer());
+            uint256 scaledCollateral = getCollateral(token.symbol, token.addr) * 10 ** getTokenScaleDiff(token.symbol, token.addr);
+            uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * uint256(tokenUsdClFeed.latestAnswer());
+            euros += collateralUsd / uint256(clEurUsd.latestAnswer());
         }
     }
 
@@ -63,9 +63,12 @@ contract SmartVault is ISmartVault {
         return minted == 0 ? 0 : euroCollateral() * HUNDRED_PC / minted;
     }
 
-    function getCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256) {
-        if (_symbol == ETH) return address(this).balance;
-        return IERC20(_tokenAddress).balanceOf(address(this));
+    function getTokenScaleDiff(bytes32 _symbol, address _tokenAddress) private view returns (uint256 scaleDiff) {
+        return _symbol == ETH ? 0 : 18 - ERC20(_tokenAddress).decimals();
+    }
+
+    function getCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
+        return _symbol == ETH ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
 
     function getAssets() private view returns (Asset[] memory) {
