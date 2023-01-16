@@ -2,6 +2,8 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/ISmartVault.sol";
@@ -9,6 +11,8 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVault is ISmartVault {
+    using SafeERC20 for IERC20;
+
     uint256 private constant HUNDRED_PC = 100000;
     string private constant INVALID_USER = "err-invalid-user";
     bytes32 private constant ETH = bytes32("ETH");
@@ -37,6 +41,11 @@ contract SmartVault is ISmartVault {
     modifier ifFullyCollateralised(uint256 _amount) {
         uint256 potentialMinted = minted + _amount;
         require(potentialMinted <= maxMintable(), "err-under-coll");
+        _;
+    }
+
+    modifier ifMinted(uint256 _amount) {
+        require(minted >= _amount, "err-insuff-minted");
         _;
     }
 
@@ -93,6 +102,11 @@ contract SmartVault is ISmartVault {
         uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
         seuro.mint(_to, _amount - fee);
         seuro.mint(manager.protocol(), fee);
+    }
+
+    function burn(uint256 _amount) external ifMinted(_amount) {
+        minted -= _amount;
+        seuro.burn(msg.sender, _amount);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

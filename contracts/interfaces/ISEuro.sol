@@ -6,5 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 interface ISEuro is IERC20, IAccessControl {
     function MINTER_ROLE() external returns (bytes32);
+    function BURNER_ROLE() external returns (bytes32);
     function mint(address to, uint256 amount) external;
+    function burn(address from, uint256 amount) external;
 }

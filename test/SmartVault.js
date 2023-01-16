@@ -3,14 +3,14 @@ const { BigNumber } = ethers;
 const { expect } = require('chai');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
 
-let VaultManager, Vault, TokenManager, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, Seuro, admin, user, otherUser, protocol;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
-    const Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
@@ -76,14 +76,39 @@ describe('SmartVault', async () => {
 
   describe('minting', async () => {
     it('only allows the vault owner to mint from smart vault directly', async () => {
-      const value = ethers.utils.parseEther('1');
-      await user.sendTransaction({to: Vault.address, value});
+      const collateral = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value: collateral});
       
-      let mint = Vault.connect(otherUser).mint(user.address, value);
+      const mintedValue = ethers.utils.parseEther('100');
+      let mint = Vault.connect(otherUser).mint(user.address, mintedValue);
       await expect(mint).to.be.revertedWith('err-invalid-user');
 
-      mint = Vault.connect(user).mint(user.address, value);
+      mint = Vault.connect(user).mint(user.address, mintedValue);
       await expect(mint).not.to.be.reverted;
+      const { minted } = await Vault.status();
+      expect(minted).to.equal(mintedValue);
+    });
+  });
+
+  describe('burning', async () => {
+    it('allows burning of sEURO if there is a minted amount, charges a fee', async () => {
+      const collateral = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value: collateral});
+
+      const burnedValue = ethers.utils.parseEther('50');
+      let burn = Vault.connect(user).burn(burnedValue);
+      await expect(burn).to.be.revertedWith('err-insuff-minted');
+
+      const mintedValue = ethers.utils.parseEther('100');
+      await Vault.connect(user).mint(user.address, mintedValue);
+      let minted = (await Vault.status()).minted;
+      expect(minted).to.equal(mintedValue);
+
+      burn = Vault.connect(user).burn(burnedValue);
+      await expect(burn).not.to.be.reverted;
+
+      minted = (await Vault.status()).minted;
+      expect(minted).to.equal(mintedValue.sub(burnedValue));
     });
   });
 
