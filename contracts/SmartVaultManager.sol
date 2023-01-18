@@ -15,7 +15,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     using SafeERC20 for IERC20;
     
     address public protocol;
-    address public seuro;
+    ISEuro public seuro;
     uint256 public collateralRate;
     uint256 public feeRate;
     address public tokenManager;
@@ -29,7 +29,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
 
     constructor(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer) ERC721("The Standard Smart Vault Manager", "TSVAULTMAN") {
         collateralRate = _collateralRate;
-        seuro = _seuro;
+        seuro = ISEuro(_seuro);
         feeRate = _feeRate;
         protocol = _protocol;
         tokenManager = _tokenManager;
@@ -63,12 +63,12 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
 
     function mint() external returns (address vault, uint256 tokenId) {
         // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
-        vault = smartVaultDeployer.deploy(address(this), msg.sender, seuro);
+        vault = smartVaultDeployer.deploy(address(this), msg.sender, address(seuro));
         tokenId = ++currentToken;
         vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);
-        ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
-        ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
+        seuro.grantRole(seuro.MINTER_ROLE(), vault);
+        seuro.grantRole(seuro.BURNER_ROLE(), vault);
     }
 
     function addCollateralETH(uint256 _tokenId) external payable onlyVaultOwner(_tokenId) {
@@ -83,6 +83,13 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
 
     function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
         getVault(_tokenId).mint(_to, _amount);
+    }
+
+    function burnSEuro(uint256 _tokenId, uint256 _amount) external {
+        ISmartVault vault = getVault(_tokenId);
+        SafeERC20.safeTransferFrom(seuro, msg.sender, address(this), _amount);
+        SafeERC20.safeApprove(seuro, address(vault), _amount);
+        vault.burn(_amount);
     }
 
     function removeTokenId(address _user, uint256 _tokenId) private {

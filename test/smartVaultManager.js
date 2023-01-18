@@ -138,6 +138,36 @@ describe('SmartVaultManager', async () => {
         await expect(mint).to.be.revertedWith('err-under-coll');
       });
     });
+
+    describe('burning', async () => {
+      it('allows burning of sEURO through manager', async () => {
+        const collateralValue = ethers.utils.parseEther('1');
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
+
+        const mintValue = ethers.utils.parseEther('100');
+        await VaultManager.connect(user).mintSEuro(tokenId, user.address, mintValue);
+
+        // user only has 99 because of minting fee
+        const burnValue = ethers.utils.parseEther('99');
+
+        // have to approve manager to control seuro to be burned
+        let burn = VaultManager.connect(user).burnSEuro(tokenId, burnValue);
+        await expect(burn).to.be.revertedWith('ERC20: insufficient allowance');
+
+        // user has to have the seuro balance to burn
+        await Seuro.connect(otherUser).approve(VaultManager.address, burnValue);
+        burn = VaultManager.connect(otherUser).burnSEuro(tokenId, burnValue);
+        await expect(burn).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+
+        await Seuro.connect(user).approve(VaultManager.address, burnValue);
+        burn = VaultManager.connect(user).burnSEuro(tokenId, burnValue);
+        await expect(burn).not.to.be.reverted;
+
+        const { status } = (await VaultManager.connect(user).vaults())[0];
+        // user was only able to pay back 98.01, due 1% minting fee and 1% burning fee
+        expect(status.minted).to.equal(ethers.utils.parseEther('1.99'));
+      });
+    });
   
     describe('protocol fees', async () => {
       it('will send fee to protocol when minting', async () => {
