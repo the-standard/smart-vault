@@ -8,5 +8,7 @@ interface ITokenManager {
 
     function getAcceptedTokens() external view returns (Token[] memory);
 
+    function getToken(bytes32 _symbol) external view returns (Token memory);
+
     function getAddressOf(bytes32 _symbol) external view returns (address);
 }

@@ -23,9 +23,16 @@ describe('SmartVault', async () => {
     Vault = await ethers.getContractAt('SmartVault', vaultAddress);
   });
 
-  describe('collateral', async () => {
+  describe('ownership', async () => {
+    it('will not allow setting of new owner if not manager', async () => {
+      const ownerUpdate = Vault.connect(user).setOwner(otherUser.address);
+      await expect(ownerUpdate).to.be.revertedWith('err-invalid-user');
+    });
+  });
+
+  describe('adding collateral', async () => {
     it('accepts ETH as collateral', async () => {
-    const value = ethers.utils.parseEther('1');
+      const value = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value});
 
       const { collateral, maxMintable } = await Vault.status();
@@ -71,6 +78,31 @@ describe('SmartVault', async () => {
       const euroCollateral = value.mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
       const maximumMint = euroCollateral.mul(100).div(120);
       expect(maxMintable).to.equal(maximumMint);
+    });
+  });
+
+  describe('removing collateral', async () => {
+    it('allows removal of ETH if owner and it will not undercollateralise vault', async () => {
+      const value = ethers.utils.parseEther('1');
+      const half = value.div(2);
+      await user.sendTransaction({to: Vault.address, value});
+
+      let { collateral, maxMintable } = await Vault.status();
+      expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
+
+      let remove = Vault.connect(otherUser).removeCollateralETH(value, user.address);
+      await expect(remove).to.be.revertedWith('err-invalid-user');
+
+      remove = Vault.connect(user).removeCollateralETH(half, user.address);
+      await expect(remove).not.to.be.reverted;
+      ({ collateral, maxMintable } = await Vault.status());
+      expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
+
+      // mint max seuro
+      await Vault.connect(user).mint(user.address, maxMintable);
+
+      remove = Vault.connect(user).removeCollateralETH(half, user.address);
+      await expect(remove).to.be.revertedWith('err-under-coll');
     });
   });
 
@@ -120,13 +152,6 @@ describe('SmartVault', async () => {
       expect(minted).to.equal(mintedValue.sub(burnedValue.sub(burningFee)));
 
       expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(mintingFee).sub(burningFee));
-    });
-  });
-
-  describe('ownership', async () => {
-    it('will not allow setting of new owner if not manager', async () => {
-      const ownerUpdate = Vault.connect(user).setOwner(otherUser.address);
-      await expect(ownerUpdate).to.be.revertedWith('err-invalid-user');
     });
   });
 });

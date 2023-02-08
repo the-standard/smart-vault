@@ -15,6 +15,7 @@ contract SmartVault is ISmartVault {
 
     uint256 private constant HUNDRED_PC = 100000;
     string private constant INVALID_USER = "err-invalid-user";
+    string private constant UNDER_COLL = "err-under-coll";
     bytes32 private constant ETH = bytes32("ETH");
 
     address public owner;
@@ -38,9 +39,23 @@ contract SmartVault is ISmartVault {
         _;
     }
 
+    modifier onlyOwner {
+        require(msg.sender == owner, INVALID_USER);
+        _;
+    }
+
     modifier ifFullyCollateralised(uint256 _amount) {
         uint256 potentialMinted = minted + _amount;
-        require(potentialMinted <= maxMintable(), "err-under-coll");
+        require(potentialMinted <= maxMintable(), UNDER_COLL);
+        _;
+    }
+
+    modifier ifCanRemoveCollateral(bytes32 _symbol, uint256 _amount) {
+        ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
+        uint256 currentMintable = maxMintable();
+        uint256 eurValueToRemove = tokenToEur(token, _amount);
+        require(currentMintable >= eurValueToRemove, UNDER_COLL);
+        require(minted <= currentMintable - eurValueToRemove, UNDER_COLL);
         _;
     }
 
@@ -49,18 +64,26 @@ contract SmartVault is ISmartVault {
         _;
     }
 
+    function getTokenManager() private view returns (ITokenManager) {
+        return ITokenManager(manager.tokenManager());
+    }
+
+    function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) private view returns (uint256) {
+        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+        IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
+        IChainlink tokenUsdClFeed = IChainlink(_token.clAddr);
+        uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
+        uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
+        uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * uint256(tokenUsdClFeed.latestAnswer());
+        return collateralUsd / uint256(clEurUsd.latestAnswer());
+    }
+
     function euroCollateral() private view returns (uint256 euros) {
         ITokenManager tokenManager = ITokenManager(manager.tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
-        IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            IChainlink tokenUsdClFeed = IChainlink(acceptedTokens[i].clAddr);
-            uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
-            // TODO refactor this
-            uint256 scaledCollateral = getCollateral(token.symbol, token.addr) * 10 ** getTokenScaleDiff(token.symbol, token.addr);
-            uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * uint256(tokenUsdClFeed.latestAnswer());
-            euros += collateralUsd / uint256(clEurUsd.latestAnswer());
+            euros += tokenToEur(token, getAssetCollateral(token.symbol, token.addr));
         }
     }
 
@@ -76,7 +99,7 @@ contract SmartVault is ISmartVault {
         return _symbol == ETH ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
-    function getCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
+    function getAssetCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
         return _symbol == ETH ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
 
@@ -86,7 +109,7 @@ contract SmartVault is ISmartVault {
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            assets[i] = Asset(token.symbol, getCollateral(token.symbol, token.addr));
+            assets[i] = Asset(token.symbol, getAssetCollateral(token.symbol, token.addr));
         }
         return assets;
     }
@@ -96,6 +119,11 @@ contract SmartVault is ISmartVault {
     }
 
     receive() external payable {}
+
+    function removeCollateralETH(uint256 _amount, address payable _to) external onlyOwner ifCanRemoveCollateral(ETH, _amount) {
+        (bool sent,) = _to.call{value: _amount}("");
+        require(sent, "err-eth-call");
+    }
 
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {
         minted += _amount;
