@@ -125,6 +125,10 @@ contract SmartVault is ISmartVault {
         require(sent, "err-eth-call");
     }
 
+    function removeCollateral(bytes32 _symbol, uint256 _amount, address payable _to) external onlyOwner ifCanRemoveCollateral(_symbol, _amount) {
+        IERC20(getTokenManager().getAddressOf(_symbol)).safeTransfer(_to, _amount);
+    }
+
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {
         minted += _amount;
         uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;

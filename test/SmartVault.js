@@ -101,7 +101,38 @@ describe('SmartVault', async () => {
       // mint max seuro
       await Vault.connect(user).mint(user.address, maxMintable);
 
-      remove = Vault.connect(user).removeCollateralETH(half, user.address);
+      // cannot remove any eth
+      remove = Vault.connect(user).removeCollateralETH(1, user.address);
+      await expect(remove).to.be.revertedWith('err-under-coll');
+    });
+
+    it('allows removal of ERC20 if owner and it will not undercollateralise vault', async () => {
+      const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+      const clUsdUsdPrice = 100000000;
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
+      await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
+
+      // 1000 USDT
+      const value = 1000000000;
+      const half = value / 2;
+      await Tether.mint(Vault.address, value);
+
+      let { collateral, maxMintable } = await Vault.status();
+      expect(getCollateralOf('USDT', collateral).amount).to.equal(value);
+
+      let remove = Vault.connect(otherUser).removeCollateral(ethers.utils.formatBytes32String('USDT'), value, user.address);
+      await expect(remove).to.be.revertedWith('err-invalid-user');
+
+      remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), half, user.address);
+      await expect(remove).not.to.be.reverted;
+      ({ collateral, maxMintable } = await Vault.status());
+      expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
+
+      // mint max seuro
+      await Vault.connect(user).mint(user.address, maxMintable);
+
+      // cannot remove any eth
+      remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), 1, user.address);
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
   });
