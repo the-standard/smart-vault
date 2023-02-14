@@ -81,8 +81,8 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
             .safeTransferFrom(msg.sender, vaultAddresses[_tokenId], _value);
     }
 
-    function mintSEuro(uint256 _tokenId, address _to, uint256 _amount) external onlyVaultOwner(_tokenId) {
-        getVault(_tokenId).mint(_to, _amount);
+    function mintSEuro(uint256 _tokenId, uint256 _amount) external onlyVaultOwner(_tokenId) {
+        getVault(_tokenId).mint(msg.sender, _amount);
     }
 
     function burnSEuro(uint256 _tokenId, uint256 _amount) external {

@@ -121,10 +121,10 @@ describe('SmartVaultManager', async () => {
         const maxMint = eurCollateralValue.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
 
-        let mint = VaultManager.connect(otherUser).mintSEuro(tokenId, user.address, maxMint);
+        let mint = VaultManager.connect(otherUser).mintSEuro(tokenId, maxMint);
         await expect(mint).to.be.revertedWith('err-not-owner');
   
-        mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, maxMint);
+        mint = VaultManager.connect(user).mintSEuro(tokenId, maxMint);
         await expect(mint).not.to.be.reverted;
 
         const { status } = (await VaultManager.connect(user).vaults())[0];
@@ -134,7 +134,7 @@ describe('SmartVaultManager', async () => {
         expect(status.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
   
         // should overflow into under-collateralised
-        mint = VaultManager.connect(user).mintSEuro(tokenId, user.address, 1);
+        mint = VaultManager.connect(user).mintSEuro(tokenId, 1);
         await expect(mint).to.be.revertedWith('err-under-coll');
       });
     });
@@ -145,7 +145,7 @@ describe('SmartVaultManager', async () => {
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
 
         const mintValue = ethers.utils.parseEther('100');
-        await VaultManager.connect(user).mintSEuro(tokenId, user.address, mintValue);
+        await VaultManager.connect(user).mintSEuro(tokenId, mintValue);
 
         // user only has 99 because of minting fee
         const burnValue = ethers.utils.parseEther('99');
@@ -177,7 +177,7 @@ describe('SmartVaultManager', async () => {
         const mintAmount = ethers.utils.parseEther('100');
         const mintFee = mintAmount.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
   
-        await VaultManager.connect(user).mintSEuro(tokenId, user.address, mintAmount);
+        await VaultManager.connect(user).mintSEuro(tokenId, mintAmount);
   
         expect(await Seuro.balanceOf(user.address)).to.equal(mintAmount.sub(mintFee));
         expect(await Seuro.balanceOf(protocol.address)).to.equal(mintFee);
