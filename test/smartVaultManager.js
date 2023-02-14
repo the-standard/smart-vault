@@ -66,7 +66,7 @@ describe('SmartVaultManager', async () => {
       ({ tokenId } = (await VaultManager.connect(user).vaults())[0]);
     });
 
-    describe('addCollateralETH', async () => {
+    describe('addCollateral', async () => {
       it('accepts ETH as collateral, if sent by vault owner', async () => {
         const value = ethers.utils.parseEther('1');
 
@@ -111,6 +111,43 @@ describe('SmartVaultManager', async () => {
         const { status } = (await VaultManager.connect(user).vaults())[0];
         const ethCollateral = getCollateralOf('USDT', status.collateral).amount;
         expect(ethCollateral).to.equal(value);
+      });
+    });
+
+    describe('removing collateral', async () => {
+      it('allows removal of ETH if it will not under collateralise vault', async () => {
+        const value = ethers.utils.parseEther('1');
+
+        await VaultManager.connect(user).addCollateralETH(tokenId, {value: value});
+
+        let { status } = (await VaultManager.connect(user).vaults())[0];
+        expect(getCollateralOf('ETH', status.collateral).amount).to.equal(value);
+
+        await VaultManager.connect(user).removeCollateralETH(tokenId, value);
+
+        ({ status } = (await VaultManager.connect(user).vaults())[0]);
+        expect(getCollateralOf('ETH', status.collateral).amount).to.equal(0);
+      });
+
+      it('allows removal of ERC20 if it will not under collateralise vault', async () => {
+        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
+        await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
+        const USDTBytes = ethers.utils.formatBytes32String('USDT');
+
+        const value = 1000000000;
+        await Tether.mint(user.address, value)
+        await Tether.connect(user).approve(VaultManager.address, value);
+
+        await VaultManager.connect(user).addCollateral(tokenId, USDTBytes, value);
+
+        let { status } = (await VaultManager.connect(user).vaults())[0];
+        expect(getCollateralOf('USDT', status.collateral).amount).to.equal(value);
+
+        await VaultManager.connect(user).removeCollateral(tokenId, USDTBytes, value);
+        
+        ({ status } = (await VaultManager.connect(user).vaults())[0]);
+        expect(getCollateralOf('USDT', status.collateral).amount).to.equal(0);
       });
     });
   
