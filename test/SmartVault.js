@@ -135,6 +135,20 @@ describe('SmartVault', async () => {
       remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), 1, user.address);
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
+
+    it('allows removal of ERC20s that are not valid collateral', async () => {
+      const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+      const value = 1000000000;
+      await Tether.mint(Vault.address, value);
+
+      let { collateral, maxMintable } = await Vault.status();
+      expect(getCollateralOf('USDT', collateral)).to.be.undefined;
+      expect(maxMintable).to.equal(0);
+
+      await Vault.connect(user).removeAsset(Tether.address, value, user.address);
+      expect(await Tether.balanceOf(Vault.address)).to.equal(0);
+      expect(await Tether.balanceOf(user.address)).to.equal(value);
+    })
   });
 
   describe('minting', async () => {

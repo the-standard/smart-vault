@@ -50,15 +50,6 @@ contract SmartVault is ISmartVault {
         _;
     }
 
-    modifier ifCanRemoveCollateral(bytes32 _symbol, uint256 _amount) {
-        ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
-        uint256 currentMintable = maxMintable();
-        uint256 eurValueToRemove = tokenToEur(token, _amount);
-        require(currentMintable >= eurValueToRemove, UNDER_COLL);
-        require(minted <= currentMintable - eurValueToRemove, UNDER_COLL);
-        _;
-    }
-
     modifier ifMinted(uint256 _amount) {
         require(minted >= _amount, "err-insuff-minted");
         _;
@@ -120,13 +111,30 @@ contract SmartVault is ISmartVault {
 
     receive() external payable {}
 
-    function removeCollateralETH(uint256 _amount, address payable _to) external onlyOwner ifCanRemoveCollateral(ETH, _amount) {
+    function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
+        uint256 currentMintable = maxMintable();
+        uint256 eurValueToRemove = tokenToEur(_token, _amount);
+        return currentMintable >= eurValueToRemove &&
+            minted <= currentMintable - eurValueToRemove;
+    }
+
+    function removeCollateralETH(uint256 _amount, address payable _to) external onlyOwner {
+        require(canRemoveCollateral(getTokenManager().getToken(ETH), _amount), UNDER_COLL);
         (bool sent,) = _to.call{value: _amount}("");
         require(sent, "err-eth-call");
     }
 
-    function removeCollateral(bytes32 _symbol, uint256 _amount, address payable _to) external onlyOwner ifCanRemoveCollateral(_symbol, _amount) {
-        IERC20(getTokenManager().getAddressOf(_symbol)).safeTransfer(_to, _amount);
+    function removeCollateral(bytes32 _symbol, uint256 _amount, address payable _to) external onlyOwner {
+        ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
+        require(canRemoveCollateral(token, _amount), UNDER_COLL);
+        IERC20(token.addr).safeTransfer(_to, _amount);
+    }
+
+    function removeAsset(address _tokenAddr, uint256 _amount, address payable _to) external onlyOwner {
+        require(IERC20(_tokenAddr).balanceOf(address(this)) > 0, "err-insuff-funds");
+        ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
+        if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
+        IERC20(_tokenAddr).safeTransfer(_to, _amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {

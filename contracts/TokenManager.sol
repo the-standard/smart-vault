@@ -28,6 +28,10 @@ contract TokenManager is ITokenManager, Ownable {
         require(token.symbol == _symbol, "err-invalid-token");
     }
 
+    function getTokenIfExists(address _tokenAddr) external view returns (Token memory token) {
+        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].addr == _tokenAddr) token = acceptedTokens[i];
+    }
+
     function getAddressOf(bytes32 _symbol) external view returns (address) {
         for (uint256 i = 0; i < acceptedTokens.length; i++)
             if (acceptedTokens[i].symbol == _symbol)

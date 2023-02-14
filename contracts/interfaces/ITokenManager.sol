@@ -10,5 +10,7 @@ interface ITokenManager {
 
     function getToken(bytes32 _symbol) external view returns (Token memory);
 
+    function getTokenIfExists(address _tokenAddr) external view returns (Token memory);
+
     function getAddressOf(bytes32 _symbol) external view returns (address);
 }
