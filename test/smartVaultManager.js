@@ -149,6 +149,31 @@ describe('SmartVaultManager', async () => {
         ({ status } = (await VaultManager.connect(user).vaults())[0]);
         expect(getCollateralOf('USDT', status.collateral).amount).to.equal(0);
       });
+
+      it('allows removal of assets by address when asset is (no longer) valid collateral', async () => {
+        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
+        await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
+        const USDTBytes = ethers.utils.formatBytes32String('USDT');
+
+        const value = 1000000000;
+        await Tether.mint(user.address, value)
+        await Tether.connect(user).approve(VaultManager.address, value);
+
+        await VaultManager.connect(user).addCollateral(tokenId, USDTBytes, value);
+
+        let { status, vaultAddress } = (await VaultManager.connect(user).vaults())[0];
+        expect(getCollateralOf('USDT', status.collateral).amount).to.equal(value);
+
+        await TokenManager.removeAcceptedToken(USDTBytes);
+        ({ status, vaultAddress } = (await VaultManager.connect(user).vaults())[0]);
+        expect(getCollateralOf('USDT', status.collateral)).to.be.undefined;
+        expect(await Tether.balanceOf(vaultAddress)).to.equal(value);
+
+        await VaultManager.connect(user).removeAsset(tokenId, Tether.address, value);
+        
+        expect(await Tether.balanceOf(vaultAddress)).to.equal(0);
+      });
     });
   
     describe('minting', async () => {

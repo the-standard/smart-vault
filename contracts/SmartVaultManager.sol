@@ -89,6 +89,10 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
         ISmartVault(vaultAddresses[_tokenId]).removeCollateral(_symbol, _amount, msg.sender);
     }
 
+    function removeAsset(uint256 _tokenId, address _token, uint256 _amount) external onlyVaultOwner(_tokenId) {
+        ISmartVault(vaultAddresses[_tokenId]).removeAsset(_token, _amount, msg.sender);
+    }
+
     function mintSEuro(uint256 _tokenId, uint256 _amount) external onlyVaultOwner(_tokenId) {
         getVault(_tokenId).mint(msg.sender, _amount);
     }
