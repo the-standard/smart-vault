@@ -111,6 +111,10 @@ contract SmartVault is ISmartVault {
         return Status(minted, maxMintable(), currentCollateralPercentage(), getAssets());
     }
 
+    function undercollateralised() external view returns (bool) {
+        return minted > maxMintable();
+    }
+
     receive() external payable {}
 
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {

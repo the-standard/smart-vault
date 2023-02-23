@@ -3,12 +3,12 @@ const { BigNumber } = ethers;
 const { expect } = require('chai');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
 
-let VaultManager, Vault, TokenManager, Seuro, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, ClEthUsd, Seuro, admin, user, otherUser, protocol;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
-    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
@@ -197,6 +197,24 @@ describe('SmartVault', async () => {
       expect(minted).to.equal(mintedValue.sub(burnedValue.sub(burningFee)));
 
       expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(mintingFee).sub(burningFee));
+    });
+  });
+
+  describe('liquidation', async () => {
+    it('indicates whether vault is undercollateralised in current state', async () => {
+      expect(await Vault.undercollateralised()).to.equal(false);
+
+      const collateral = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value: collateral});
+      expect(await Vault.undercollateralised()).to.equal(false);
+
+      const mintedValue = ethers.utils.parseEther('900');
+      await Vault.connect(user).mint(user.address, mintedValue);
+      expect(await Vault.undercollateralised()).to.equal(false);
+
+      // eth / usd price drops to $1000
+      await ClEthUsd.setPrice(100000000000)
+      expect(await Vault.undercollateralised()).to.equal(true);
     });
   });
 });

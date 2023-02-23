@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "contracts/interfaces/IChainlink.sol";
 
 contract ChainlinkMock is IChainlink {
-    int256 private immutable price;
+    int256 private price;
 
     constructor(int256 _price) {
         price = _price;
@@ -15,4 +15,8 @@ contract ChainlinkMock is IChainlink {
     }
 
     function decimals() external pure returns (uint8) { return 8; }
+
+    function setPrice(int256 _price) external {
+        price = _price;
+    }
 }
