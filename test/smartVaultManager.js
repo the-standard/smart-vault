@@ -3,15 +3,17 @@ const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf } = require('./common');
 
-let VaultManager, TokenManager, Seuro, ClEthUsd, ClEurUsd, admin, user, protocol, otherUser;
+let VaultManager, TokenManager, Seuro, Tether, ClEthUsd, ClEurUsd, ClUsdUsd, admin, user, protocol, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
     [ admin, user, protocol, otherUser ] = await ethers.getSigners();
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
+    ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
@@ -59,11 +61,11 @@ describe('SmartVaultManager', async () => {
   });
 
   context('open vault', async () => {
-    let tokenId;
+    let tokenId, vaultAddress;
     beforeEach(async () => {
       await VaultManager.connect(user).mint();
       await VaultManager.connect(otherUser).mint();
-      ({ tokenId } = (await VaultManager.connect(user).vaults())[0]);
+      ({ tokenId, vaultAddress } = (await VaultManager.connect(user).vaults())[0]);
     });
 
     describe('addCollateral', async () => {
@@ -91,8 +93,6 @@ describe('SmartVaultManager', async () => {
       });
 
       it('facilitates adding ERC20s', async () => {
-        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
         await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
         const USDTBytes = ethers.utils.formatBytes32String('USDT');
         
@@ -130,8 +130,6 @@ describe('SmartVaultManager', async () => {
       });
 
       it('allows removal of ERC20 if it will not under collateralise vault', async () => {
-        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
         await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
         const USDTBytes = ethers.utils.formatBytes32String('USDT');
 
@@ -151,8 +149,6 @@ describe('SmartVaultManager', async () => {
       });
 
       it('allows removal of assets by address when asset is (no longer) valid collateral', async () => {
-        const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-        const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
         await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
         const USDTBytes = ethers.utils.formatBytes32String('USDT');
 
@@ -262,6 +258,38 @@ describe('SmartVaultManager', async () => {
         expect(await Vault.owner()).to.equal(user.address);
       });
     });
-  });
 
+    describe('liquidation', async () => {
+      it('allows owner to set address of liquidator', async () => {
+        let liquidator = VaultManager.setLiquidator(ethers.constants.AddressZero);
+        await expect(liquidator).to.be.revertedWith('err-invalid-address');
+
+        liquidator = VaultManager.connect(user).setLiquidator(protocol.address);
+        await expect(liquidator).to.be.revertedWith('Ownable: caller is not the owner');
+
+        liquidator = VaultManager.setLiquidator(protocol.address);
+        await expect(liquidator).not.to.be.reverted;
+
+        expect(await VaultManager.liquidator()).to.equal(protocol.address);
+      });
+
+      it('liquidates all undercollateralised vaults', async () => {
+        await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
+        const tetherValue = 1000000000;
+        const ethValue = ethers.utils.parseEther('1');
+        await Tether.mint(vaultAddress, tetherValue);
+        await user.sendTransaction({to: vaultAddress, value: ethValue});
+
+        const { maxMintable } = (await VaultManager.connect(user).vaults())[0].status;
+        await VaultManager.connect(user).mintSEuro(tokenId, maxMintable);
+
+        // liquidations cannot be run without liquidator
+        
+        // liquidations can only be run by liquidator
+
+        // shouldn't liquidate any vaults, as both are collateralised
+
+      });
+    });
+  });
 });

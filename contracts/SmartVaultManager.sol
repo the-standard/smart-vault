@@ -14,11 +14,14 @@ import "contracts/interfaces/ITokenManager.sol";
 contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     using SafeERC20 for IERC20;
     
+    string private constant INVALID_ADDRESS = "err-invalid-address";
+
     address public protocol;
     ISEuro public seuro;
     uint256 public collateralRate;
     uint256 public feeRate;
     address public tokenManager;
+    address public liquidator;
     ISmartVaultDeployer public smartVaultDeployer;
     mapping(address => uint256[]) private tokenIds;
     mapping(uint256 => address payable) private vaultAddresses;
@@ -119,7 +122,12 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     }
 
     function setTokenManager(address _tokenManager) external onlyOwner {
-        require(_tokenManager != address(tokenManager) && _tokenManager != address(0), "err-invalid-address");
+        require(_tokenManager != address(tokenManager) && _tokenManager != address(0), INVALID_ADDRESS);
         tokenManager = _tokenManager;
+    }
+
+    function setLiquidator(address _liquidator) external onlyOwner {
+        require(_liquidator != address(liquidator) && _liquidator != address(0), INVALID_ADDRESS);
+        liquidator = _liquidator;
     }
 }
