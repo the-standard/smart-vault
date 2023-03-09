@@ -44,6 +44,11 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
         _;
     }
 
+    modifier onlyLiquidator() {
+        require(msg.sender == liquidator, "err-invalid-user");
+        _;
+    }
+
     function getVault(uint256 _tokenId) private view returns (ISmartVault) {
         return ISmartVault(vaultAddresses[_tokenId]);
     }
@@ -113,6 +118,10 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
         for (uint256 i = 0; i < currentIds.length; i++) {
             if (currentIds[i] != _tokenId) tokenIds[_user].push(currentIds[i]);
         }
+    }
+
+    function liquidateVaults() external onlyLiquidator {
+
     }
 
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {

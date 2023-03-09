@@ -99,10 +99,11 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
 
       // mint max seuro
-      await Vault.connect(user).mint(user.address, maxMintable);
+      const mintingFee = maxMintable.div(100);
+      await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
       // cannot remove any eth
-      remove = Vault.connect(user).removeCollateralETH(1, user.address);
+      remove = Vault.connect(user).removeCollateralETH(ethers.utils.parseEther('0.0001'), user.address);
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
 
@@ -129,10 +130,11 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
 
       // mint max seuro
-      await Vault.connect(user).mint(user.address, maxMintable);
+      const mintingFee = maxMintable.div(100);
+      await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
       // cannot remove any eth
-      remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), 1, user.address);
+      remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), 1000000, user.address);
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
 
@@ -163,10 +165,10 @@ describe('SmartVault', async () => {
       mint = Vault.connect(user).mint(user.address, mintedValue);
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
-      expect(minted).to.equal(mintedValue);
-
       const fee = mintedValue.div(100)
-      expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue.sub(fee));
+
+      expect(minted).to.equal(mintedValue.add(fee));
+      expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue);
     });
   });
 
@@ -194,7 +196,7 @@ describe('SmartVault', async () => {
       await expect(burn).not.to.be.reverted;
 
       minted = (await Vault.status()).minted;
-      expect(minted).to.equal(mintedValue.sub(burnedValue.sub(burningFee)));
+      expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue.sub(burningFee)));
 
       expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(mintingFee).sub(burningFee));
     });
@@ -215,6 +217,9 @@ describe('SmartVault', async () => {
       // eth / usd price drops to $1000
       await ClEthUsd.setPrice(100000000000)
       expect(await Vault.undercollateralised()).to.equal(true);
+    });
+
+    xit('allows liquidator role to liquidate vault, if undercollateralised', async () => {
     });
   });
 });

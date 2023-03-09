@@ -46,12 +46,6 @@ contract SmartVault is ISmartVault {
         _;
     }
 
-    modifier ifFullyCollateralised(uint256 _amount) {
-        uint256 potentialMinted = minted + _amount;
-        require(potentialMinted <= maxMintable(), UNDER_COLL);
-        _;
-    }
-
     modifier ifMinted(uint256 _amount) {
         require(minted >= _amount, "err-insuff-minted");
         _;
@@ -144,10 +138,15 @@ contract SmartVault is ISmartVault {
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager ifFullyCollateralised(_amount) {
-        minted += _amount;
+    function fullyCollateralised(uint256 _amount) private view returns (bool) {
+        return minted + _amount <= maxMintable();
+    }
+
+    function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager {
         uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
-        seuro.mint(_to, _amount - fee);
+        require(fullyCollateralised(_amount + fee), UNDER_COLL);
+        minted += _amount + fee;
+        seuro.mint(_to, _amount);
         seuro.mint(manager.protocol(), fee);
     }
 

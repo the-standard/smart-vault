@@ -61,11 +61,14 @@ describe('SmartVaultManager', async () => {
   });
 
   context('open vault', async () => {
-    let tokenId, vaultAddress;
+    let tokenId, vaultAddress, otherTokenId, otherVaultAddress;
     beforeEach(async () => {
       await VaultManager.connect(user).mint();
       await VaultManager.connect(otherUser).mint();
       ({ tokenId, vaultAddress } = (await VaultManager.connect(user).vaults())[0]);
+      const otherVault = (await VaultManager.connect(otherUser).vaults())[0];
+      otherTokenId = otherVault.tokenId;
+      otherVaultAddress = otherVault.vaultAddress;
     });
 
     describe('addCollateral', async () => {
@@ -178,21 +181,25 @@ describe('SmartVaultManager', async () => {
         const eurCollateralValue = collateralValue.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
         const maxMint = eurCollateralValue.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
+  
+        const mintingFee = maxMint.div(100);
+        const mintValue = maxMint.sub(mintingFee);
 
         let mint = VaultManager.connect(otherUser).mintSEuro(tokenId, maxMint);
         await expect(mint).to.be.revertedWith('err-not-owner');
-  
-        mint = VaultManager.connect(user).mintSEuro(tokenId, maxMint);
+
+        mint = VaultManager.connect(user).mintSEuro(tokenId, mintValue);
         await expect(mint).not.to.be.reverted;
 
         const { status } = (await VaultManager.connect(user).vaults())[0];
         expect(getCollateralOf('ETH', status.collateral).amount).to.equal(collateralValue);
-        expect(status.minted).to.equal(maxMint);
+        expect(status.minted).to.equal(mintValue.add(mintValue.div(100)));
         expect(status.maxMintable).to.equal(maxMint);
-        expect(status.currentCollateralPercentage).to.equal(DEFAULT_COLLATERAL_RATE);
+        // should be roughly maxing out collateral rate, but give or take some decimals
+        expect(status.currentCollateralPercentage.div(1000)).to.equal(DEFAULT_COLLATERAL_RATE.div(1000));
   
         // should overflow into under-collateralised
-        mint = VaultManager.connect(user).mintSEuro(tokenId, 1);
+        mint = VaultManager.connect(user).mintSEuro(tokenId, ethers.utils.parseEther('1'));
         await expect(mint).to.be.revertedWith('err-under-coll');
       });
     });
@@ -203,10 +210,11 @@ describe('SmartVaultManager', async () => {
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
 
         const mintValue = ethers.utils.parseEther('100');
+        const mintFee = mintValue.div(100);
         await VaultManager.connect(user).mintSEuro(tokenId, mintValue);
 
-        // user only has 99 because of minting fee
-        const burnValue = ethers.utils.parseEther('99');
+        const burnValue = ethers.utils.parseEther('100');
+        const burnFee = burnValue.div(100);
 
         // have to approve manager to control seuro to be burned
         let burn = VaultManager.connect(user).burnSEuro(tokenId, burnValue);
@@ -222,8 +230,8 @@ describe('SmartVaultManager', async () => {
         await expect(burn).not.to.be.reverted;
 
         const { status } = (await VaultManager.connect(user).vaults())[0];
-        // user was only able to pay back 98.01, due 1% minting fee and 1% burning fee
-        expect(status.minted).to.equal(ethers.utils.parseEther('1.99'));
+        const mintedRemaining = mintValue.add(mintFee).sub(burnValue.sub(burnFee));
+        expect(status.minted).to.equal(mintedRemaining);
       });
     });
   
@@ -237,7 +245,7 @@ describe('SmartVaultManager', async () => {
   
         await VaultManager.connect(user).mintSEuro(tokenId, mintAmount);
   
-        expect(await Seuro.balanceOf(user.address)).to.equal(mintAmount.sub(mintFee));
+        expect(await Seuro.balanceOf(user.address)).to.equal(mintAmount);
         expect(await Seuro.balanceOf(protocol.address)).to.equal(mintFee);
       });
     });
@@ -273,7 +281,11 @@ describe('SmartVaultManager', async () => {
         expect(await VaultManager.liquidator()).to.equal(protocol.address);
       });
 
-      it('liquidates all undercollateralised vaults', async () => {
+      xit('liquidates all undercollateralised vaults', async () => {
+        const vault1 = await ethers.getContractAt('SmartVault', vaultAddress);
+        const vault2 = await ethers.getContractAt('SmartVault', otherVaultAddress);
+        const protocolETHBalance = await protocol.getBalance();
+        const protocolUSDTBalance = await Tether.balanceOf(protocol.address);
         await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
         const tetherValue = 1000000000;
         const ethValue = ethers.utils.parseEther('1');
@@ -283,12 +295,37 @@ describe('SmartVaultManager', async () => {
         const { maxMintable } = (await VaultManager.connect(user).vaults())[0].status;
         await VaultManager.connect(user).mintSEuro(tokenId, maxMintable);
 
-        // liquidations cannot be run without liquidator
-        
         // liquidations can only be run by liquidator
+        await VaultManager.setLiquidator(protocol.address);
+        let liquidate = VaultManager.liquidateVaults();
+        await expect(liquidate).to.be.revertedWith('err-invalid-user');
 
-        // shouldn't liquidate any vaults, as both are collateralised
+        // shouldn't liquidate any vaults, as both are sufficiently collateralised
+        liquidate = VaultManager.connect(protocol).liquidateVaults();
+        await expect(liquidate).not.to.be.reverted;
+        expect(await VaultManager.ownerOf(1)).to.equal(user.address)
+        expect(await VaultManager.ownerOf(2)).to.equal(otherUser.address)
+        expect(await vault1.owner()).to.equal(user.address);
+        expect(await vault2.owner()).to.equal(otherUser.address);
+        expect(await VaultManager.connect(user).vaults()).to.have.length(1);
+        expect(await VaultManager.connect(user).vaults()).to.have.length(1);
+        expect(await protocol.getBalance()).to.equal(protocolETHBalance);
+        expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance);
 
+        // drop price of eth to $1000, first vault becomes undercollateralised
+        await ClEthUsd.setPrice(100000000000);
+
+        // first vault should be liquidated
+        liquidate = VaultManager.liquidateVaults();
+        await expect(liquidate).not.to.be.reverted;
+        expect(await VaultManager.ownerOf(1)).to.equal(protocol.address)
+        expect(await VaultManager.ownerOf(2)).to.equal(otherUser.address)
+        expect(await vault1.owner()).to.equal(protocol.address);
+        expect(await vault2.owner()).to.equal(otherUser.address);
+        expect(await VaultManager.connect(user).vaults()).to.have.length(0);
+        expect(await VaultManager.connect(user).vaults()).to.have.length(2);
+        expect(await protocol.getBalance()).to.equal(protocolETHBalance.add(ethValue));
+        expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
       });
     });
   });
