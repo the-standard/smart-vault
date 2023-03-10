@@ -108,6 +108,23 @@ contract SmartVault is ISmartVault {
         return minted > maxMintable();
     }
 
+    function liquidateETH() private {
+        (bool sent,) = payable(manager.protocol()).call{value: address(this).balance}("");
+        require(sent, "err-eth-liquidate");
+    }
+
+    function liquidateERC20(IERC20 _token) private {
+        _token.safeTransfer(manager.protocol(), _token.balanceOf(address(this)));
+    }
+
+    function liquidate() external {
+        liquidateETH();
+        ITokenManager.Token[] memory tokens = ITokenManager(manager.tokenManager()).getAcceptedTokens();
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i].symbol != ETH) liquidateERC20(IERC20(tokens[i].addr));
+        }
+    }
+
     receive() external payable {}
 
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
@@ -157,7 +174,6 @@ contract SmartVault is ISmartVault {
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {
-        require(_newOwner != address(0), "invalid-owner-addr");
         owner = _newOwner;
     }
 }

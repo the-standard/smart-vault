@@ -11,6 +11,8 @@ import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
+import "hardhat/console.sol";
+
 contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     using SafeERC20 for IERC20;
     
@@ -27,7 +29,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     mapping(address => uint256[]) private tokenIds;
     mapping(uint256 => address payable) private vaultAddresses;
 
-    uint256 private currentToken;
+    uint256 private lastToken;
 
     struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; ISmartVault.Status status; }
 
@@ -73,7 +75,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     function mint() external returns (address vault, uint256 tokenId) {
         // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = smartVaultDeployer.deploy(address(this), msg.sender, address(seuro));
-        tokenId = ++currentToken;
+        tokenId = ++lastToken;
         vaultAddresses[tokenId] = payable(vault);
         _mint(msg.sender, tokenId);
         seuro.grantRole(seuro.MINTER_ROLE(), vault);
@@ -123,7 +125,16 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     }
 
     function liquidateVaults() external onlyLiquidator {
-
+        bool liquidating;
+        for (uint256 i = 1; i <= lastToken; i++) {
+            ISmartVault vault = ISmartVault(vaultAddresses[i]);
+            if (vault.undercollateralised()) {
+                liquidating = true;
+                vault.liquidate();
+                _burn(i);
+            }
+        }
+        require(liquidating, "no-liquidatable-vaults");
     }
 
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
