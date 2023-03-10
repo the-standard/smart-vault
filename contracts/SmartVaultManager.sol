@@ -15,6 +15,7 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     using SafeERC20 for IERC20;
     
     string private constant INVALID_ADDRESS = "err-invalid-address";
+    uint256 public constant HUNDRED_PC = 100000;
 
     address public protocol;
     ISEuro public seuro;
@@ -107,8 +108,9 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
 
     function burnSEuro(uint256 _tokenId, uint256 _amount) external {
         ISmartVault vault = getVault(_tokenId);
-        SafeERC20.safeTransferFrom(seuro, msg.sender, address(this), _amount);
-        SafeERC20.safeApprove(seuro, address(vault), _amount);
+        uint256 fee = _amount * feeRate / HUNDRED_PC;
+        SafeERC20.safeTransferFrom(seuro, msg.sender, address(this), _amount + fee);
+        SafeERC20.safeApprove(seuro, address(vault), fee);
         vault.burn(_amount);
     }
 

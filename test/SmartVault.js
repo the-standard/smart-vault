@@ -181,6 +181,9 @@ describe('SmartVault', async () => {
       let burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).to.be.revertedWith('err-insuff-minted');
 
+      // 100 to user
+      // 1 to protocol
+      // 101 minted in vault
       const mintedValue = ethers.utils.parseEther('100');
       await Vault.connect(user).mint(user.address, mintedValue);
 
@@ -192,13 +195,18 @@ describe('SmartVault', async () => {
 
       // must allow transfer to protocol
       await Seuro.connect(user).approve(Vault.address, burningFee);
+      // user pays back 50 to vault
+      // .5 given to protocol
+      // 51 minted in vault
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).not.to.be.reverted;
 
       minted = (await Vault.status()).minted;
-      expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue.sub(burningFee)));
+      expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue));
 
-      expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(mintingFee).sub(burningFee));
+      const fees = mintingFee.add(burningFee);
+      expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(fees));
+      expect(await Seuro.balanceOf(protocol.address)).to.equal(fees);
     });
   });
 

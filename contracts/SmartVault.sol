@@ -15,7 +15,6 @@ import "hardhat/console.sol";
 contract SmartVault is ISmartVault {
     using SafeERC20 for IERC20;
 
-    uint256 private constant HUNDRED_PC = 100000;
     string private constant INVALID_USER = "err-invalid-user";
     string private constant UNDER_COLL = "err-under-coll";
     bytes32 private constant ETH = bytes32("ETH");
@@ -75,11 +74,11 @@ contract SmartVault is ISmartVault {
     }
 
     function maxMintable() private view returns (uint256) {
-        return euroCollateral() * HUNDRED_PC / manager.collateralRate();
+        return euroCollateral() * manager.HUNDRED_PC() / manager.collateralRate();
     }
 
     function currentCollateralPercentage() private view returns (uint256) {
-        return minted == 0 ? 0 : euroCollateral() * HUNDRED_PC / minted;
+        return minted == 0 ? 0 : euroCollateral() * manager.HUNDRED_PC() / minted;
     }
 
     function getTokenScaleDiff(bytes32 _symbol, address _tokenAddress) private view returns (uint256 scaleDiff) {
@@ -143,7 +142,7 @@ contract SmartVault is ISmartVault {
     }
 
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager {
-        uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
+        uint256 fee = _amount * manager.feeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;
         seuro.mint(_to, _amount);
@@ -151,10 +150,9 @@ contract SmartVault is ISmartVault {
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
-        uint256 fee = _amount * manager.feeRate() / HUNDRED_PC;
-        uint256 burnValue = _amount - fee;
-        minted -= burnValue;
-        seuro.burn(msg.sender, burnValue);
+        uint256 fee = _amount * manager.feeRate() / manager.HUNDRED_PC();
+        minted -= _amount;
+        seuro.burn(msg.sender, _amount);
         IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);
     }
 

@@ -205,7 +205,7 @@ describe('SmartVaultManager', async () => {
     });
 
     describe('burning', async () => {
-      it('allows burning of sEURO through manager', async () => {
+      it.only('allows burning of sEURO through manager', async () => {
         const collateralValue = ethers.utils.parseEther('1');
         await VaultManager.connect(user).addCollateralETH(tokenId, {value: collateralValue});
 
@@ -213,7 +213,7 @@ describe('SmartVaultManager', async () => {
         const mintFee = mintValue.div(100);
         await VaultManager.connect(user).mintSEuro(tokenId, mintValue);
 
-        const burnValue = ethers.utils.parseEther('100');
+        const burnValue = ethers.utils.parseEther('90');
         const burnFee = burnValue.div(100);
 
         // have to approve manager to control seuro to be burned
@@ -221,16 +221,16 @@ describe('SmartVaultManager', async () => {
         await expect(burn).to.be.revertedWith('ERC20: insufficient allowance');
 
         // user has to have the seuro balance to burn
-        await Seuro.connect(otherUser).approve(VaultManager.address, burnValue);
+        await Seuro.connect(otherUser).approve(VaultManager.address, burnValue.add(burnFee));
         burn = VaultManager.connect(otherUser).burnSEuro(tokenId, burnValue);
         await expect(burn).to.be.revertedWith('ERC20: transfer amount exceeds balance');
 
-        await Seuro.connect(user).approve(VaultManager.address, burnValue);
+        await Seuro.connect(user).approve(VaultManager.address, burnValue.add(burnFee));
         burn = VaultManager.connect(user).burnSEuro(tokenId, burnValue);
         await expect(burn).not.to.be.reverted;
 
         const { status } = (await VaultManager.connect(user).vaults())[0];
-        const mintedRemaining = mintValue.add(mintFee).sub(burnValue.sub(burnFee));
+        const mintedRemaining = mintValue.add(mintFee).sub(burnValue);
         expect(status.minted).to.equal(mintedRemaining);
       });
     });
