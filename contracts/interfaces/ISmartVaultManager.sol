@@ -5,12 +5,9 @@ import "contracts/interfaces/ITokenManager.sol";
 
 interface ISmartVaultManager {
     function HUNDRED_PC() external view returns (uint256);
-    
     function tokenManager() external view returns (address);
-
     function protocol() external view returns (address);
-
+    function liquidator() external view returns (address);
     function feeRate() external view returns (uint256);
-
     function collateralRate() external view returns (uint256);
 }

@@ -227,7 +227,30 @@ describe('SmartVault', async () => {
       expect(await Vault.undercollateralised()).to.equal(true);
     });
 
-    xit('allows liquidator role to liquidate vault, if undercollateralised', async () => {
+    it('allows liquidator role to liquidate vault, if undercollateralised', async () => {
+      // set main liquidator
+      await VaultManager.setLiquidator(protocol.address);
+
+      const ethValue = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value: ethValue});
+
+      const mintedValue = ethers.utils.parseEther('900');
+      await Vault.connect(user).mint(user.address, mintedValue);
+
+      await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
+
+      await expect(Vault.connect(protocol).liquidate()).to.be.revertedWith('err-not-liquidatable');
+      
+      // drop price, now vault is liquidatable
+      await ClEthUsd.setPrice(100000000000)
+
+      await expect(Vault.connect(protocol).liquidate()).not.to.be.reverted;
+      const { minted, maxMintable, currentCollateralPercentage, collateral, liquidated } = await Vault.status();
+      expect(minted).to.equal(0);
+      expect(maxMintable).to.equal(0);
+      expect(currentCollateralPercentage).to.equal(0);
+      collateral.forEach(asset => expect(asset.amount).to.equal(0));
+      expect(liquidated).to.equal(true);
     });
   });
 });

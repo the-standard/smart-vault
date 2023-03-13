@@ -306,7 +306,7 @@ describe('SmartVaultManager', async () => {
         // drop price of eth to $1000, first vault becomes undercollateralised
         await ClEthUsd.setPrice(100000000000);
 
-        // first vault should be liquidated
+        // first user's vault should be liquidated
         liquidate = VaultManager.connect(liquidator).liquidateVaults();
         await expect(liquidate).not.to.be.reverted;
         const userVaults = await VaultManager.connect(user).vaults();
