@@ -282,8 +282,6 @@ describe('SmartVaultManager', async () => {
       });
 
       it('liquidates all undercollateralised vaults', async () => {
-        const vault1 = await ethers.getContractAt('SmartVault', vaultAddress);
-        const vault2 = await ethers.getContractAt('SmartVault', otherVaultAddress);
         const protocolETHBalance = await protocol.getBalance();
         const protocolUSDTBalance = await Tether.balanceOf(protocol.address);
         await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
@@ -311,12 +309,16 @@ describe('SmartVaultManager', async () => {
         // first vault should be liquidated
         liquidate = VaultManager.connect(liquidator).liquidateVaults();
         await expect(liquidate).not.to.be.reverted;
-        await expect(VaultManager.ownerOf(1)).to.be.revertedWith('ERC721: invalid token ID');
-        expect(await VaultManager.ownerOf(2)).to.equal(otherUser.address)
-        expect(await vault1.owner()).to.equal(ethers.constants.AddressZero);
-        expect(await vault2.owner()).to.equal(otherUser.address);
-        expect(await VaultManager.connect(user).vaults()).to.have.length(0);
-        expect(await VaultManager.connect(otherUser).vaults()).to.have.length(1);
+        const userVaults = await VaultManager.connect(user).vaults();
+        const otherUserVaults = await VaultManager.connect(otherUser).vaults();
+        expect(userVaults[0].status.liquidated).to.equal(true);
+        expect(otherUserVaults[0].status.liquidated).to.equal(false);
+        expect(userVaults[0].status.minted).to.equal(0);
+        expect(userVaults[0].status.maxMintable).to.equal(0);
+        expect(userVaults[0].status.currentCollateralPercentage).to.equal(0);
+        userVaults[0].status.collateral.forEach(asset => {
+          expect(asset.amount).to.equal(0);
+        });
         expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
         expect(await protocol.getBalance()).to.equal(protocolETHBalance.add(ethValue));
       });

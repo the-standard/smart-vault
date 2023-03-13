@@ -23,6 +23,7 @@ contract SmartVault is ISmartVault {
     uint256 private minted;
     ISmartVaultManager public manager;
     ISEuro public seuro;
+    bool private liquidated;
 
     constructor(address _manager, address _owner, address _seuro) {
         owner = _owner;
@@ -101,7 +102,7 @@ contract SmartVault is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(minted, maxMintable(), currentCollateralPercentage(), getAssets());
+        return Status(minted, maxMintable(), currentCollateralPercentage(), getAssets(), liquidated);
     }
 
     function undercollateralised() external view returns (bool) {
@@ -118,6 +119,8 @@ contract SmartVault is ISmartVault {
     }
 
     function liquidate() external {
+        liquidated = true;
+        minted = 0;
         liquidateETH();
         ITokenManager.Token[] memory tokens = ITokenManager(manager.tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {

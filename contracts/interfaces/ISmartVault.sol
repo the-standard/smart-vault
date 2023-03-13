@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 
 interface ISmartVault {
     struct Asset { bytes32 symbol; uint256 amount; }
-    struct Status { uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; Asset[] collateral; }
+    struct Status { uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage; Asset[] collateral; bool liquidated; }
 
     function status() external view returns (Status memory);
     function undercollateralised() external view returns (bool);

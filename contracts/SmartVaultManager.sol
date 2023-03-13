@@ -131,7 +131,6 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
             if (vault.undercollateralised()) {
                 liquidating = true;
                 vault.liquidate();
-                _burn(i);
             }
         }
         require(liquidating, "no-liquidatable-vaults");
