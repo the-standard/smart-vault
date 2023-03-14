@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, getLibraryFactory } = require('./common');
 
 let VaultManager, Vault, TokenManager, ClEthUsd, Seuro, admin, user, otherUser, protocol;
 
@@ -12,7 +12,7 @@ describe('SmartVault', async () => {
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
+    const SmartVaultDeployer = await (await getLibraryFactory(admin, 'SmartVaultDeployer', 'CollateralCalculator')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address

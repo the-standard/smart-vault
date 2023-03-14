@@ -73,7 +73,6 @@ contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     }
 
     function mint() external returns (address vault, uint256 tokenId) {
-        // SmartVault smartVault = new SmartVault(address(this), msg.sender, seuro);
         vault = smartVaultDeployer.deploy(address(this), msg.sender, address(seuro));
         tokenId = ++lastToken;
         vaultAddresses[tokenId] = payable(vault);
