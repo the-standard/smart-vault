@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/IChainlink.sol";
-import "contracts/interfaces/ICollateralCalculator.sol";
+import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
@@ -22,14 +22,16 @@ contract SmartVault is ISmartVault {
 
     address public owner;
     uint256 private minted;
+    bool private liquidated;
     ISmartVaultManager public manager;
     ISEuro public seuro;
-    bool private liquidated;
+    IPriceCalculator public calculator;
 
-    constructor(address _manager, address _owner, address _seuro, address _collateralCalculator) {
+    constructor(address _manager, address _owner, address _seuro, address _priceCalculator) {
         owner = _owner;
         manager = ISmartVaultManager(_manager);
         seuro = ISEuro(_seuro);
+        calculator = IPriceCalculator(_priceCalculator);
     }
 
     modifier onlyOwnerOrVaultManager {
@@ -61,18 +63,14 @@ contract SmartVault is ISmartVault {
         return ITokenManager(manager.tokenManager());
     }
 
-    function avgPrice(uint8 _hours, IChainlink _priceFeed) private view returns (uint256) {
-        return uint256(_priceFeed.latestAnswer());
-    }
-
     function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) private view returns (uint256) {
         ITokenManager tokenManager = ITokenManager(manager.tokenManager());
         IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
         IChainlink tokenUsdClFeed = IChainlink(_token.clAddr);
         uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
         uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-        uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * avgPrice(4, tokenUsdClFeed);
-        return collateralUsd / avgPrice(4, clEurUsd);
+        uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * calculator.avgPrice(4, tokenUsdClFeed);
+        return collateralUsd / calculator.avgPrice(4, clEurUsd);
     }
 
     function euroCollateral() private view returns (uint256 euros) {
