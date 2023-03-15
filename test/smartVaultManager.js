@@ -11,10 +11,10 @@ describe('SmartVaultManager', async () => {
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
     ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
     ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
-    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
+    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy();
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address
@@ -40,7 +40,7 @@ describe('SmartVaultManager', async () => {
 
   describe('TokenManager dependency', async () => {
     it('allows the owner to update the dependency, if not zero address', async () => {
-      const NewTokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address, ClEurUsd.address);
+      const NewTokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
       let update = VaultManager.connect(user).setTokenManager(NewTokenManager.address);
       await expect(update).to.be.revertedWith('Ownable: caller is not the owner');
 

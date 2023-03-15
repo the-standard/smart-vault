@@ -8,8 +8,8 @@ import "contracts/interfaces/ISmartVaultDeployer.sol";
 contract SmartVaultDeployer is ISmartVaultDeployer {    
     address private immutable priceCalculator;
 
-    constructor() {
-        priceCalculator = address(new PriceCalculator());
+    constructor(address _clEurUsd) {
+        priceCalculator = address(new PriceCalculator(_clEurUsd));
     }
             
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {

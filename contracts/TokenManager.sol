@@ -11,11 +11,9 @@ contract TokenManager is ITokenManager, Ownable {
 
     Token[] private acceptedTokens;
     address public clEthUsd;
-    address public clEurUsd;
 
-    constructor(address _clEthUsd, address _clEurUsd) {
+    constructor(address _clEthUsd) {
         clEthUsd = _clEthUsd;
-        clEurUsd = _clEurUsd;
         acceptedTokens.push(Token(ETH, address(0), 18, _clEthUsd, IChainlink(clEthUsd).decimals()));
     }
 
