@@ -7,7 +7,6 @@ let TokenManager, ClEthUsd;
 describe('TokenManager', async () => {
   beforeEach(async () => {
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
   });
 
