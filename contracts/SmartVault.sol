@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/ISEuro.sol";
@@ -63,22 +62,22 @@ contract SmartVault is ISmartVault {
         return ITokenManager(manager.tokenManager());
     }
 
-    function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) private view returns (uint256) {
-        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
-        IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
-        IChainlink tokenUsdClFeed = IChainlink(_token.clAddr);
-        uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
-        uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-        uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * calculator.avgPrice(4, tokenUsdClFeed);
-        return collateralUsd / calculator.avgPrice(4, clEurUsd);
-    }
+    // function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) private view returns (uint256) {
+    //     ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+    //     IChainlink clEurUsd = IChainlink(tokenManager.clEurUsd());
+    //     IChainlink tokenUsdClFeed = IChainlink(_token.clAddr);
+    //     uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
+    //     uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
+    //     uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * calculator.avgPrice(4, tokenUsdClFeed);
+    //     return collateralUsd / calculator.avgPrice(4, clEurUsd);
+    // }
 
     function euroCollateral() private view returns (uint256 euros) {
         ITokenManager tokenManager = ITokenManager(manager.tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            euros += tokenToEur(token, getAssetCollateral(token.symbol, token.addr));
+            euros += calculator.tokenToEur(token, ITokenManager(manager.tokenManager()), getAssetCollateral(token.symbol, token.addr));
         }
     }
 
@@ -88,10 +87,6 @@ contract SmartVault is ISmartVault {
 
     function currentCollateralPercentage() private view returns (uint256) {
         return minted == 0 ? 0 : euroCollateral() * manager.HUNDRED_PC() / minted;
-    }
-
-    function getTokenScaleDiff(bytes32 _symbol, address _tokenAddress) private view returns (uint256 scaleDiff) {
-        return _symbol == ETH ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
     function getAssetCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
@@ -142,7 +137,7 @@ contract SmartVault is ISmartVault {
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
         if (minted == 0) return true;
         uint256 currentMintable = maxMintable();
-        uint256 eurValueToRemove = tokenToEur(_token, _amount);
+        uint256 eurValueToRemove = calculator.tokenToEur(_token, ITokenManager(manager.tokenManager()), _amount);
         return currentMintable >= eurValueToRemove &&
             minted <= currentMintable - eurValueToRemove;
     }

@@ -2,7 +2,8 @@
 pragma solidity 0.8.17;
 
 import "contracts/interfaces/IChainlink.sol";
+import "contracts/interfaces/ITokenManager.sol";
 
 interface IPriceCalculator {
-    function avgPrice(uint8 _hours, IChainlink _priceFeed) external view returns (uint256);
+    function tokenToEur(ITokenManager.Token memory _token, ITokenManager _tokenManager, uint256 _amount) external view returns (uint256);
 }

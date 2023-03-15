@@ -5,7 +5,7 @@ import "contracts/SmartVault.sol";
 import "contracts/PriceCalculator.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 
-contract SmartVaultDeployer is ISmartVaultDeployer {
+contract SmartVaultDeployer is ISmartVaultDeployer {    
     address private immutable priceCalculator;
 
     constructor() {
