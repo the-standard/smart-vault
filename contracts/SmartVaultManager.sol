@@ -11,8 +11,6 @@ import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
-import "hardhat/console.sol";
-
 contract SmartVaultManager is ISmartVaultManager, ERC721, Ownable {
     using SafeERC20 for IERC20;
     

@@ -1,12 +1,13 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE } = require('./common');
+const { DEFAULT_ETH_USD_PRICE } = require('./common');
 
 let TokenManager, ClEthUsd;
 
 describe('TokenManager', async () => {
   beforeEach(async () => {
-    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
   });
 
@@ -23,7 +24,8 @@ describe('TokenManager', async () => {
   it('will let the owner add and remove accepted ERC20 tokens – cannot remove ETH', async () => {
     [ admin, user ] = await ethers.getSigners();
 
-    const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(100000000);
+    const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    await ClUsdUsd.setPrice(100000000);
     const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const USDTBytes = ethers.utils.formatBytes32String('USDT');
 

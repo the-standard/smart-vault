@@ -8,8 +8,10 @@ let VaultManager, Vault, TokenManager, ClEthUsd, Seuro, admin, user, otherUser, 
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
-    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_ETH_USD_PRICE);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(DEFAULT_EUR_USD_PRICE);
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
+    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
@@ -45,7 +47,8 @@ describe('SmartVault', async () => {
     it('accepts certain 6 decimal ERC20s as collateral', async () => {
       const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
       const clUsdUsdPrice = 100000000;
-      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+      await ClUsdUsd.setPrice(clUsdUsdPrice);
       await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
       // mint user 100 USDT
       const value = BigNumber.from(100000000);
@@ -64,7 +67,8 @@ describe('SmartVault', async () => {
     it('accepts certain 18 decimal ERC20s as collateral', async () => {
       const Dai = await (await ethers.getContractFactory('ERC20Mock')).deploy('Dai Stablecoin', 'DAI', 18);
       const clUsdUsdPrice = 100000000;
-      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+      await ClUsdUsd.setPrice(clUsdUsdPrice);
       await TokenManager.addAcceptedToken(Dai.address, ClUsdUsd.address);
       // mint user 100 DAI
       const value = ethers.utils.parseEther('100');
@@ -110,7 +114,8 @@ describe('SmartVault', async () => {
     it('allows removal of ERC20 if owner and it will not undercollateralise vault', async () => {
       const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
       const clUsdUsdPrice = 100000000;
-      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy(clUsdUsdPrice);
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+      await ClUsdUsd.setPrice(clUsdUsdPrice);
       await TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
 
       // 1000 USDT
@@ -223,7 +228,7 @@ describe('SmartVault', async () => {
       expect(await Vault.undercollateralised()).to.equal(false);
 
       // eth / usd price drops to $1000
-      await ClEthUsd.setPrice(100000000000)
+      await ClEthUsd.setPrice(100000000000);
       expect(await Vault.undercollateralised()).to.equal(true);
     });
 
@@ -242,7 +247,7 @@ describe('SmartVault', async () => {
       await expect(Vault.connect(protocol).liquidate()).to.be.revertedWith('err-not-liquidatable');
       
       // drop price, now vault is liquidatable
-      await ClEthUsd.setPrice(100000000000)
+      await ClEthUsd.setPrice(100000000000);
 
       await expect(Vault.connect(protocol).liquidate()).not.to.be.reverted;
       const { minted, maxMintable, currentCollateralPercentage, collateral, liquidated } = await Vault.status();

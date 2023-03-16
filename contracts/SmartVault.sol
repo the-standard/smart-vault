@@ -4,13 +4,10 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/ISEuro.sol";
-import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
-
-import "hardhat/console.sol";
 
 contract SmartVault is ISmartVault {
     using SafeERC20 for IERC20;
