@@ -20,14 +20,14 @@ contract ChainlinkMock is IChainlink {
     }
 
     function getRoundData(uint80 _roundId) external view 
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) {
+        returns (uint80 roundId, int256 answer, uint256, uint256 updatedAt, uint80) {
             roundId = _roundId;
             answer = prices[roundId].price;
             updatedAt = prices[roundId].timestamp;
         }
 
     function latestRoundData() external view 
-        returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound) {
+        returns (uint80 roundId, int256 answer,uint256, uint256 updatedAt,uint80) {
             roundId = uint80(prices.length - 1);
             answer = prices[roundId].price;
             updatedAt = prices[roundId].timestamp;
