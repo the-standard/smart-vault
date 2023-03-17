@@ -12,6 +12,7 @@ contract SmartVaultDeployer is ISmartVaultDeployer {
         priceCalculator = address(new PriceCalculator(_clEurUsd));
     }
             
+    // TODO do we need to protect this function? probably not?
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {
         return address(new SmartVault(_manager, _owner, _seuro, priceCalculator));
     }

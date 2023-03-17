@@ -15,6 +15,8 @@ contract SmartVault is ISmartVault {
     string private constant INVALID_USER = "err-invalid-user";
     string private constant UNDER_COLL = "err-under-coll";
     bytes32 private constant ETH = bytes32("ETH");
+    uint8 private constant version = 1;
+    bytes32 private constant vaultType = bytes32("SEURO");
 
     address public owner;
     uint256 private minted;
@@ -92,7 +94,8 @@ contract SmartVault is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(minted, maxMintable(), currentCollateralPercentage(), getAssets(), liquidated);
+        return Status(minted, maxMintable(), currentCollateralPercentage(),
+            getAssets(), liquidated, version, vaultType);
     }
 
     function undercollateralised() public view returns (bool) {
