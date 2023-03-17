@@ -15,21 +15,20 @@ contract PriceCalculator is IPriceCalculator {
     }
 
     function avgPrice(uint8 _hours, IChainlink _priceFeed) private view returns (uint256) {
-        uint256 fourHoursAgo = block.timestamp - 4 hours;
-        uint256 accummulatedRoundPrices;
+        uint256 fourHoursAgo = block.timestamp - _hours * 1 hours;
         uint256 roundTS;
-        (uint80 roundId, int256 answer,, uint256 updatedAt,) = _priceFeed.latestRoundData();
-        roundTS = updatedAt;
-        accummulatedRoundPrices += uint256(answer);
-        uint256 i = 1;
+        uint80 roundId;
+        int256 answer;
+        (roundId, answer,, roundTS,) = _priceFeed.latestRoundData();
+        uint256 accummulatedRoundPrices = uint256(answer);
+        uint256 roundCount = 1;
         while (roundTS > fourHoursAgo) {
-            i++;
+            roundCount++;
             roundId--;
-            (, int256 answer,, uint256 updatedAt,) = _priceFeed.getRoundData(roundId);
-            roundTS = updatedAt;
+            (, answer,, roundTS,) = _priceFeed.getRoundData(roundId);
             accummulatedRoundPrices += uint256(answer);
         }
-        return accummulatedRoundPrices / i;
+        return accummulatedRoundPrices / roundCount;
     }
 
     function getTokenScaleDiff(bytes32 _symbol, address _tokenAddress) private view returns (uint256 scaleDiff) {
