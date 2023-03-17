@@ -7,12 +7,12 @@ describe('PriceCalculator', async () => {
       const now = Math.floor(new Date / 1000);
       const fourHours = 4 * 60 * 60;
       const ethPrices = [[now - fourHours, 150000000000], [now, 100000000000], ];
-      const clEthUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+      const clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
       for (const round of ethPrices) {
         await clEthUsd.addPriceRound(round[0], round[1]);
       }
       const eurPrices = [[now - fourHours, 103000000], [now, 105000000]];
-      const clEurUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+      const clEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
       for (const round of eurPrices) {
         await clEurUsd.addPriceRound(round[0], round[1]);
       }

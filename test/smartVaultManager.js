@@ -8,11 +8,11 @@ let VaultManager, TokenManager, Seuro, Tether, ClEthUsd, ClUsdUsd, admin, user, 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
     [ admin, user, protocol, liquidator, otherUser ] = await ethers.getSigners();
-    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
-    ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMockV2')).deploy();
+    ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClUsdUsd.setPrice(100000000);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
