@@ -14,8 +14,8 @@ contract ChainlinkMock is IChainlink {
         prices.push(PriceRound(timestamp, price));
     }
 
-    // TODO actually make this work like it should (and stub the price as this price)
     function setPrice(int256 _price) external {
+        while (prices.length > 0) prices.pop();
         prices.push(PriceRound(block.timestamp - 4 hours, _price));
     }
 
