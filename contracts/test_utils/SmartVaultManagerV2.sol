@@ -15,7 +15,7 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
-contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     string private constant INVALID_ADDRESS = "err-invalid-address";
@@ -33,9 +33,10 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
 
     struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; ISmartVault.Status status; }
 
-    function initialize(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex) initializer public {
-        __ERC721_init("The Standard Smart Vault Manager", "TSVAULTMAN");
-        __Ownable_init();
+    function initialize() initializer public {
+    }
+
+    function completeUpgrade(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex) external {
         collateralRate = _collateralRate;
         seuro = _seuro;
         feeRate = _feeRate;
