@@ -18,9 +18,10 @@ describe('SmartVaultManager', async () => {
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address
+      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
     );
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
@@ -271,18 +272,6 @@ describe('SmartVaultManager', async () => {
     });
 
     describe('liquidation', async () => {
-      it('allows owner to set address of liquidator', async () => {
-        let liquidator = VaultManager.setLiquidator(ethers.constants.AddressZero);
-        await expect(liquidator).to.be.revertedWith('err-invalid-address');
-
-        liquidator = VaultManager.connect(user).setLiquidator(protocol.address);
-        await expect(liquidator).to.be.revertedWith('Ownable: caller is not the owner');
-
-        liquidator = VaultManager.setLiquidator(protocol.address);
-        await expect(liquidator).not.to.be.reverted;
-
-        expect(await VaultManager.liquidator()).to.equal(protocol.address);
-      });
 
       it('liquidates all undercollateralised vaults', async () => {
         const protocolETHBalance = await protocol.getBalance();
@@ -296,11 +285,6 @@ describe('SmartVaultManager', async () => {
         const { maxMintable } = (await VaultManager.connect(user).vaults())[0].status;
         const mintValue = maxMintable.mul(99).div(100);
         await VaultManager.connect(user).mintSEuro(tokenId, mintValue);
-
-        // liquidations can only be run by liquidator
-        await VaultManager.setLiquidator(liquidator.address);
-        let liquidate = VaultManager.liquidateVaults();
-        await expect(liquidate).to.be.revertedWith('err-invalid-user');
 
         // shouldn't liquidate any vaults, as both are sufficiently collateralised, should revert so no gas fees paid
         liquidate = VaultManager.connect(liquidator).liquidateVaults();

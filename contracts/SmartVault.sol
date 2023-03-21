@@ -47,11 +47,6 @@ contract SmartVault is ISmartVault {
         _;
     }
 
-    modifier onlyLiquidatorOrVaultManager {
-        require(msg.sender == address(manager) || msg.sender == manager.liquidator(), INVALID_USER);
-        _;
-    }
-
     modifier ifMinted(uint256 _amount) {
         require(minted >= _amount, "err-insuff-minted");
         _;
@@ -111,7 +106,7 @@ contract SmartVault is ISmartVault {
         _token.safeTransfer(manager.protocol(), _token.balanceOf(address(this)));
     }
 
-    function liquidate() external onlyLiquidatorOrVaultManager {
+    function liquidate() external onlyVaultManager {
         require(undercollateralised(), "err-not-liquidatable");
         liquidated = true;
         minted = 0;

@@ -17,8 +17,10 @@ async function main() {
   await TokenManager.deployed();
   const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
   await Deployer.deployed();
+  const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
+  await SmartVaultIndex.deployed();
   const SmartVaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-    120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address
+    120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address, SmartVaultIndex.address
   );
   await SmartVaultManager.deployed();
 
@@ -30,6 +32,7 @@ async function main() {
     ClEurUsd: ClEurUsd.address,
     TokenManager: TokenManager.address,
     Deployer: Deployer.address,
+    SmartVaultIndex: SmartVaultIndex.address,
     SmartVaultManager: SmartVaultManager.address
   });
 
@@ -58,6 +61,11 @@ async function main() {
   await run(`verify:verify`, {
     address: Deployer.address,
     constructorArguments: [ClEurUsd.address],
+  });
+
+  await run(`verify:verify`, {
+    address: SmartVaultIndex.address,
+    constructorArguments: [],
   });
 
   await run(`verify:verify`, {

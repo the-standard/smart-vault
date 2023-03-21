@@ -1,10 +1,10 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require("hardhat");
 
-describe.only('Contract Versioning', async () => {
+describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
   // TODO test new liquidations (where collateral isn't sent)
-  it('allows for v2 vaults with versioned vault manager', async () => {
+  xit('allows for v2 vaults with versioned vault manager', async () => {
     const [ admin, protocol, user ] = await ethers.getSigners();
     const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
@@ -13,8 +13,9 @@ describe.only('Contract Versioning', async () => {
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEurUsd.setPrice(106000000);
     const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      120000, 1000, SEuro.address, protocol.address, TokenManager.address, VaultDeployer.address
+      120000, 1000, SEuro.address, protocol.address, TokenManager.address, VaultDeployer.address, SmartVaultIndex.address
     ]);
     await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
 

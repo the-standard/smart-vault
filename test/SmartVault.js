@@ -15,9 +15,10 @@ describe('SmartVault', async () => {
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address
+      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
     );
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
@@ -232,24 +233,19 @@ describe('SmartVault', async () => {
       expect(await Vault.undercollateralised()).to.equal(true);
     });
 
-    it('allows liquidator role to liquidate vault, if undercollateralised', async () => {
-      // set main liquidator
-      await VaultManager.setLiquidator(protocol.address);
-
+    it('allows manager to liquidate vault, if undercollateralised', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
       const mintedValue = ethers.utils.parseEther('900');
       await Vault.connect(user).mint(user.address, mintedValue);
 
-      await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
-
-      await expect(Vault.connect(protocol).liquidate()).to.be.revertedWith('err-not-liquidatable');
+      await expect(VaultManager.liquidateVaults()).to.be.revertedWith('no-liquidatable-vaults');
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
 
-      await expect(Vault.connect(protocol).liquidate()).not.to.be.reverted;
+      await expect(VaultManager.liquidateVaults()).not.to.be.reverted;
       const { minted, maxMintable, currentCollateralPercentage, collateral, liquidated } = await Vault.status();
       expect(minted).to.equal(0);
       expect(maxMintable).to.equal(0);
