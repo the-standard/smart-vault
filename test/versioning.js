@@ -30,6 +30,7 @@ describe('Contract Versioning', async () => {
     const VaultDeployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ClEurUsd.address);
     const TokenManagerV2 = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
 
+    // try upgrading with non-owner
     let upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
       await ethers.getContractFactory('SmartVaultManagerV2', user), {
         call: {fn: 'completeUpgrade', args: [120000, 1000, SEuro.address, protocol.address, TokenManagerV2.address,
