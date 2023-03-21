@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
@@ -16,10 +16,10 @@ describe('SmartVault', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
-    VaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
+    VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
-    );
+    ]);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const { vaultAddress } = (await VaultManager.connect(user).vaults())[0];
@@ -175,6 +175,7 @@ describe('SmartVault', async () => {
 
       expect(minted).to.equal(mintedValue.add(fee));
       expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue);
+      expect(await Seuro.balanceOf(protocol.address)).to.equal(fee);
     });
   });
 

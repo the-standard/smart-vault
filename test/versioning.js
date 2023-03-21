@@ -4,7 +4,7 @@ const { ethers, upgrades } = require("hardhat");
 describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
   // TODO test new liquidations (where collateral isn't sent)
-  it.only('allows for v2 vaults with versioned vault manager', async () => {
+  it('allows for v2 vaults with versioned vault manager', async () => {
     const [ admin, protocol, user ] = await ethers.getSigners();
     const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
