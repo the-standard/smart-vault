@@ -5,7 +5,9 @@ require('solidity-coverage')
 require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 
-const { INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY } = process.env;
+const { 
+  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY, MATIC_VIGIL_API_KEY
+} = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
 module.exports = {
@@ -21,7 +23,7 @@ module.exports = {
       accounts: testAccounts
     },
     mumbai: {
-      url: "https://rpc-mumbai.maticvigil.com",
+      url: `https://rpc-mumbai.maticvigil.com/v1/${MATIC_VIGIL_API_KEY}`,
       accounts: testAccounts
     },
     polygon_zk_testnet: {
