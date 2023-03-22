@@ -6,11 +6,12 @@ import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 
 contract PriceCalculator is IPriceCalculator {
-    bytes32 private constant ETH = bytes32("ETH");
+    bytes32 private immutable NATIVE;
 
     IChainlink public clEurUsd;
 
-    constructor (address _clEurUsd) {
+    constructor (bytes32 _native, address _clEurUsd) {
+        NATIVE = _native;
         clEurUsd = IChainlink(_clEurUsd);
     }
 
@@ -32,7 +33,7 @@ contract PriceCalculator is IPriceCalculator {
     }
 
     function getTokenScaleDiff(bytes32 _symbol, address _tokenAddress) private view returns (uint256 scaleDiff) {
-        return _symbol == ETH ? 0 : 18 - ERC20(_tokenAddress).decimals();
+        return _symbol == NATIVE ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
     function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) external view returns (uint256) {

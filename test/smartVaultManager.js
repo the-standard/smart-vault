@@ -1,7 +1,7 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf, ETH } = require('./common');
 
 let VaultManager, TokenManager, Seuro, Tether, ClEthUsd, ClUsdUsd, admin, user, protocol, liquidator, otherUser;
 
@@ -14,10 +14,10 @@ describe('SmartVaultManager', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClUsdUsd.setPrice(100000000);
-    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
+    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,

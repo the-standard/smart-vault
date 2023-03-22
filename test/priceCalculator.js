@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
+const { ETH } = require('./common');
 const { BigNumber } = ethers;
 
 describe('PriceCalculator', async () => {
@@ -17,9 +18,9 @@ describe('PriceCalculator', async () => {
       for (const round of eurPrices) {
         await clEurUsd.addPriceRound(round[0], round[1]);
       }
-      const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(clEurUsd.address);
-      const ETH = {
-        symbol: ethers.utils.formatBytes32String('ETH'),
+      const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, clEurUsd.address);
+      const Ethereum = {
+        symbol: ETH,
         addr: ethers.constants.AddressZero,
         dec: 18,
         clAddr: clEthUsd.address,
@@ -35,7 +36,7 @@ describe('PriceCalculator', async () => {
       const averageEthUsd = BigNumber.from(150000000000).add(140000000000).add(100000000000).div(3);
       const averageEurUsd = BigNumber.from(103000000).add(106000000).add(106000000).div(3);
       const expectedEurValue = etherValue.mul(averageEthUsd).div(averageEurUsd);
-      const eurValue = await PriceCalculator.tokenToEur(ETH, etherValue);
+      const eurValue = await PriceCalculator.tokenToEur(Ethereum, etherValue);
       expect(eurValue).to.equal(expectedEurValue);
     });
   });

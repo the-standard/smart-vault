@@ -6,14 +6,16 @@ import "contracts/PriceCalculator.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 
 contract SmartVaultDeployerV2 is ISmartVaultDeployer {    
+    bytes32 private immutable NATIVE;
     address private immutable priceCalculator;
 
-    constructor(address _clEurUsd) {
-        priceCalculator = address(new PriceCalculator(_clEurUsd));
+    constructor(bytes32 _native, address _clEurUsd) {
+        NATIVE = _native;
+        priceCalculator = address(new PriceCalculator(NATIVE, _clEurUsd));
     }
             
     // TODO do we need to protect this function? probably not?
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {
-        return address(new SmartVaultV2(_manager, _owner, _seuro, priceCalculator));
+        return address(new SmartVaultV2(NATIVE, _manager, _owner, _seuro, priceCalculator));
     }
 }

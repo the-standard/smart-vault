@@ -1,4 +1,5 @@
 const { ethers, network } = require("hardhat");
+const { ETH } = require("../test/common");
 
 async function main() {
   const [user] = await ethers.getSigners();
@@ -13,9 +14,9 @@ async function main() {
   await ClEurUsd.deployed();
   price = await ClEurUsd.setPrice(106000000);
   await price.wait();
-  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
+  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   await TokenManager.deployed();
-  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
   await Deployer.deployed();
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();

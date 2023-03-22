@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { DEFAULT_ETH_USD_PRICE } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, ETH } = require('./common');
 
 let TokenManager, ClEthUsd;
 
@@ -8,7 +8,7 @@ describe('TokenManager', async () => {
   beforeEach(async () => {
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
-    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
+    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   });
 
   it('defaults with ETH as accepted token', async () => {

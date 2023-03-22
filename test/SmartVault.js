@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH } = require('./common');
 
 let VaultManager, Vault, TokenManager, ClEthUsd, Seuro, admin, user, otherUser, protocol;
 
@@ -13,8 +13,8 @@ describe('SmartVault', async () => {
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
-    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
@@ -34,7 +34,7 @@ describe('SmartVault', async () => {
   });
 
   describe('adding collateral', async () => {
-    it('accepts ETH as collateral', async () => {
+    it('accepts native currency as collateral', async () => {
       const value = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value});
 
@@ -87,7 +87,7 @@ describe('SmartVault', async () => {
   });
 
   describe('removing collateral', async () => {
-    it('allows removal of ETH if owner and it will not undercollateralise vault', async () => {
+    it('allows removal of native currency if owner and it will not undercollateralise vault', async () => {
       const value = ethers.utils.parseEther('1');
       const half = value.div(2);
       await user.sendTransaction({to: Vault.address, value});
@@ -95,10 +95,10 @@ describe('SmartVault', async () => {
       let { collateral, maxMintable } = await Vault.status();
       expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
 
-      let remove = Vault.connect(otherUser).removeCollateralETH(value, user.address);
+      let remove = Vault.connect(otherUser).removeCollateralNative(value, user.address);
       await expect(remove).to.be.revertedWith('err-invalid-user');
 
-      remove = Vault.connect(user).removeCollateralETH(half, user.address);
+      remove = Vault.connect(user).removeCollateralNative(half, user.address);
       await expect(remove).not.to.be.reverted;
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
@@ -108,7 +108,7 @@ describe('SmartVault', async () => {
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
       // cannot remove any eth
-      remove = Vault.connect(user).removeCollateralETH(ethers.utils.parseEther('0.0001'), user.address);
+      remove = Vault.connect(user).removeCollateralNative(ethers.utils.parseEther('0.0001'), user.address);
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
 

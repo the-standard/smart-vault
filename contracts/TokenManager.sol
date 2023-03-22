@@ -7,14 +7,15 @@ import "contracts/interfaces/IChainlink.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
 contract TokenManager is ITokenManager, Ownable {
-    bytes32 private constant ETH = bytes32("ETH");
+    bytes32 private immutable NATIVE;
 
     Token[] private acceptedTokens;
-    address public clEthUsd;
+    address public clNativeUsd;
 
-    constructor(address _clEthUsd) {
-        clEthUsd = _clEthUsd;
-        acceptedTokens.push(Token(ETH, address(0), 18, _clEthUsd, IChainlink(clEthUsd).decimals()));
+    constructor(bytes32 _native, address _clNativeUsd) {
+        NATIVE = _native;
+        clNativeUsd = _clNativeUsd;
+        acceptedTokens.push(Token(NATIVE, address(0), 18, _clNativeUsd, IChainlink(clNativeUsd).decimals()));
     }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
@@ -46,7 +47,7 @@ contract TokenManager is ITokenManager, Ownable {
     }
 
     function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
-        require(_symbol != ETH);
+        require(_symbol != NATIVE);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             if (acceptedTokens[i].symbol == _symbol) {
                 acceptedTokens[i] = acceptedTokens[acceptedTokens.length - 1];

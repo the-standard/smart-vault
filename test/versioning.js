@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require("hardhat");
+const { ETH } = require('./common');
 
 describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
@@ -9,10 +10,10 @@ describe('Contract Versioning', async () => {
     const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEthUsd.setPrice(170000000000);
-    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
+    const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
     await ClEurUsd.setPrice(106000000);
-    const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ClEurUsd.address);
+    const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       120000, 1000, SEuro.address, protocol.address, TokenManager.address,
@@ -27,8 +28,8 @@ describe('Contract Versioning', async () => {
     expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('SEURO'));
 
     // version smart vault manager, to deploy v2 with different vaults
-    const VaultDeployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ClEurUsd.address);
-    const TokenManagerV2 = await (await ethers.getContractFactory('TokenManager')).deploy(ClEthUsd.address);
+    const VaultDeployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
+    const TokenManagerV2 = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
 
     // try upgrading with non-owner
     let upgrade = upgrades.upgradeProxy(VaultManagerV1.address,

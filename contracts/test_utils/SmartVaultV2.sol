@@ -14,9 +14,9 @@ contract SmartVaultV2 is ISmartVault {
 
     string private constant INVALID_USER = "err-invalid-user";
     string private constant UNDER_COLL = "err-under-coll";
-    bytes32 private constant ETH = bytes32("ETH");
     uint8 private constant version = 2;
     bytes32 private constant vaultType = bytes32("SEURO");
+    bytes32 private immutable NATIVE;
 
     address public owner;
     uint256 private minted;
@@ -25,7 +25,8 @@ contract SmartVaultV2 is ISmartVault {
     ISEuro public seuro;
     IPriceCalculator public calculator;
 
-    constructor(address _manager, address _owner, address _seuro, address _priceCalculator) {
+    constructor(bytes32 _native, address _manager, address _owner, address _seuro, address _priceCalculator) {
+        NATIVE = _native;
         owner = _owner;
         manager = ISmartVaultManager(_manager);
         seuro = ISEuro(_seuro);
@@ -74,7 +75,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function getAssetCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
-        return _symbol == ETH ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
+        return _symbol == NATIVE ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
 
     function getAssets() private view returns (Asset[] memory) {
@@ -97,9 +98,9 @@ contract SmartVaultV2 is ISmartVault {
         return minted > maxMintable();
     }
 
-    function liquidateETH() private {
+    function liquidateNative() private {
         (bool sent,) = payable(manager.protocol()).call{value: address(this).balance}("");
-        require(sent, "err-eth-liquidate");
+        require(sent, "err-native-liquidate");
     }
 
     function liquidateERC20(IERC20 _token) private {
@@ -110,10 +111,10 @@ contract SmartVaultV2 is ISmartVault {
         require(undercollateralised(), "err-not-liquidatable");
         liquidated = true;
         minted = 0;
-        liquidateETH();
+        liquidateNative();
         ITokenManager.Token[] memory tokens = ITokenManager(manager.tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i].symbol != ETH) liquidateERC20(IERC20(tokens[i].addr));
+            if (tokens[i].symbol != NATIVE) liquidateERC20(IERC20(tokens[i].addr));
         }
     }
 
@@ -127,10 +128,10 @@ contract SmartVaultV2 is ISmartVault {
             minted <= currentMintable - eurValueToRemove;
     }
 
-    function removeCollateralETH(uint256 _amount, address payable _to) external onlyOwnerOrVaultManager {
-        require(canRemoveCollateral(getTokenManager().getToken(ETH), _amount), UNDER_COLL);
+    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwnerOrVaultManager {
+        require(canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount), UNDER_COLL);
         (bool sent,) = _to.call{value: _amount}("");
-        require(sent, "err-eth-call");
+        require(sent, "err-native-call");
     }
 
     function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwnerOrVaultManager {
