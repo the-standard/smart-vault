@@ -20,6 +20,10 @@ module.exports = {
       url: `https://sepolia.infura.io/v3/${INFURA_API_KEY}`,
       accounts: testAccounts
     },
+    mumbai: {
+      url: "https://rpc-mumbai.maticvigil.com",
+      accounts: testAccounts
+    },
     polygon_zk_testnet: {
       url: 'https://rpc.public.zkevm-test.net',
       accounts: testAccounts
