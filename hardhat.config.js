@@ -5,7 +5,7 @@ require('solidity-coverage')
 require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 
-const { INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY } = process.env;
+const { INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
 module.exports = {
@@ -30,6 +30,10 @@ module.exports = {
     }
   },
   etherscan: {
-    apiKey: ETHERSCAN_KEY,
+    apiKey: {
+      goerli: ETHERSCAN_KEY,
+      sepolia: ETHERSCAN_KEY,
+      mumbai: POLYGONSCAN_KEY
+    },
   }
 };
