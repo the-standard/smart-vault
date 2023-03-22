@@ -1,4 +1,4 @@
-const { ethers, network } = require("hardhat");
+const { ethers } = require("hardhat");
 const { ETH } = require("../test/common");
 
 async function main() {
@@ -8,24 +8,33 @@ async function main() {
   await SEuro.deployed();
   const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
   await ClEthUsd.deployed();
-  let price = await ClEthUsd.setPrice(180000000000);
-  await price.wait();
+  await (await ClEthUsd.setPrice(180000000000)).wait();
   const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
   await ClEurUsd.deployed();
-  price = await ClEurUsd.setPrice(106000000);
-  await price.wait();
+  await (await ClEurUsd.setPrice(106000000)).wait();
   const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   await TokenManager.deployed();
   const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
   await Deployer.deployed();
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
-  const SmartVaultManager = await (await ethers.getContractFactory('SmartVaultManager')).deploy(
-    120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address, SmartVaultIndex.address
-  );
+  const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
+    120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address,
+    SmartVaultIndex.address
+  ]);
   await SmartVaultManager.deployed();
-
+  
   await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), SmartVaultManager.address);
+  const usd6 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 6 Dec', 'SUSD6', 6);
+  await usd6.deployed();
+  const usd18 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 18 Dec', 'SUSD18', 18);
+  await usd18.deployed();
+
+  const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  await (await ClUsdUsd.setPrice(100000000)).wait();
+  const tokenmanager = await ethers.getContractAt('TokenManager', '0x25C2704a9a0A096c2B3D243f699dDa00bD67F7d2');
+  await (await tokenmanager.addAcceptedToken('0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5', ClUsdUsd.address)).wait();
+  await (await tokenmanager.addAcceptedToken('0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373', ClUsdUsd.address)).wait();
 
   console.log({
     SEuro: SEuro.address,
@@ -34,7 +43,9 @@ async function main() {
     TokenManager: TokenManager.address,
     Deployer: Deployer.address,
     SmartVaultIndex: SmartVaultIndex.address,
-    SmartVaultManager: SmartVaultManager.address
+    SmartVaultManager: SmartVaultManager.address,
+    USD6: usd6.address,
+    USD18: usd18.address
   });
 
   await new Promise(resolve => setTimeout(resolve, 60000));
@@ -49,19 +60,19 @@ async function main() {
     constructorArguments: [],
   });
 
-  await run(`verify:verify`, {
-    address: ClEurUsd.address,
-    constructorArguments: [],
-  });
+  // await run(`verify:verify`, {
+  //   address: ClEurUsd.address,
+  //   constructorArguments: [],
+  // });
 
   await run(`verify:verify`, {
     address: TokenManager.address,
-    constructorArguments: [ClEthUsd.address],
+    constructorArguments: [ETH, ClEthUsd.address],
   });
 
   await run(`verify:verify`, {
     address: Deployer.address,
-    constructorArguments: [ClEurUsd.address],
+    constructorArguments: [ETH, ClEurUsd.address],
   });
 
   await run(`verify:verify`, {
@@ -71,8 +82,18 @@ async function main() {
 
   await run(`verify:verify`, {
     address: SmartVaultManager.address,
-    constructorArguments: [120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address],
+    constructorArguments: [],
   });
+
+  await run(`verify:verify`, {
+    address: usd6.address,
+    constructorArguments: ['Standard USD 6 Dec', 'SUSD6', 6]
+  });
+
+  // await run(`verify:verify`, {
+  //   address: usd18.address,
+  //   constructorArguments: ['Standard USD 18 Dec', 'SUSD18', 18]
+  // });
 }
 
 main().catch((error) => {

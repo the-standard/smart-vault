@@ -4,7 +4,7 @@ pragma solidity 0.8.17;
 import "contracts/interfaces/IChainlink.sol";
 
 contract ChainlinkMock is IChainlink {
-    PriceRound[] public prices;
+    PriceRound[] private prices;
 
     struct PriceRound { uint256 timestamp; int256 price; }
 
