@@ -6,7 +6,7 @@ require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 
 const { 
-  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY, MATIC_VIGIL_API_KEY
+  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY
 } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
@@ -23,7 +23,7 @@ module.exports = {
       accounts: testAccounts
     },
     mumbai: {
-      url: `https://rpc-mumbai.maticvigil.com/v1/${MATIC_VIGIL_API_KEY}`,
+      url: `https://polygon-mumbai.g.alchemy.com/v2/${ALCHEMY_MUMBAI_KEY}`,
       accounts: testAccounts
     },
     polygon_zk_testnet: {
@@ -35,7 +35,7 @@ module.exports = {
     apiKey: {
       goerli: ETHERSCAN_KEY,
       sepolia: ETHERSCAN_KEY,
-      mumbai: POLYGONSCAN_KEY
+      polygonMumbai: POLYGONSCAN_KEY
     },
   }
 };
