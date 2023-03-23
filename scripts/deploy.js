@@ -1,21 +1,20 @@
 const { ethers } = require("hardhat");
-const { ETH } = require("../test/common");
+const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE } = require("../test/common");
 
 async function main() {
   const [user] = await ethers.getSigners();
-  const MATIC = ethers.utils.formatBytes32String('MATIC')
 
   const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
   await SEuro.deployed();
-  const ClMaticUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
-  await ClMaticUsd.deployed();
-  await (await ClMaticUsd.setPrice(115000000)).wait();
+  const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  await ClEthUsd.deployed();
+  await (await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)).wait();
   const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
   await ClEurUsd.deployed();
-  await (await ClEurUsd.setPrice(106000000)).wait();
-  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(MATIC, ClMaticUsd.address);
+  await (await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE)).wait();
+  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   await TokenManager.deployed();
-  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(MATIC, ClEurUsd.address);
+  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
   await Deployer.deployed();
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
@@ -38,7 +37,7 @@ async function main() {
 
   console.log({
     SEuro: SEuro.address,
-    ClMaticUsd: ClMaticUsd.address,
+    ClEthUsd: ClEthUsd.address,
     ClEurUsd: ClEurUsd.address,
     TokenManager: TokenManager.address,
     Deployer: Deployer.address,
@@ -56,28 +55,18 @@ async function main() {
   });
 
   await run(`verify:verify`, {
-    address: ClMaticUsd.address,
+    address: ClEthUsd.address,
     constructorArguments: [],
   });
 
-  // await run(`verify:verify`, {
-  //   address: ClEurUsd.address,
-  //   constructorArguments: [],
-  // });
-
   await run(`verify:verify`, {
     address: TokenManager.address,
-    constructorArguments: [MATIC, ClMaticUsd.address],
+    constructorArguments: [ETH, ClEthUsd.address],
   });
 
   await run(`verify:verify`, {
     address: Deployer.address,
-    constructorArguments: [MATIC, ClEurUsd.address],
-  });
-
-  await run(`verify:verify`, {
-    address: SmartVaultIndex.address,
-    constructorArguments: [],
+    constructorArguments: [ETH, ClEurUsd.address],
   });
 
   await run(`verify:verify`, {
@@ -89,11 +78,6 @@ async function main() {
     address: usd6.address,
     constructorArguments: ['Standard USD 6 Dec', 'SUSD6', 6]
   });
-
-  // await run(`verify:verify`, {
-  //   address: usd18.address,
-  //   constructorArguments: ['Standard USD 18 Dec', 'SUSD18', 18]
-  // });
 }
 
 main().catch((error) => {
