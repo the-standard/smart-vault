@@ -14,7 +14,7 @@ contract SmartVaultDeployer is ISmartVaultDeployer {
         priceCalculator = address(new PriceCalculator(NATIVE, _clEurUsd));
     }
             
-    // TODO do we need to protect this function? probably not?
+    // TODO do we need to protect this function? probably not? minting rights not granted
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {
         return address(new SmartVault(NATIVE, _manager, _owner, _seuro, priceCalculator));
     }

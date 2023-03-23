@@ -15,6 +15,8 @@ contract SmartVaultIndex is ISmartVaultIndex {
         return vaultAddresses[_tokenId];
     }
 
+    // TODO protect these functions
+    // setVaultManager onlyOwner
     function addVaultAddress(uint256 _tokenId, address payable _vault) external {
         vaultAddresses[_tokenId] = _vault;
     }
