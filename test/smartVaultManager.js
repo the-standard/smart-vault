@@ -47,28 +47,12 @@ describe('SmartVaultManager', async () => {
     let tokenId, vaultAddress, otherTokenId, otherVaultAddress;
     beforeEach(async () => {
       await VaultManager.connect(user).mint();
+      await VaultManager.connect(user).mint();
       await VaultManager.connect(otherUser).mint();
       ({ tokenId, vaultAddress } = (await VaultManager.connect(user).vaults())[0]);
       const otherVault = (await VaultManager.connect(otherUser).vaults())[0];
       otherTokenId = otherVault.tokenId;
       otherVaultAddress = otherVault.vaultAddress;
-    });
-
-    describe('transfer of vault', async () => {
-      it('will update the ownership data in SmartVaultManager', async () => {
-        expect(await VaultManager.connect(user).vaults()).to.have.length(1);
-        const otherUserVaults = await VaultManager.connect(otherUser).vaults();
-        expect(otherUserVaults).to.have.length(1);
-        const {tokenId, vaultAddress} = otherUserVaults[0];
-        const Vault = await ethers.getContractAt('SmartVault', vaultAddress);
-        expect(await Vault.owner()).to.equal(otherUser.address);
-
-        await VaultManager.connect(otherUser).transferFrom(otherUser.address, user.address, tokenId);
-
-        expect(await VaultManager.connect(user).vaults()).to.have.length(2);
-        expect(await VaultManager.connect(otherUser).vaults()).to.have.length(0);
-        expect(await Vault.owner()).to.equal(user.address);
-      });
     });
 
     describe('liquidation', async () => {
@@ -109,6 +93,29 @@ describe('SmartVaultManager', async () => {
         });
         expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
         expect(await protocol.getBalance()).to.equal(protocolETHBalance.add(ethValue));
+      });
+    });
+
+    describe('transfer', async () => {
+      it('should update all the ownership data properly', async () => {
+        let userVaults = await VaultManager.connect(user).vaults();
+        expect(userVaults).to.have.length(2);
+        let otherUserVaults = await VaultManager.connect(otherUser).vaults();
+        expect(otherUserVaults).to.have.length(1);
+        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        expect(await vault.owner()).to.equal(user.address);
+
+        await VaultManager.connect(user).transferFrom(user.address, otherUser.address, tokenId);
+
+        expect(await VaultManager.ownerOf(tokenId)).to.equal(otherUser.address);
+
+        userVaults = await VaultManager.connect(user).vaults();
+        expect(userVaults).to.have.length(1);
+        otherUserVaults = await VaultManager.connect(otherUser).vaults();
+        expect(otherUserVaults).to.have.length(2);
+        expect(otherUserVaults.map(v => v.tokenId.toString())).to.include(tokenId.toString());
+        
+        expect(await vault.owner()).to.equal(otherUser.address);
       });
     });
   });

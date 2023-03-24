@@ -145,18 +145,35 @@ describe('SmartVault', async () => {
       await expect(remove).to.be.revertedWith('err-under-coll');
     });
 
-    it('allows removal of ERC20s that are not valid collateral', async () => {
-      const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-      const value = 1000000000;
-      await Tether.mint(Vault.address, value);
+    it('allows removal of ERC20s that are or are not valid collateral, if not undercollateralising', async () => {
+      const SUSD6 = await (await ethers.getContractFactory('ERC20Mock')).deploy('sUSD6', 'SUSD6', 6);
+      const SUSD18 = await (await ethers.getContractFactory('ERC20Mock')).deploy('sUSD18', 'SUSD18', 18);
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+      await ClUsdUsd.setPrice(100000000)
+      await TokenManager.addAcceptedToken(SUSD18.address, ClUsdUsd.address);
+      const SUSD6value = 1000000000;
+      const SUSD18value = ethers.utils.parseEther('1000');
+      await SUSD6.mint(Vault.address, SUSD6value);
+      await SUSD18.mint(Vault.address, SUSD18value);
 
+      
       let { collateral, maxMintable } = await Vault.status();
-      expect(getCollateralOf('USDT', collateral)).to.be.undefined;
-      expect(maxMintable).to.equal(0);
+      expect(getCollateralOf('SUSD6', collateral)).to.be.undefined;
+      expect(getCollateralOf('SUSD18', collateral).amount).to.equal(SUSD18value);
+      
+      await Vault.connect(user).mint(user.address, maxMintable.div(2));
+      
+      await Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address);
+      expect(await SUSD6.balanceOf(Vault.address)).to.equal(0);
+      expect(await SUSD6.balanceOf(user.address)).to.equal(SUSD6value);
+      
+      await expect(Vault.connect(user).removeAsset(SUSD18.address, SUSD18value, user.address)).to.be.revertedWith('err-under-coll');
 
-      await Vault.connect(user).removeAsset(Tether.address, value, user.address);
-      expect(await Tether.balanceOf(Vault.address)).to.equal(0);
-      expect(await Tether.balanceOf(user.address)).to.equal(value);
+      // partial removal, because some needed as collateral
+      const part = SUSD18value.div(3);
+      await expect(Vault.connect(user).removeAsset(SUSD18.address, part, user.address)).not.to.be.reverted;
+      expect(await SUSD18.balanceOf(Vault.address)).to.equal(SUSD18value.sub(part));
+      expect(await SUSD18.balanceOf(user.address)).to.equal(part);
     })
   });
 

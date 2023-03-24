@@ -11,6 +11,10 @@ describe('TokenManager', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   });
 
+  it('reverts when retrieving a nonexistent token', async () => {
+    await expect(TokenManager.getToken(ethers.utils.formatBytes32String('BLAH'))).to.be.revertedWith('err-invalid-token');
+  });
+
   it('defaults with ETH as accepted token', async () => {
     const tokens = await TokenManager.getAcceptedTokens();
     expect(tokens.length).to.equal(1);
