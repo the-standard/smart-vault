@@ -153,15 +153,19 @@ describe('SmartVault', async () => {
       await TokenManager.addAcceptedToken(SUSD18.address, ClUsdUsd.address);
       const SUSD6value = 1000000000;
       const SUSD18value = ethers.utils.parseEther('1000');
+
+      await expect(Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWith('err-insuff-funds');
+      
       await SUSD6.mint(Vault.address, SUSD6value);
       await SUSD18.mint(Vault.address, SUSD18value);
-
       
       let { collateral, maxMintable } = await Vault.status();
       expect(getCollateralOf('SUSD6', collateral)).to.be.undefined;
       expect(getCollateralOf('SUSD18', collateral).amount).to.equal(SUSD18value);
       
       await Vault.connect(user).mint(user.address, maxMintable.div(2));
+
+      await expect(Vault.removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWith('err-invalid-user');
       
       await Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address);
       expect(await SUSD6.balanceOf(Vault.address)).to.equal(0);
@@ -179,10 +183,12 @@ describe('SmartVault', async () => {
 
   describe('minting', async () => {
     it('only allows the vault owner to mint from smart vault directly', async () => {
+      const mintedValue = ethers.utils.parseEther('100');
+      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWith('err-under-coll');
+
       const collateral = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: collateral});
       
-      const mintedValue = ethers.utils.parseEther('100');
       let mint = Vault.connect(otherUser).mint(user.address, mintedValue);
       await expect(mint).to.be.revertedWith('err-invalid-user');
 
@@ -263,6 +269,8 @@ describe('SmartVault', async () => {
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
+
+      await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
 
       await expect(VaultManager.liquidateVaults()).not.to.be.reverted;
       const { minted, maxMintable, currentCollateralPercentage, collateral, liquidated } = await Vault.status();
