@@ -33,11 +33,6 @@ contract SmartVault is ISmartVault {
         calculator = IPriceCalculator(_priceCalculator);
     }
 
-    modifier onlyOwnerOrVaultManager {
-        require(msg.sender == owner || msg.sender == address(manager), INVALID_USER);
-        _;
-    }
-
     modifier onlyVaultManager {
         require(msg.sender == address(manager), INVALID_USER);
         _;
@@ -128,19 +123,19 @@ contract SmartVault is ISmartVault {
             minted <= currentMintable - eurValueToRemove;
     }
 
-    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwnerOrVaultManager {
+    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
         require(canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount), UNDER_COLL);
         (bool sent,) = _to.call{value: _amount}("");
         require(sent, "err-native-call");
     }
 
-    function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwnerOrVaultManager {
+    function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
         require(canRemoveCollateral(token, _amount), UNDER_COLL);
         IERC20(token.addr).safeTransfer(_to, _amount);
     }
 
-    function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwnerOrVaultManager {
+    function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
         require(IERC20(_tokenAddr).balanceOf(address(this)) > 0, "err-insuff-funds");
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
         if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
@@ -151,7 +146,7 @@ contract SmartVault is ISmartVault {
         return minted + _amount <= maxMintable();
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager {
+    function mint(address _to, uint256 _amount) external onlyOwner {
         uint256 fee = _amount * manager.feeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;
