@@ -46,6 +46,7 @@ contract TokenManager is ITokenManager, Ownable {
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
     }
 
+    // TODO test removing token
     function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
         require(_symbol != NATIVE);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {

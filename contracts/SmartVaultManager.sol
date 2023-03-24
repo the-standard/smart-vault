@@ -81,6 +81,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         require(liquidating, "no-liquidatable-vaults");
     }
 
+    // TODO test transfer
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         smartVaultIndex.transferTokenId(_from, _to, _tokenId);
         if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).setOwner(_to);
