@@ -20,6 +20,7 @@ describe('Contract Versioning', async () => {
       VaultDeployer.address, SmartVaultIndex.address
     ]);
     await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), VaultManagerV1.address);
+    await SmartVaultIndex.setVaultManager(VaultManagerV1.address);
 
     await VaultManagerV1.connect(user).mint();
     let vaults = await VaultManagerV1.connect(user).vaults();

@@ -23,6 +23,7 @@ describe('SmartVaultManager', async () => {
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
     ]);
+    await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
 

@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 
-contract SmartVaultIndex is ISmartVaultIndex {
+contract SmartVaultIndex is ISmartVaultIndex, Ownable {
+    address public manager;
     mapping(address => uint256[]) private tokenIds;
     mapping(uint256 => address payable) private vaultAddresses;
+
+    modifier onlyManager {
+        require(msg.sender == manager, "err-unauthorised");
+        _;
+    }
 
     function getTokenIds(address _user) external view returns (uint256[] memory) {
         return tokenIds[_user];
@@ -15,9 +22,7 @@ contract SmartVaultIndex is ISmartVaultIndex {
         return vaultAddresses[_tokenId];
     }
 
-    // TODO protect these functions
-    // setVaultManager onlyOwner
-    function addVaultAddress(uint256 _tokenId, address payable _vault) external {
+    function addVaultAddress(uint256 _tokenId, address payable _vault) external onlyManager {
         vaultAddresses[_tokenId] = _vault;
     }
 
@@ -29,8 +34,12 @@ contract SmartVaultIndex is ISmartVaultIndex {
         }
     }
 
-    function transferTokenId(address _from, address _to, uint256 _tokenId) external {
+    function transferTokenId(address _from, address _to, uint256 _tokenId) external onlyManager {
         removeTokenId(_from, _tokenId);
         tokenIds[_to].push(_tokenId);
+    }
+
+    function setVaultManager(address _manager) external onlyOwner {
+        manager = _manager;
     }
 }

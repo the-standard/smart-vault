@@ -23,6 +23,8 @@ async function main() {
     SmartVaultIndex.address
   ]);
   await SmartVaultManager.deployed();
+
+  await (await SmartVaultIndex.setVaultManager(SmartVaultManager.address)).wait();
   
   await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), SmartVaultManager.address);
   const usd6 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 6 Dec', 'SUSD6', 6);

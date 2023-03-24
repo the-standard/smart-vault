@@ -20,6 +20,7 @@ describe('SmartVault', async () => {
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
       TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
     ]);
+    await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const { vaultAddress } = (await VaultManager.connect(user).vaults())[0];
