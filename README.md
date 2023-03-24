@@ -1,13 +1,28 @@
-# Sample Hardhat Project
+# The Standard: Smart Vaults
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, and a script that deploys that contract.
-
-Try running some of the following tasks:
-
-```shell
-npx hardhat help
-npx hardhat test
-REPORT_GAS=true npx hardhat test
-npx hardhat node
-npx hardhat run scripts/deploy.js
+## Installation
+If you have npm installed, you can install the required project dependencies
 ```
+npm install
+```
+
+## Testing
+If you are in root, you can run the project's full test suite using the Makefile by
+```
+npx hardhat test
+```
+Since this project uses Hardhat, you can use its default ways to run tests, should you prefer it.
+## Coverage
+Run the code coverage suite with
+```
+npx hardhat coverage
+```
+
+## Contract size benchmark
+Run the contract sizer with
+```
+npx hardhat size-contracts
+```
+
+## Documentation
+- [Testnet guide](docs/TESTNET)
