@@ -31,13 +31,6 @@ contract TokenManager is ITokenManager, Ownable {
         for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].addr == _tokenAddr) token = acceptedTokens[i];
     }
 
-    function getAddressOf(bytes32 _symbol) external view returns (address) {
-        for (uint256 i = 0; i < acceptedTokens.length; i++)
-            if (acceptedTokens[i].symbol == _symbol)
-                return acceptedTokens[i].addr;
-        revert("token-not-found");
-    }
-
     function addAcceptedToken(address _token, address _chainlinkFeed) external onlyOwner {
         ERC20 token = ERC20(_token);
         bytes32 symbol = bytes32(bytes(token.symbol()));
@@ -46,7 +39,6 @@ contract TokenManager is ITokenManager, Ownable {
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
     }
 
-    // TODO test removing token
     function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
         require(_symbol != NATIVE);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
