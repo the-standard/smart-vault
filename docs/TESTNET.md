@@ -18,6 +18,8 @@ Connect your wallet to the block exporer.
 
 Use the `mint` interface to create a new Smart Vault. Confirm this transaction with your connected wallet.
 
+![Connect and mint](public/connect-and-mint.png)
+
 In the Read as Proxy section, you'll find an interface called `vaults`. This contains a list of your Smart Vaults, and the current status of each vault.
 
 The structure of this data is:
@@ -52,6 +54,8 @@ The structure of this data is:
 
 This data is flattened into a tuple when accessed from block explorers, so will appear as followed:
 
+![Vaults data](public/vaults-data.png)
+
 ## Borrowing sEURO
 
 You can send test ETH/MATIC directly to your vault address to add some collateral. You can also send some [test tokens](#test-tokens) to your vault as collateral.
@@ -81,11 +85,12 @@ You will not be able to repay your full personal balance of sEURO, because a bur
 
 There are two mock tokens that you can use as vault collateral: [6 decimal sUSD](https://sepolia.etherscan.io/address/0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5#writeContract) and [18 decimal sUSD](https://sepolia.etherscan.io/address/0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373#writeContract)
 
-Use the `mint` interface to mint yourself 1000 of each token (limited to one transaction per 24 hours).
+Connect your wallet and use the `mint` interface to mint yourself 1000 of each token (limited to one transaction per 24 hours).
 
 Send these tokens to your vault to use them as collateral. Both tokens are worth roughly 0.95 sEURO.
 
 ## Addresses
+
 ```
 {
     sepolia: {
