@@ -43,11 +43,6 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
     }
 
-    modifier onlyVaultOwner(uint256 _tokenId) {
-        require(msg.sender == ownerOf(_tokenId), "err-not-owner");
-        _;
-    }
-
     function vaults() external view returns (SmartVaultData[] memory) {
         uint256[] memory tokenIds = smartVaultIndex.getTokenIds(msg.sender);
         SmartVaultData[] memory vaultData = new SmartVaultData[](tokenIds.length);
