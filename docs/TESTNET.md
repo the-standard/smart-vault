@@ -18,7 +18,7 @@ Connect your wallet to the block exporer.
 
 Use the `mint` interface to create a new Smart Vault. Confirm this transaction with your connected wallet.
 
-![Connect and mint](docs/images/connect-and-mint.png)
+![Connect and mint](images/connect-and-mint.png)
 
 In the Read as Proxy section, you'll find an interface called `vaults`. This contains a list of your Smart Vaults, and the current status of each vault.
 
@@ -54,7 +54,7 @@ The structure of this data is:
 
 This data is flattened into a tuple when accessed from block explorers, so will appear as followed:
 
-![Vaults data](docs/images/vaults-data.png)
+![Vaults data](images/vaults-data.png)
 
 ## Borrowing sEURO
 
