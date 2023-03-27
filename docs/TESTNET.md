@@ -80,6 +80,8 @@ Please note, you will have to make an approval for the amount of sEURO that will
 
 You will not be able to repay your full personal balance of sEURO, because a burning fee will be transferred in addition to the amount you repay.
 
+Please also note that you cannot repay borrowed sEURO by simply transferring sEURO to your vault.
+
 ## Test Tokens
 
 There are two mock tokens that you can use as vault collateral: [6 decimal sUSD](https://sepolia.etherscan.io/address/0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5#writeContract) and [18 decimal sUSD](https://sepolia.etherscan.io/address/0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373#writeContract)
