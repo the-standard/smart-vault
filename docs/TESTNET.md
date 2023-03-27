@@ -1,6 +1,6 @@
 # Smart Vault Testing
 
-You can now test our Smart Vaults on Sepolia, and Polygon Mumbai Polygon zkEVM Testnet if you're feeling brave enough.
+You can now test our Smart Vaults on Sepolia, and Polygon Mumbai if you're feeling brave enough.
 
 All the contracts you need there are verified on Etherscan/Polygonscan.
 
@@ -8,7 +8,6 @@ Here are some guides to getting set up and getting some test ETH/MATIC from a fa
 
 - [Sepolia](https://www.alchemy.com/overviews/sepolia-testnet)
 - [Mumbai](https://www.alchemy.com/overviews/mumbai-testnet)
-- [Polygon zkEVM Testnet](https://wiki.polygon.technology/docs/zkEVM/develop/)
 
 ## Opening a Smart Vault
 
@@ -100,12 +99,6 @@ Send these tokens to your vault to use them as collateral. Both tokens are worth
         susd18: 0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373
     },
     mumbai: {
-        seuro: 0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f,
-        manager: 0xbE70d41FB3505385c01429cbcCB1943646Db344f,
-        susd6: 0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5,
-        susd18: 0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC
-    },
-    polygon_zk_evm_test: {
         seuro: 0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f,
         manager: 0xbE70d41FB3505385c01429cbcCB1943646Db344f,
         susd6: 0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5,
