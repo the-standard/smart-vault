@@ -64,6 +64,7 @@ Once you have some collateral in your vault, you can go to the vault address to 
 ```
 _to (address) // the address of the user you want to receive the sEURO
 _amount (uint259) // the amount you'd like to borrow (excl. minting fee)
+                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to mint 100 sEURO
 ```
 
 Please note you will not be able to borrow up the `maxMintable` amount, as a minting fee will be applied on top of this amount.
@@ -74,6 +75,7 @@ You can repay borrowed sEURO into your vault using `burn` in the Smart Vault wri
 
 ```
 _amount (uint259) // the amount you'd like to repay into your vault (excl. burning fee)
+                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to burn 100 sEURO
 ```
 
 Please note, you will have to make an approval for the amount of sEURO that will be transferred as a fee. By default this will be 1% of the amount that you want to repay e.g. if you want to repay 100 sEURO, you will have to approve your vault address for 1 sEURO.
@@ -95,16 +97,16 @@ Send these tokens to your vault to use them as collateral. Both tokens are worth
 ```
 {
     sepolia: {
-        seuro: 0xf23F59316A2700D88F6F503B24aEE01118255645,
-        manager: 0x951368849030f4B748fB12f6AF431Db1D0762974,
-        susd6: 0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5,
-        susd18: 0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373
+        SEuro: 0xf23F59316A2700D88F6F503B24aEE01118255645,
+        SmartVaultManager: 0x951368849030f4B748fB12f6AF431Db1D0762974,
+        SUSD6: 0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5,
+        SUSD18: 0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373
     },
     mumbai: {
-        seuro: 0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f,
-        manager: 0xbE70d41FB3505385c01429cbcCB1943646Db344f,
-        susd6: 0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5,
-        susd18: 0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC
+        SEuro: 0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f,
+        SmartVaultManager: 0xbE70d41FB3505385c01429cbcCB1943646Db344f,
+        SUSD6: 0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5,
+        SUSD18: 0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC
     }
 }
 ```
