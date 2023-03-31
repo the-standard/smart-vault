@@ -50,7 +50,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                     "Borrowed: ", (_vaultStatus.minted / 1 ether).toString(), " sEURO",
                 "</text>",
                 '<text x="50%" y="50%" class="base" dominant-baseline="middle" text-anchor="middle">',
-                    "Current Borrow Limit: ", (_vaultStatus.maxMintable / 1 ether).toString(), " sEURO",
+                    "Current Borrow Limit: ", (_vaultStatus.maxMintable / 1 ether).toString(), " ",toShortString(_vaultStatus.vaultType),
                 "</text>",
                 '<text x="50%" y="60%" class="base" dominant-baseline="middle" text-anchor="middle">',
                     "Collateral %: ", (_vaultStatus.currentCollateralPercentage / 1000).toString(), "%",
