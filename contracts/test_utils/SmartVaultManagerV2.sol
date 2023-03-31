@@ -13,6 +13,8 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
+import "hardhat/console.sol";
+
 contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
@@ -34,14 +36,11 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     function initialize() initializer public {
     }
 
-    function completeUpgrade(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex) external {
-        collateralRate = _collateralRate;
-        seuro = _seuro;
-        feeRate = _feeRate;
-        protocol = _protocol;
-        tokenManager = _tokenManager;
+    function completeUpgrade(address _smartVaultDeployer) external {
+        console.log(collateralRate);
+        console.log(smartVaultDeployer);
         smartVaultDeployer = _smartVaultDeployer;
-        smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
+        console.log(smartVaultDeployer);
     }
 
     modifier onlyVaultOwner(uint256 _tokenId) {
