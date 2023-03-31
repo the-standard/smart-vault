@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require("hardhat");
-const { ETH } = require('./common');
+const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE } = require('./common');
 
 describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
@@ -9,10 +9,10 @@ describe('Contract Versioning', async () => {
     const [ admin, protocol, user ] = await ethers.getSigners();
     const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
-    await ClEthUsd.setPrice(170000000000);
+    await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
-    await ClEurUsd.setPrice(106000000);
+    await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
@@ -35,8 +35,7 @@ describe('Contract Versioning', async () => {
     // try upgrading with non-owner
     let upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
       await ethers.getContractFactory('SmartVaultManagerV2', user), {
-        call: {fn: 'completeUpgrade', args: [120000, 1000, SEuro.address, protocol.address, TokenManagerV2.address,
-        VaultDeployerV2.address, SmartVaultIndex.address]}
+        call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
       }
     );
 
@@ -44,8 +43,7 @@ describe('Contract Versioning', async () => {
 
     upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
       await ethers.getContractFactory('SmartVaultManagerV2'), {
-        call: {fn: 'completeUpgrade', args: [120000, 1000, SEuro.address, protocol.address, TokenManagerV2.address,
-        VaultDeployerV2.address, SmartVaultIndex.address]}
+        call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
       }
     );
 
