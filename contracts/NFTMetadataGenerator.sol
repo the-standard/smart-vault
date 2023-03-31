@@ -31,7 +31,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         collateralTraits = "";
         for (uint256 i = 0; i < _collateral.length; i++) {
             ISmartVault.Asset memory asset = _collateral[i];
-            collateralTraits = string(abi.encodePacked(collateralTraits, '{"trait_type":"', toShortString(asset.symbol), '", ','"display_type": "boost_number",','"value": ',(asset.amount / 1 ether).toString(),'},'));
+            collateralTraits = string(abi.encodePacked(collateralTraits, '{"trait_type":"', toShortString(asset.symbol), '", ','"display_type": "number",','"value": ',(asset.amount / 1 ether).toString(),'},'));
         }
     }
 
