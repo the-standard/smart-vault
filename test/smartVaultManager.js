@@ -29,6 +29,24 @@ describe('SmartVaultManager', async () => {
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
 
+  describe('mint and burn fee', async () => {
+    it('allows owner to update mint and burn fee', async () => {
+      expect(await VaultManager.mintFeeRate()).to.equal(PROTOCOL_FEE_RATE);
+      expect(await VaultManager.burnFeeRate()).to.equal(PROTOCOL_FEE_RATE);
+
+      const newMintFeeRate = 2000;
+      const newBurnFeeRate = 3000;
+      await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
+
+      await expect(VaultManager.setMintFeeRate(newMintFeeRate)).not.to.be.reverted;
+      await expect(VaultManager.setBurnFeeRate(newBurnFeeRate)).not.to.be.reverted;
+
+      expect(await VaultManager.mintFeeRate()).to.equal(newMintFeeRate);
+      expect(await VaultManager.burnFeeRate()).to.equal(newBurnFeeRate);
+    });
+  });
+
   describe('opening', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
       await VaultManager.connect(user).mint();
@@ -119,6 +137,15 @@ describe('SmartVaultManager', async () => {
         expect(otherUserVaults.map(v => v.tokenId.toString())).to.include(tokenId.toString());
         
         expect(await vault.owner()).to.equal(otherUser.address);
+      });
+    });
+
+    describe('nft metadata', async () => {
+      it('produces dynamic nft metadata', async () => {
+        // json data url, should have "json" and "data" and "base64" in there
+        expect(await VaultManager.tokenURI(1)).to.have.string('application/json');
+        expect(await VaultManager.tokenURI(1)).to.have.string('data');
+        expect(await VaultManager.tokenURI(1)).to.have.string('base64');
       });
     });
   });
