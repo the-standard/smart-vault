@@ -6,6 +6,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "contracts/interfaces/INFTMetadataGenerator.sol";
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
@@ -22,14 +23,19 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     address public protocol;
     address public seuro;
     uint256 public collateralRate;
-    uint256 public feeRate;
+    uint256 public mintFeeRate;
+    uint256 public burnFeeRate;
     address public tokenManager;
     address public smartVaultDeployer;
     ISmartVaultIndex private smartVaultIndex;
+    address public nftMetadataGenerator;
 
     uint256 private lastToken;
 
-    struct SmartVaultData { uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 feeRate; ISmartVault.Status status; }
+    struct SmartVaultData { 
+        uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
+        uint256 burnFeeRate; ISmartVault.Status status;
+    }
 
     function initialize() initializer public {
     }
@@ -53,7 +59,8 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
                 tokenId: tokenId,
                 vaultAddress: vaultAddress,
                 collateralRate: collateralRate,
-                feeRate: feeRate,
+                mintFeeRate: mintFeeRate,
+                burnFeeRate: burnFeeRate,
                 status: ISmartVault(vaultAddress).status()
             });
         }
@@ -79,6 +86,19 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
             }
         }
         require(liquidating, "no-liquidatable-vaults");
+    }
+
+    function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
+        ISmartVault.Status memory vaultStatus = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).status();
+        return INFTMetadataGenerator(nftMetadataGenerator).generateNFTMetadata(_tokenId, vaultStatus);
+    }
+
+    function adjustMintFeeRate(uint256 _rate) external onlyOwner {
+        mintFeeRate = _rate;
+    }
+
+    function adjustBurnFeeRate(uint256 _rate) external onlyOwner {
+        burnFeeRate = _rate;   
     }
 
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {

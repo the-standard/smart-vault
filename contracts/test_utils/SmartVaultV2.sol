@@ -152,7 +152,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function mint(address _to, uint256 _amount) external onlyOwnerOrVaultManager {
-        uint256 fee = _amount * manager.feeRate() / manager.HUNDRED_PC();
+        uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;
         seuro.mint(_to, _amount);
@@ -160,7 +160,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
-        uint256 fee = _amount * manager.feeRate() / manager.HUNDRED_PC();
+        uint256 fee = _amount * manager.burnFeeRate() / manager.HUNDRED_PC();
         minted -= _amount;
         seuro.burn(msg.sender, _amount);
         IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);

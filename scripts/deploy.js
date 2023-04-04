@@ -18,6 +18,8 @@ async function main() {
   await Deployer.deployed();
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
+  const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
+  await NFTMetadataGenerator.deployed();
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
     120000, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address,
     SmartVaultIndex.address

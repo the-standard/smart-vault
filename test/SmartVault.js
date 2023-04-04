@@ -16,9 +16,11 @@ describe('SmartVault', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
+    const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
+      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address,
+      NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);

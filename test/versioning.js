@@ -15,9 +15,10 @@ describe('Contract Versioning', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
+    const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       120000, 1000, SEuro.address, protocol.address, TokenManager.address,
-      VaultDeployer.address, SmartVaultIndex.address
+      VaultDeployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), VaultManagerV1.address);
     await SmartVaultIndex.setVaultManager(VaultManagerV1.address);

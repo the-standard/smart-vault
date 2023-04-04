@@ -19,9 +19,11 @@ describe('SmartVaultManager', async () => {
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
+    const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address
+      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address,
+      NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -39,7 +41,8 @@ describe('SmartVaultManager', async () => {
       expect(vaults[0].status.maxMintable).to.equal(0);
       expect(vaults[0].status.currentCollateralPercentage).to.equal(0);
       expect(vaults[0].collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
-      expect(vaults[0].feeRate).to.equal(PROTOCOL_FEE_RATE);
+      expect(vaults[0].mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
+      expect(vaults[0].burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
     });
   });
 
