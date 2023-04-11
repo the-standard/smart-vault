@@ -7,7 +7,7 @@ npm install
 ```
 
 ## Testing
-If you are in root, you can run the project's full test suite using the Makefile by
+If you are in root, you can run the project's full test suite
 ```
 npx hardhat test
 ```
