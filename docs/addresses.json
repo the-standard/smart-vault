@@ -1,0 +1,12 @@
+{
+    "sepolia": {
+        "SmartVaultManager": "0x951368849030f4B748fB12f6AF431Db1D0762974",
+        "TokenManager": "0x25C2704a9a0A096c2B3D243f699dDa00bD67F7d2",
+        "SEuro": "0xf23F59316A2700D88F6F503B24aEE01118255645"
+    },
+    "mumbai": {
+        "SmartVaultManager": "0xbE70d41FB3505385c01429cbcCB1943646Db344f",
+        "TokenManager": "0x925cB42f33b10f913396dF864631c887f9Fa1979",
+        "SEuro": "0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f"
+    }
+}
