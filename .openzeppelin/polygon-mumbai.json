@@ -480,6 +480,262 @@
           }
         }
       }
+    },
+    "585e506c6b09e1407070491d75537d0c511840886be7a7dd2bd4a209d90ed64c": {
+      "address": "0xd928BD9F330E8B1bBEC38A28E3e339aA536DB5a8",
+      "txHash": "0xdd96be7d06ed694935e6b43fc34fb96920da7a4f21c7f707b529c8002dbcd5ee",
+      "layout": {
+        "solcVersion": "0.8.17",
+        "storage": [
+          {
+            "label": "_initialized",
+            "offset": 0,
+            "slot": "0",
+            "type": "t_uint8",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:62",
+            "retypedFrom": "bool"
+          },
+          {
+            "label": "_initializing",
+            "offset": 1,
+            "slot": "0",
+            "type": "t_bool",
+            "contract": "Initializable",
+            "src": "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol:67"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "1",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ContextUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol:36"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "51",
+            "type": "t_array(t_uint256)50_storage",
+            "contract": "ERC165Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/utils/introspection/ERC165Upgradeable.sol:41"
+          },
+          {
+            "label": "_name",
+            "offset": 0,
+            "slot": "101",
+            "type": "t_string_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:25"
+          },
+          {
+            "label": "_symbol",
+            "offset": 0,
+            "slot": "102",
+            "type": "t_string_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:28"
+          },
+          {
+            "label": "_owners",
+            "offset": 0,
+            "slot": "103",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:31"
+          },
+          {
+            "label": "_balances",
+            "offset": 0,
+            "slot": "104",
+            "type": "t_mapping(t_address,t_uint256)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:34"
+          },
+          {
+            "label": "_tokenApprovals",
+            "offset": 0,
+            "slot": "105",
+            "type": "t_mapping(t_uint256,t_address)",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:37"
+          },
+          {
+            "label": "_operatorApprovals",
+            "offset": 0,
+            "slot": "106",
+            "type": "t_mapping(t_address,t_mapping(t_address,t_bool))",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:40"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "107",
+            "type": "t_array(t_uint256)44_storage",
+            "contract": "ERC721Upgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol:517"
+          },
+          {
+            "label": "_owner",
+            "offset": 0,
+            "slot": "151",
+            "type": "t_address",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:22"
+          },
+          {
+            "label": "__gap",
+            "offset": 0,
+            "slot": "152",
+            "type": "t_array(t_uint256)49_storage",
+            "contract": "OwnableUpgradeable",
+            "src": "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol:94"
+          },
+          {
+            "label": "protocol",
+            "offset": 0,
+            "slot": "201",
+            "type": "t_address",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:23"
+          },
+          {
+            "label": "seuro",
+            "offset": 0,
+            "slot": "202",
+            "type": "t_address",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:24"
+          },
+          {
+            "label": "collateralRate",
+            "offset": 0,
+            "slot": "203",
+            "type": "t_uint256",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:25"
+          },
+          {
+            "label": "feeRate",
+            "offset": 0,
+            "slot": "204",
+            "type": "t_uint256",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:26"
+          },
+          {
+            "label": "tokenManager",
+            "offset": 0,
+            "slot": "205",
+            "type": "t_address",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:27"
+          },
+          {
+            "label": "smartVaultDeployer",
+            "offset": 0,
+            "slot": "206",
+            "type": "t_address",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:28"
+          },
+          {
+            "label": "smartVaultIndex",
+            "offset": 0,
+            "slot": "207",
+            "type": "t_contract(ISmartVaultIndex)3773",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:29"
+          },
+          {
+            "label": "lastToken",
+            "offset": 0,
+            "slot": "208",
+            "type": "t_uint256",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:30"
+          },
+          {
+            "label": "nftMetadataGenerator",
+            "offset": 0,
+            "slot": "209",
+            "type": "t_address",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:31"
+          },
+          {
+            "label": "mintFeeRate",
+            "offset": 0,
+            "slot": "210",
+            "type": "t_uint256",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:32"
+          },
+          {
+            "label": "burnFeeRate",
+            "offset": 0,
+            "slot": "211",
+            "type": "t_uint256",
+            "contract": "SmartVaultManagerFeesSeparate",
+            "src": "contracts/tmp/SmartVaultManagerFeesSeparate.sol:33"
+          }
+        ],
+        "types": {
+          "t_address": {
+            "label": "address",
+            "numberOfBytes": "20"
+          },
+          "t_array(t_uint256)44_storage": {
+            "label": "uint256[44]",
+            "numberOfBytes": "1408"
+          },
+          "t_array(t_uint256)49_storage": {
+            "label": "uint256[49]",
+            "numberOfBytes": "1568"
+          },
+          "t_array(t_uint256)50_storage": {
+            "label": "uint256[50]",
+            "numberOfBytes": "1600"
+          },
+          "t_bool": {
+            "label": "bool",
+            "numberOfBytes": "1"
+          },
+          "t_contract(ISmartVaultIndex)3773": {
+            "label": "contract ISmartVaultIndex",
+            "numberOfBytes": "20"
+          },
+          "t_mapping(t_address,t_bool)": {
+            "label": "mapping(address => bool)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_mapping(t_address,t_bool))": {
+            "label": "mapping(address => mapping(address => bool))",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_address,t_uint256)": {
+            "label": "mapping(address => uint256)",
+            "numberOfBytes": "32"
+          },
+          "t_mapping(t_uint256,t_address)": {
+            "label": "mapping(uint256 => address)",
+            "numberOfBytes": "32"
+          },
+          "t_string_storage": {
+            "label": "string",
+            "numberOfBytes": "32"
+          },
+          "t_uint256": {
+            "label": "uint256",
+            "numberOfBytes": "32"
+          },
+          "t_uint8": {
+            "label": "uint8",
+            "numberOfBytes": "1"
+          }
+        }
+      }
     }
   }
 }
