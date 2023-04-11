@@ -26,3 +26,4 @@ npx hardhat size-contracts
 
 ## Documentation
 - [Testnet guide](docs/TESTNET)
+- [Deployed addresses](docs/addresses.json)
