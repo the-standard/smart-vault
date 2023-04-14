@@ -23,14 +23,13 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     address public protocol;
     address public seuro;
     uint256 public collateralRate;
-    uint256 public mintFeeRate;
-    uint256 public burnFeeRate;
     address public tokenManager;
     address public smartVaultDeployer;
     ISmartVaultIndex private smartVaultIndex;
-    address public nftMetadataGenerator;
-
     uint256 private lastToken;
+    address public nftMetadataGenerator;
+    uint256 public mintFeeRate;
+    uint256 public burnFeeRate;
 
     struct SmartVaultData { 
         uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
