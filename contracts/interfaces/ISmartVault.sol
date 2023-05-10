@@ -1,8 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "contracts/interfaces/ITokenManager.sol";
+
 interface ISmartVault {
-    struct Asset { bytes32 symbol; uint256 amount; }
+    struct Asset { ITokenManager.Token token; uint256 amount; }
     struct Status { 
         uint256 minted; uint256 maxMintable; uint256 currentCollateralPercentage;
         Asset[] collateral; bool liquidated; uint8 version; bytes32 vaultType;

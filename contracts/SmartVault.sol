@@ -79,7 +79,7 @@ contract SmartVault is ISmartVault {
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            assets[i] = Asset(token.symbol, getAssetCollateral(token.symbol, token.addr));
+            assets[i] = Asset(token, getAssetCollateral(token.symbol, token.addr));
         }
         return assets;
     }

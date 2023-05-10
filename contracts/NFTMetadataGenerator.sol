@@ -74,7 +74,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         collateralTraits = "";
         for (uint256 i = 0; i < _collateral.length; i++) {
             ISmartVault.Asset memory asset = _collateral[i];
-            collateralTraits = string(abi.encodePacked(collateralTraits, '{"trait_type":"', toShortString(asset.symbol), '", ','"display_type": "number",','"value": ',toDecimalString(asset.amount, 18),'},'));
+            collateralTraits = string(abi.encodePacked(collateralTraits, '{"trait_type":"', toShortString(asset.token.symbol), '", ','"display_type": "number",','"value": ',toDecimalString(asset.amount, asset.token.dec),'},'));
         }
     }
 
@@ -93,10 +93,10 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                 displayText = string(abi.encodePacked(displayText,
                     '<g id="Collateral',(collateralSize+1).toString(),'">',
                         '<text class="cls-5" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftSymbol).toString()," ",textYPosition.toString(),')">',
-                            '<tspan x="0" y="0">',toShortString(asset.symbol),"</tspan>",
+                            '<tspan x="0" y="0">',toShortString(asset.token.symbol),"</tspan>",
                         "</text>",
                         '<text class="cls-5" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftAmount).toString()," ",textYPosition.toString(),')">',
-                            '<tspan x="0" y="0">',toDecimalString(asset.amount, 18),"</tspan>",
+                            '<tspan x="0" y="0">',toDecimalString(asset.amount, asset.token.dec),"</tspan>",
                         "</text>",
                     "</g>"));
                 collateralSize++;
