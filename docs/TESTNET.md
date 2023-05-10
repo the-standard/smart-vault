@@ -11,7 +11,7 @@ Here are some guides to getting set up and getting some test ETH/MATIC from a fa
 
 ## Opening a Smart Vault
 
-Go to the [manager on Sepolia Etherscan](https://sepolia.etherscan.io/address/0x951368849030f4B748fB12f6AF431Db1D0762974#writeProxyContract) or on Mumbai Polygonscan.
+Go to the [manager on Sepolia Etherscan](https://sepolia.etherscan.io/address/0x8e8fb106D22d0Eb7BB3D31BDB29964B5791c7C0E#writeProxyContract) or on Mumbai Polygonscan.
 
 Connect your wallet to the block exporer.
 
@@ -95,17 +95,17 @@ Send these tokens to your vault to use them as collateral. Both tokens are worth
 
 ```
 {
-    sepolia: {
-        SEuro: 0xf23F59316A2700D88F6F503B24aEE01118255645,
-        SmartVaultManager: 0x951368849030f4B748fB12f6AF431Db1D0762974,
-        SUSD6: 0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5,
-        SUSD18: 0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373
+    "sepolia": {
+        "SmartVaultManager": "0x8e8fb106D22d0Eb7BB3D31BDB29964B5791c7C0E",
+        "SEuro": "0xf23F59316A2700D88F6F503B24aEE01118255645",
+        "SUSD6": "0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5",
+        "SUSD18": "0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373"
     },
-    mumbai: {
-        SEuro: 0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f,
-        SmartVaultManager: 0xbE70d41FB3505385c01429cbcCB1943646Db344f,
-        SUSD6: 0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5,
-        SUSD18: 0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC
+    "mumbai": {
+        "SmartVaultManager": "0xF05b859c70c58EF88A4418F808c8d197Bb4Caa79",
+        "SEuro": "0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f",
+        "SUSD6": "0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5",
+        "SUSD18": "0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC"
     }
 }
 ```
