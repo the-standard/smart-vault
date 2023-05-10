@@ -22,7 +22,7 @@ async function main() {
   await NFTMetadataGenerator.deployed();
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
     DEFAULT_COLLATERAL_RATE, 1000, SEuro.address, user.address, TokenManager.address, Deployer.address,
-    SmartVaultIndex.address
+    SmartVaultIndex.address, NFTMetadataGenerator.address
   ]);
   await SmartVaultManager.deployed();
 
