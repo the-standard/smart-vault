@@ -8,7 +8,7 @@ const DEFAULT_EUR_USD_PRICE = BigNumber.from(106000000); // $1.06
 const PROTOCOL_FEE_RATE = BigNumber.from(1000); // 1%
 const ETH = ethers.utils.formatBytes32String('ETH');
 
-const getCollateralOf = (symbol, collateral) => collateral.filter(c => c.symbol === ethers.utils.formatBytes32String(symbol))[0];
+const getCollateralOf = (symbol, collateral) => collateral.filter(c => c.token.symbol === ethers.utils.formatBytes32String(symbol))[0];
 
 module.exports = {
   HUNDRED_PC,
