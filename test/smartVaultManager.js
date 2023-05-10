@@ -57,7 +57,7 @@ describe('SmartVaultManager', async () => {
       expect(totalCollateral).to.equal(0);
       expect(vaults[0].status.minted).to.equal(0);
       expect(vaults[0].status.maxMintable).to.equal(0);
-      expect(vaults[0].status.currentCollateralPercentage).to.equal(0);
+      expect(vaults[0].status.collateralValue).to.equal(0);
       expect(vaults[0].collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
       expect(vaults[0].mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
       expect(vaults[0].burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
@@ -108,7 +108,7 @@ describe('SmartVaultManager', async () => {
         expect(otherUserVaults[0].status.liquidated).to.equal(false);
         expect(userVaults[0].status.minted).to.equal(0);
         expect(userVaults[0].status.maxMintable).to.equal(0);
-        expect(userVaults[0].status.currentCollateralPercentage).to.equal(0);
+        expect(userVaults[0].status.collateralValue).to.equal(0);
         userVaults[0].status.collateral.forEach(asset => {
           expect(asset.amount).to.equal(0);
         });

@@ -33,8 +33,7 @@ The structure of this data is:
         status: {
             minted, // the amount of sEURO currently borrowed from your vault
             maxMintable, // the maximum total amount of sEURO that is borrowable from your vault, based on current collateral value
-            currentCollateralPercentage, // the collateralisation % of your vault; must remain above collateralRate to avoid liquidation;
-                                         // collateralisation % is 0 if no stablecoin is borrowed from the vault; 100000 = 100%;
+            collateralValue, // value of vault collateral in terms of sEURO
             collateral: [
                 {
                     symbol, // the collateral assets symbol, converted to a 32-byte array

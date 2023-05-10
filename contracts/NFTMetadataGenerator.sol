@@ -120,9 +120,8 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         '<line id="Table-split-line" class="cls-1" x1="',rowMidpoint.toString(),'" y1="',TABLE_INITIAL_Y.toString(),'" x2="',rowMidpoint.toString(),'" y2="',tableEndY.toString(),'"/>'));
     }
 
-    function calculateValueMinusDebt(ISmartVault.Status memory _vaultStatus) private pure returns (uint256) {
-        uint256 collateralValue = _vaultStatus.minted * _vaultStatus.currentCollateralPercentage / 100000;
-        return collateralValue - _vaultStatus.minted;
+    function displayCollateralRatio(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
+        return _vaultStatus.minted == 0 ? "0" : (100 * _vaultStatus.collateralValue / _vaultStatus.minted).toString();
     }
 
     function generateSvg(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
@@ -182,12 +181,12 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                 '<text class="cls-7" transform="translate(3229.25 2422.11)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.minted, 18),' sEURO</tspan></text>',
                 '</g>',
                 '<g id="CollateralRatio">',
-                '<text class="cls-4" transform="translate(2165.93 2523.81)"><tspan x="0" y="0">Debt/Collateral</tspan></text>',
-                '<text class="cls-5" transform="translate(3229.25 2523.81)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.currentCollateralPercentage, 3),'%</tspan></text>',
+                '<text class="cls-4" transform="translate(2165.93 2523.81)"><tspan x="0" y="0">Collateral/Debt</tspan></text>',
+                '<text class="cls-5" transform="translate(3229.25 2523.81)"><tspan x="0" y="0">',displayCollateralRatio(_vaultStatus),'%</tspan></text>',
                 '</g>',
                 '<g id="TotalValueMinusDebt">',
                 '<text class="cls-4" transform="translate(2165.93 2623.54)"><tspan x="0" y="0">Total value minus Debt:</tspan></text>',
-                '<text class="cls-8" transform="translate(3227.04 2623.54)"><tspan x="0" y="0">',toDecimalString(calculateValueMinusDebt(_vaultStatus), 18),' sEURO</tspan></text>',
+                '<text class="cls-8" transform="translate(3227.04 2623.54)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),' sEURO</tspan></text>',
                 '</g>',
             '</g>',
             '</svg>'
@@ -208,9 +207,9 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                 '"description": "The Standard Smart Vault (',toShortString(_vaultStatus.vaultType),')",',
                 '"attributes": [',
                     '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
-                    '{"trait_type": "Borrowed",  "display_type": "number", "value": ', (_vaultStatus.minted / 1 ether).toString(),'},',
-                    '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',(_vaultStatus.maxMintable / 1 ether).toString(),'"},',
-                    '{"trait_type": "Collateral %", "display_type": "number", "value": ',(_vaultStatus.currentCollateralPercentage / 1000).toString(),'},',
+                    '{"trait_type": "Borrowed",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
+                    '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',toDecimalString(_vaultStatus.maxMintable, 18),'"},',
+                    '{"trait_type": "Collateral Value in Euro", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
                     mapCollateralForJSON(_vaultStatus.collateral),
                     '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',
                     '{"trait_type": "Vault Type", "value": "',toShortString(_vaultStatus.vaultType),'"}',

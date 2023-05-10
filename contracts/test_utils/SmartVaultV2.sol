@@ -70,10 +70,6 @@ contract SmartVaultV2 is ISmartVault {
         return euroCollateral() * manager.HUNDRED_PC() / manager.collateralRate();
     }
 
-    function currentCollateralPercentage() private view returns (uint256) {
-        return minted == 0 ? 0 : euroCollateral() * manager.HUNDRED_PC() / minted;
-    }
-
     function getAssetCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
         return _symbol == NATIVE ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
@@ -90,7 +86,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(minted, maxMintable(), currentCollateralPercentage(),
+        return Status(minted, maxMintable(), euroCollateral(),
             getAssets(), liquidated, version, vaultType);
     }
 

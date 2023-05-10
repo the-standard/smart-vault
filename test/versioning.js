@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require("hardhat");
-const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE } = require('./common');
+const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE } = require('./common');
 
 describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
@@ -17,7 +17,7 @@ describe('Contract Versioning', async () => {
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      120000, 1000, SEuro.address, protocol.address, TokenManager.address,
+      DEFAULT_COLLATERAL_RATE, 1000, SEuro.address, protocol.address, TokenManager.address,
       VaultDeployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), VaultManagerV1.address);
