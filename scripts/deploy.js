@@ -46,6 +46,7 @@ async function main() {
     TokenManager: TokenManager.address,
     Deployer: Deployer.address,
     SmartVaultIndex: SmartVaultIndex.address,
+    NFTMetadataGenerator: NFTMetadataGenerator.address,
     SmartVaultManager: SmartVaultManager.address,
     USD6: usd6.address,
     USD18: usd18.address
