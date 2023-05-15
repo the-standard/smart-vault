@@ -9,10 +9,10 @@ import "contracts/interfaces/INFTMetadataGenerator.sol";
 contract NFTMetadataGenerator is INFTMetadataGenerator {
     using Strings for uint256;
 
-    uint256 private constant TABLE_ROW_HEIGHT = 117;
-    uint256 private constant TABLE_ROW_WIDTH = 2110;
-    uint256 private constant TABLE_INITIAL_Y = 944;
-    uint256 private constant TABLE_INITIAL_X = 2127;
+    uint256 private constant TABLE_ROW_HEIGHT = 67;
+    uint256 private constant TABLE_ROW_WIDTH = 1235;
+    uint256 private constant TABLE_INITIAL_Y = 460;
+    uint256 private constant TABLE_INITIAL_X = 357;
 
     function toShortString(bytes32 _data) pure public returns (string memory) {
         bytes memory bytesString = new bytes(32);
@@ -80,9 +80,9 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
 
     function mapCollateralForSVG(ISmartVault.Asset[] memory _collateral) private pure returns (string memory displayText, uint256 collateralSize) {
         displayText = "";
-        uint256 paddingTop = 84;
-        uint256 paddingLeftSymbol = 37;
-        uint256 paddingLeftAmount = paddingLeftSymbol + 300;
+        uint256 paddingTop = 50;
+        uint256 paddingLeftSymbol = 22;
+        uint256 paddingLeftAmount = paddingLeftSymbol + 250;
         collateralSize = 0;
         for (uint256 i = 0; i < _collateral.length; i++) {
             ISmartVault.Asset memory asset = _collateral[i];
@@ -91,17 +91,28 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                 uint256 currentRow = collateralSize / 2;
                 uint256 textYPosition = TABLE_INITIAL_Y + currentRow * TABLE_ROW_HEIGHT + paddingTop;
                 displayText = string(abi.encodePacked(displayText,
-                    '<g id="Collateral',(collateralSize+1).toString(),'">',
-                        '<text class="cls-5" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftSymbol).toString()," ",textYPosition.toString(),')">',
-                            '<tspan x="0" y="0">',toShortString(asset.token.symbol),"</tspan>",
-                        "</text>",
-                        '<text class="cls-5" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftAmount).toString()," ",textYPosition.toString(),')">',
-                            '<tspan x="0" y="0">',toDecimalString(asset.amount, asset.token.dec),"</tspan>",
-                        "</text>",
-                    "</g>"));
+                    '<g id="Collateral',i.toString(),'">',
+                        '<text class="cls-8" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftSymbol).toString(),' ',textYPosition.toString(),')">',
+                            '<tspan x="0" y="0">',toShortString(asset.token.symbol),'</tspan>',
+                        '</text>',
+                        '<text class="cls-8" transform="translate(',(TABLE_INITIAL_X + xShift + paddingLeftAmount).toString(),' ',textYPosition.toString(),')">',
+                            '<tspan x="0" y="0">',toDecimalString(asset.amount, asset.token.dec),'</tspan>',
+                        '</text>',
+                    '</g>'
+                ));
                 collateralSize++;
             }
         }
+        if (collateralSize == 0) {
+            displayText = string(abi.encodePacked(
+                '<g id="Collateral1">',
+                    '<text class="cls-8" transform="translate(',(TABLE_INITIAL_X + paddingLeftSymbol).toString(),' ',(TABLE_INITIAL_Y + paddingTop).toString(),')">',
+                        '<tspan x="0" y="0">N/A</tspan>',
+                    '</text>'
+                '</g>'
+            ));
+            collateralSize = 1;
+        } 
     }
 
     function mapRows(uint256 _collateralSize) private pure returns (string memory mappedRows) {
@@ -111,84 +122,132 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         for (uint256 i = 0; i < highlightRowCount; i++) {
             uint256 y = TABLE_INITIAL_Y+i*TABLE_ROW_HEIGHT;
             mappedRows = string(abi.encodePacked(
-                mappedRows, '<rect id="Highlight',(highlightRowCount-i).toString(),'" class="cls-6" x="',TABLE_INITIAL_X.toString(),'" y="',y.toString(),'" width="',TABLE_ROW_WIDTH.toString(),'" height="',TABLE_ROW_HEIGHT.toString(),'"/>'
+                mappedRows, '<rect id="Highlight',i.toString(),'" class="cls-9" x="',TABLE_INITIAL_X.toString(),'" y="',y.toString(),'" width="',TABLE_ROW_WIDTH.toString(),'" height="',TABLE_ROW_HEIGHT.toString(),'"/>'
             ));
         }
         uint256 rowMidpoint = TABLE_INITIAL_X + TABLE_ROW_WIDTH / 2;
         uint256 tableEndY = TABLE_INITIAL_Y + rowCount * TABLE_ROW_HEIGHT;
         mappedRows = string(abi.encodePacked(mappedRows,
-        '<line id="Table-split-line" class="cls-1" x1="',rowMidpoint.toString(),'" y1="',TABLE_INITIAL_Y.toString(),'" x2="',rowMidpoint.toString(),'" y2="',tableEndY.toString(),'"/>'));
+        '<line id="Table-split-line" class="cls-11" x1="',rowMidpoint.toString(),'" y1="',TABLE_INITIAL_Y.toString(),'" x2="',rowMidpoint.toString(),'" y2="',tableEndY.toString(),'"/>'));
     }
 
     function displayCollateralRatio(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
         return _vaultStatus.minted == 0 ? "0" : (100 * _vaultStatus.collateralValue / _vaultStatus.minted).toString();
     }
 
-    function generateSvg(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
+    function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
+        return _vaultStatus.collateralValue == 0 ? "0" : toDecimalString(100000 * _vaultStatus.collateralValue / _vaultStatus.minted, 3);
+    }
+
+    function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
         (string memory collateralText, uint256 collateralSize) = mapCollateralForSVG(_vaultStatus.collateral);
         bytes memory svg = abi.encodePacked(
             '<?xml version="1.0" encoding="UTF-8"?>',
-            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 4995.66 3856.02">',
-            '<defs>',
-                '<style>',
-                '.cls-1 {',
-                    'fill: none;',
-                    'stroke: #fff;',
-                    'stroke-miterlimit: 10;',
-                    'stroke-width: 3px;',
-                '}',
-                '.cls-2 {',
-                    'font-size: 53.51px;',
-                '}',
-                '.cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8 {',
-                    'fill: #fff;',
-                '}',
-                '.cls-2, .cls-3, .cls-5, .cls-7 {',
-                    'font-family: Poppins-Light, Poppins;',
-                '}',
-                '.cls-3 {',
-                    'font-size: 102.5px;',
-                '}',
-                '.cls-4, .cls-5 {',
-                    'font-size: 72px;',
-                '}',
-                '.cls-4, .cls-8 {',
-                    'font-family: Poppins-Bold, Poppins;',
-                '}',
-                '.cls-6 {',
-                    'opacity: .17;',
-                '}',
-                '.cls-7, .cls-8 {',
-                    'font-size: 65.13px;',
-                '}',
-                '</style>',
-            '</defs>',
-            '<g id="sEURO-CDP-NFT-BackGround">',
-                '<image id="PNG" transform="scale(2.6)" xlink:href="https://i.imgur.com/JOBM02z.png"/>',
-            '</g>',
-            '<g id="Table">',
-                mapRows(collateralSize),
-            '</g>',
-            '<g id="AllText">',
-                '<g id="HeadText">',
-                '<text class="cls-3" transform="translate(2151.11 627.51)"><tspan x="0" y="0">The owner of this NFT owns the collateral and debt</tspan></text>',
-                '<text class="cls-2" transform="translate(2151.11 726.66)"><tspan x="0" y="0">NOTE: Open Sea caching might show older NFT data, it is up to the buyer to check the blockchain </tspan></text>',
+            '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2880 1620">',
+                '<defs>',
+                    '<style>',
+                        '.cls-1 {',
+                            'font-family: Arial;',
+                            'font-weight: bold;',
+                            'font-size: 60.88px;',
+                        '}',
+                        '.cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8, .cls-9, .cls-10 {',
+                            'fill: #fff;',
+                        '}',
+                        '.cls-11 {',
+                            'fill: none;',
+                            'stroke: #fff;',
+                            'stroke-miterlimit: 10;',
+                            'stroke-width: 3px;',
+                        '}',
+                        '.cls-2 {',
+                            'font-size: 46.5px;',
+                        '}',
+                        '.cls-2, .cls-4, .cls-7, .cls-8, .cls-10 {',
+                            'font-family: Arial;',
+                        '}',
+                        '.cls-4 {',
+                            'font-size: 95.97px;',
+                        '}',
+                        '.cls-12 {',
+                            'fill: url(#linear-gradient);',
+                        '}',
+                        '.cls-5 {',
+                            'font-family: Arial;',
+                            'font-weight: bold;',
+                        '}',
+                        '.cls-5, .cls-7 {',
+                            'font-size: 50.39px;',
+                        '}',
+                        '.cls-6 {',
+                            'font-family: Arial;',
+                            'font-size: 55px;',
+                        '}',
+                        '.cls-8 {',
+                            'font-size: 42.69px;',
+                        '}',
+                        '.cls-9 {',
+                            'opacity: .17;',
+                        '}',
+                        '.cls-10 {',
+                            'font-size: 63.77px;',
+                        '}',
+                    '</style>',
+                    '<linearGradient id="linear-gradient" x1="315" y1="1935" x2="2565" y2="-315" gradientTransform="matrix(1, 0, 0, 1, 0, 0)" gradientUnits="userSpaceOnUse">',
+                        '<stop offset=".38" stop-color="#4b84ee"/>',
+                        '<stop offset=".77" stop-color="#9f32ea"/>',
+                        '<stop offset="1" stop-color="#e745c0"/>',
+                    '</linearGradient>',
+                '</defs>',
+                '<g id="Layer_4" data-name="Layer 4">',
+                    '<rect class="cls-12" width="2880" height="1620"/>',
                 '</g>',
-                '<text class="cls-4" transform="translate(2167.11 887.58)"><tspan x="0" y="0">Collateral</tspan></text>',
-                collateralText,
-                '<g id="TotalDebt">',
-                '<text class="cls-4" transform="translate(2161.46 2422.11)"><tspan x="0" y="0">Debt</tspan></text>',
-                '<text class="cls-7" transform="translate(3229.25 2422.11)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.minted, 18),' sEURO</tspan></text>',
+                '<g id="Template_text_fill" data-name="Template text_fill">',
+                    '<g id="HeadText">',
+                        '<text class="cls-4" transform="translate(239.87 164.27)"><tspan x="0" y="0">The owner of this NFT owns the collateral and debt</tspan></text>',
+                        '<text class="cls-2" transform="translate(244.87 254.3)"><tspan x="0" y="0">NOTE: NFT marketplace caching might show older NFT data, it is up to the buyer to check the blockchain </tspan></text>',
+                    '</g>',
+                    '<text class="cls-6" transform="translate(357.54 426.33)"><tspan x="0" y="0">Collateral locked in this vault</tspan></text>',
+                    '<text class="cls-5" transform="translate(1715.63 426.33)"><tspan x="0" y="0">sEURO SmartVault #',_tokenId.toString(),'</tspan></text>',
+                    mapRows(collateralSize),
+                    collateralText,
+                    '<g id="TotalDebt-2" data-name="TotalDebt">',
+                        '<text class="cls-5" transform="translate(1713.34 719.41)"><tspan x="0" y="0">Total Value</tspan></text>',
+                        '<text class="cls-7" transform="translate(2191.03 719.41)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue, 18),' sEURO</tspan></text>',
+                    '</g>',
+                    '<g id="TotalDebt">',
+                        '<text class="cls-5" transform="translate(1713.34 822.75)"><tspan x="0" y="0">Debt</tspan></text>',
+                        '<text class="cls-7" transform="translate(2191.03 822.75)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.minted, 18),' sEURO</tspan></text>',
+                    '</g>',
+                    '<g id="CollateralRatio">',
+                        '<text class="cls-5" transform="translate(1713.34 924.1)"><tspan x="0" y="0">Collateral/Debt</tspan></text>',
+                        '<text class="cls-7" transform="translate(2191.03 924.1)"><tspan x="0" y="0">',collateralDebtPecentage(_vaultStatus),'%</tspan></text>',
+                    '</g>',
+                    '<g id="TotalValueMinusDebt">',
+                        '<text class="cls-5" transform="translate(1714.21 1136.92)"><tspan x="0" y="0">Total value minus debt:</tspan></text>',
+                        '<text class="cls-5" transform="translate(1715.63 1220.22)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),' sEURO</tspan></text>',
+                    '</g>',
                 '</g>',
-                '<g id="CollateralRatio">',
-                '<text class="cls-4" transform="translate(2165.93 2523.81)"><tspan x="0" y="0">Collateral/Debt</tspan></text>',
-                '<text class="cls-5" transform="translate(3229.25 2523.81)"><tspan x="0" y="0">',displayCollateralRatio(_vaultStatus),'%</tspan></text>',
+                '<g id="sEURO_Logo">',
+                    '<g id="sEURO_Logo-2" data-name="sEURO_Logo">',
+                        '<path id="sEURO-Logo-Middle" class="cls-3" d="M293.17,1446c2.92,0,5.59,.31,8.01,.92,2.42,.61,4.77,1.48,7.05,2.58l-4.2,9.9c-1.99-.88-3.82-1.56-5.52-2.06-1.69-.5-3.47-.74-5.34-.74-3.45,0-6.31,1.01-8.58,3.02-2.28,2.01-3.74,4.92-4.38,8.71h17.25v7.53h-17.87c0,.23-.02,.54-.04,.92-.03,.38-.04,.83-.04,1.36v1.31c0,.41,.03,.85,.09,1.31h15.15v7.62h-14.45c1.4,6.95,5.98,10.42,13.75,10.42,2.22,0,4.31-.22,6.26-.66,1.96-.44,3.78-1.04,5.47-1.8v10.95c-1.64,.82-3.46,1.45-5.47,1.88-2.01,.44-4.37,.66-7.05,.66-6.83,0-12.52-1.85-17.08-5.56-4.55-3.71-7.44-9.01-8.67-15.9h-5.87v-7.62h5.08c-.12-.82-.18-1.69-.18-2.63v-1.31c0-.41,.03-.73,.09-.96h-4.99v-7.53h5.69c.76-4.67,2.31-8.67,4.64-12,2.33-3.33,5.31-5.88,8.93-7.66,3.62-1.78,7.71-2.67,12.26-2.67Z"/>',
+                        '<path id="sEURO-Logo-Top" class="cls-3" d="M255.82,1479.57h-16.33v-23.22c0-17.76,14.45-32.21,32.21-32.21h61.25v16.33h-61.25c-8.75,0-15.88,7.12-15.88,15.88v23.22Z"/>',
+                        '<path id="sEURO-Logo-Bottom" class="cls-3" d="M300.59,1531.88h-60.71v-16.33h60.71c8.61,0,15.88-5.22,15.88-11.4v-24.17h16.33v24.17c0,15.29-14.45,27.73-32.21,27.73Z"/>',
+                    '</g>',
+                    '<g id="TotalValueMinusDebt-2" data-name="TotalValueMinusDebt">',
+                        '<text class="cls-10" transform="translate(357.2 1494.48)"><tspan x="0" y="0">sEURO SmartVault</tspan></text>',
+                    '</g>',
                 '</g>',
-                '<g id="TotalValueMinusDebt">',
-                '<text class="cls-4" transform="translate(2165.93 2623.54)"><tspan x="0" y="0">Total value minus Debt:</tspan></text>',
-                '<text class="cls-8" transform="translate(3227.04 2623.54)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),' sEURO</tspan></text>',
+                '<g id="The_Standard_Logo">',
+                    '<g id="Logo">',
+                        '<g id="URL">',
+                            '<text class="cls-1" transform="translate(2173.2 1496.1)"><tspan x="0" y="0">TheStandard.io</tspan></text>',
+                        '</g>',
+                        '<rect id="TST_Logo_Middle" class="cls-3" x="2097.6" y="1453.66" width="16.43" height="49.6"/>',
+                        '<path id="TST_Logo_Top" class="cls-3" d="M2074.82,1479.74h-16.38v-23.29c0-17.81,14.49-32.31,32.31-32.31h61.43v16.38h-61.43c-8.78,0-15.93,7.14-15.93,15.93v23.29Z"/>',
+                        '<path id="TST_Logo_Botom" class="cls-3" d="M2119.72,1532.21h-60.9v-16.38h60.9c8.63,0,15.93-5.24,15.93-11.44v-24.24h16.38v24.24c0,15.34-14.49,27.82-32.31,27.82Z"/>',
+                    '</g>',
                 '</g>',
-            '</g>',
             '</svg>'
         );
         return
@@ -207,14 +266,15 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                 '"description": "The Standard Smart Vault (',toShortString(_vaultStatus.vaultType),')",',
                 '"attributes": [',
                     '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
-                    '{"trait_type": "Borrowed",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
+                    '{"trait_type": "Debt",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
                     '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',toDecimalString(_vaultStatus.maxMintable, 18),'"},',
-                    '{"trait_type": "Collateral Value in Euro", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
+                    '{"trait_type": "Collateral Value in sEURO", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
+                    '{"trait_type": "Value minus debt", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),'},',
                     mapCollateralForJSON(_vaultStatus.collateral),
                     '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',
                     '{"trait_type": "Vault Type", "value": "',toShortString(_vaultStatus.vaultType),'"}',
                 '],',
-                '"image": "',generateSvg(_vaultStatus),'"',
+                '"image": "',generateSvg(_tokenId, _vaultStatus),'"',
             "}"
         );
         return
