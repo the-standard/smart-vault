@@ -170,6 +170,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                     '}',
                                     '.cls-1, .cls-2, .cls-3, .cls-4, .cls-5, .cls-6, .cls-7, .cls-8, .cls-9, .cls-10 {',
                                         'fill: #fff;',
+                                        'text-shadow: 2px 2px #00000080;',
                                     '}',
                                     '.cls-11 {',
                                         'fill: none;',
