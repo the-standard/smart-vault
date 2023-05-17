@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
+import "hardhat/console.sol";
 
 contract NFTMetadataGenerator is INFTMetadataGenerator {
     using Strings for uint256;
@@ -134,7 +135,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.collateralValue == 0 ? "0" : toDecimalString(100000 * _vaultStatus.collateralValue / _vaultStatus.minted, 3);
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(toDecimalString(100000 * _vaultStatus.collateralValue / _vaultStatus.minted, 3),"%"));
     }
 
     function getGradient(uint256 _tokenId) private pure returns (Gradient memory) {
@@ -239,7 +240,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                 '</g>',
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1713.34 924.1)"><tspan x="0" y="0">Collateral/Debt</tspan></text>',
-                                    '<text class="cls-7" transform="translate(2191.03 924.1)"><tspan x="0" y="0">',collateralDebtPecentage(_vaultStatus),'%</tspan></text>',
+                                    '<text class="cls-7" transform="translate(2191.03 924.1)"><tspan x="0" y="0">',collateralDebtPecentage(_vaultStatus),'</tspan></text>',
                                 '</g>',
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1714.21 1136.92)"><tspan x="0" y="0">Total value minus debt:</tspan></text>',
