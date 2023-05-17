@@ -1411,7 +1411,7 @@
             "label": "smartVaultIndex",
             "offset": 0,
             "slot": "206",
-            "type": "t_contract(ISmartVaultIndex)6848",
+            "type": "t_contract(ISmartVaultIndex)9458",
             "contract": "SmartVaultManagerUpgradeNFT",
             "src": "contracts/SmartVaultManagerUpgradeNFT.sol:28"
           },
@@ -1469,7 +1469,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(ISmartVaultIndex)6848": {
+          "t_contract(ISmartVaultIndex)9458": {
             "label": "contract ISmartVaultIndex",
             "numberOfBytes": "20"
           },
