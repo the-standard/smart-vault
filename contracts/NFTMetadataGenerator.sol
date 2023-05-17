@@ -17,7 +17,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
     struct Gradient { bytes32 colour1; bytes32 colour2; bytes32 colour3; }
     struct CollateralForSVG { string text; uint256 size; }
 
-    function toShortString(bytes32 _data) pure public returns (string memory) {
+    function toShortString(bytes32 _data) pure private returns (string memory) {
         bytes memory bytesString = new bytes(32);
         uint charCount = 0;
         for (uint8 i = 0; i < 32; i++) {
