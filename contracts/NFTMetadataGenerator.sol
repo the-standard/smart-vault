@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/utils/Base64.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
-import "hardhat/console.sol";
 
 contract NFTMetadataGenerator is INFTMetadataGenerator {
     using Strings for uint256;
