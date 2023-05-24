@@ -1372,80 +1372,80 @@
             "offset": 0,
             "slot": "201",
             "type": "t_address",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:23"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:23"
           },
           {
             "label": "seuro",
             "offset": 0,
             "slot": "202",
             "type": "t_address",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:24"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:24"
           },
           {
             "label": "collateralRate",
             "offset": 0,
             "slot": "203",
             "type": "t_uint256",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:25"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:25"
           },
           {
             "label": "tokenManager",
             "offset": 0,
             "slot": "204",
             "type": "t_address",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:26"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:26"
           },
           {
             "label": "smartVaultDeployer",
             "offset": 0,
             "slot": "205",
             "type": "t_address",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:27"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:27"
           },
           {
             "label": "smartVaultIndex",
             "offset": 0,
             "slot": "206",
-            "type": "t_contract(ISmartVaultIndex)9458",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:28"
+            "type": "t_contract(ISmartVaultIndex)9461",
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:28"
           },
           {
             "label": "lastToken",
             "offset": 0,
             "slot": "207",
             "type": "t_uint256",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:29"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:29"
           },
           {
             "label": "nftMetadataGenerator",
             "offset": 0,
             "slot": "208",
             "type": "t_address",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:30"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:30"
           },
           {
             "label": "mintFeeRate",
             "offset": 0,
             "slot": "209",
             "type": "t_uint256",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:31"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:31"
           },
           {
             "label": "burnFeeRate",
             "offset": 0,
             "slot": "210",
             "type": "t_uint256",
-            "contract": "SmartVaultManagerUpgradeNFT",
-            "src": "contracts/SmartVaultManagerUpgradeNFT.sol:32"
+            "contract": "SmartVaultManagerNewNFTGenerator",
+            "src": "contracts/SmartVaultManagerNewNFTGenerator.sol:32"
           }
         ],
         "types": {
@@ -1469,7 +1469,7 @@
             "label": "bool",
             "numberOfBytes": "1"
           },
-          "t_contract(ISmartVaultIndex)9458": {
+          "t_contract(ISmartVaultIndex)9461": {
             "label": "contract ISmartVaultIndex",
             "numberOfBytes": "20"
           },
