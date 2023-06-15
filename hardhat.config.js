@@ -6,7 +6,8 @@ require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 
 const { 
-  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY
+  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY,
+  ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY
 } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
@@ -29,13 +30,19 @@ module.exports = {
     polygon_zk_testnet: {
       url: 'https://rpc.public.zkevm-test.net',
       accounts: testAccounts
+    },
+    arbitrum_goerli: {
+      url: 'https://goerli-rollup.arbitrum.io/rpc',
+      chainId: 421613,
+      accounts: testAccounts
     }
   },
   etherscan: {
     apiKey: {
       goerli: ETHERSCAN_KEY,
       sepolia: ETHERSCAN_KEY,
-      polygonMumbai: POLYGONSCAN_KEY
-    },
+      polygonMumbai: POLYGONSCAN_KEY,
+      arbitrumGoerli: ARBISCAN_KEY
+    }
   }
 };
