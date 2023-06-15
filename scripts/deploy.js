@@ -35,6 +35,7 @@ async function main() {
   await usd18.deployed();
 
   const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  await ClUsdUsd.deployed();
   await (await ClUsdUsd.setPrice(100000000)).wait();
   await (await TokenManager.addAcceptedToken(usd6.address, ClUsdUsd.address)).wait();
   await (await TokenManager.addAcceptedToken(usd18.address, ClUsdUsd.address)).wait();
