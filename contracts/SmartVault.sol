@@ -48,6 +48,11 @@ contract SmartVault is ISmartVault {
         _;
     }
 
+    modifier ifNotLiquidated {
+        require(!liquidated, "err-liquidated");
+        _;
+    }
+
     function getTokenManager() private view returns (ITokenManager) {
         return ITokenManager(manager.tokenManager());
     }
@@ -142,7 +147,7 @@ contract SmartVault is ISmartVault {
         return minted + _amount <= maxMintable();
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwner {
+    function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
         uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;

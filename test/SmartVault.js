@@ -286,5 +286,23 @@ describe('SmartVault', async () => {
       collateral.forEach(asset => expect(asset.amount).to.equal(0));
       expect(liquidated).to.equal(true);
     });
+
+    it('will not allow minting of seuro if liquidated', async () => {
+      const ethValue = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value: ethValue});
+
+      const mintedValue = ethers.utils.parseEther('900');
+      await Vault.connect(user).mint(user.address, mintedValue);
+      
+      // drop price, now vault is liquidatable
+      await ClEthUsd.setPrice(100000000000);
+
+      await VaultManager.liquidateVaults();
+      const { liquidated } = await Vault.status();
+      expect(liquidated).to.equal(true);
+
+      await user.sendTransaction({to: Vault.address, value: ethValue.mul(2)});
+      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWith('err-liquidated');
+    });
   });
 });
