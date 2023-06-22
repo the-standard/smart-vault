@@ -8,7 +8,7 @@ import "contracts/interfaces/IPriceCalculator.sol";
 contract PriceCalculator is IPriceCalculator {
     bytes32 private immutable NATIVE;
 
-    IChainlink public clEurUsd;
+    IChainlink public immutable clEurUsd;
 
     constructor (bytes32 _native, address _clEurUsd) {
         NATIVE = _native;
@@ -16,14 +16,14 @@ contract PriceCalculator is IPriceCalculator {
     }
 
     function avgPrice(uint8 _hours, IChainlink _priceFeed) private view returns (uint256) {
-        uint256 fourHoursAgo = block.timestamp - _hours * 1 hours;
+        uint256 startPeriod = block.timestamp - _hours * 1 hours;
         uint256 roundTS;
         uint80 roundId;
         int256 answer;
         (roundId, answer,, roundTS,) = _priceFeed.latestRoundData();
         uint256 accummulatedRoundPrices = uint256(answer);
         uint256 roundCount = 1;
-        while (roundTS > fourHoursAgo) {
+        while (roundTS > startPeriod) {
             roundCount++;
             roundId--;
             (, answer,, roundTS,) = _priceFeed.getRoundData(roundId);
