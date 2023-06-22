@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import "contracts/interfaces/ISmartVault.sol";
-
 interface ISmartVaultIndex {
     function getTokenIds(address _user) external view returns (uint256[] memory);
     function getVaultAddress(uint256 _tokenId) external view returns (address payable);
