@@ -17,13 +17,13 @@ contract SmartVault is ISmartVault {
     uint8 private constant version = 1;
     bytes32 private constant vaultType = bytes32("SEURO");
     bytes32 private immutable NATIVE;
+    ISmartVaultManager public immutable manager;
+    ISEuro public immutable seuro;
+    IPriceCalculator public immutable calculator;
 
     address public owner;
     uint256 private minted;
     bool private liquidated;
-    ISmartVaultManager public manager;
-    ISEuro public seuro;
-    IPriceCalculator public calculator;
 
     constructor(bytes32 _native, address _manager, address _owner, address _seuro, address _priceCalculator) {
         NATIVE = _native;
