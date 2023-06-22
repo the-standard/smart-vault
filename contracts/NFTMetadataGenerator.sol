@@ -8,11 +8,13 @@ import "contracts/interfaces/INFTMetadataGenerator.sol";
 
 contract NFTMetadataGenerator is INFTMetadataGenerator {
     using Strings for uint256;
+    using Strings for uint16;
 
-    uint256 private constant TABLE_ROW_HEIGHT = 67;
-    uint256 private constant TABLE_ROW_WIDTH = 1235;
-    uint256 private constant TABLE_INITIAL_Y = 460;
-    uint256 private constant TABLE_INITIAL_X = 357;
+    uint16 private constant TABLE_ROW_HEIGHT = 67;
+    uint16 private constant TABLE_ROW_WIDTH = 1235;
+    uint16 private constant TABLE_INITIAL_Y = 460;
+    uint16 private constant TABLE_INITIAL_X = 357;
+    uint32 private constant HUNDRED_PC = 100000;
 
     struct Gradient { bytes32 colour1; bytes32 colour2; bytes32 colour3; }
     struct CollateralForSVG { string text; uint256 size; }
@@ -134,7 +136,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(toDecimalString(100000 * _vaultStatus.collateralValue / _vaultStatus.minted, 3),"%"));
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(toDecimalString(HUNDRED_PC * _vaultStatus.collateralValue / _vaultStatus.minted, 3),"%"));
     }
 
     function getGradient(uint256 _tokenId) private pure returns (Gradient memory) {
