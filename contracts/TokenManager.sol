@@ -10,12 +10,10 @@ contract TokenManager is ITokenManager, Ownable {
     bytes32 private immutable NATIVE;
 
     Token[] private acceptedTokens;
-    address public clNativeUsd;
 
     constructor(bytes32 _native, address _clNativeUsd) {
         NATIVE = _native;
-        clNativeUsd = _clNativeUsd;
-        acceptedTokens.push(Token(NATIVE, address(0), 18, _clNativeUsd, IChainlink(clNativeUsd).decimals()));
+        acceptedTokens.push(Token(NATIVE, address(0), 18, _clNativeUsd, IChainlink(_clNativeUsd).decimals()));
     }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
@@ -40,7 +38,7 @@ contract TokenManager is ITokenManager, Ownable {
     }
 
     function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
-        require(_symbol != NATIVE);
+        require(_symbol != NATIVE, "err-native-required");
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             if (acceptedTokens[i].symbol == _symbol) {
                 acceptedTokens[i] = acceptedTokens[acceptedTokens.length - 1];
