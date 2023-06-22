@@ -5,14 +5,12 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
 import "contracts/interfaces/ISEuro.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
-import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
@@ -72,7 +70,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, seuro);
         tokenId = ++lastToken;
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
-        _mint(msg.sender, tokenId);
+        _safeMint(msg.sender, tokenId);
         ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
     }
@@ -84,6 +82,8 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
             if (vault.undercollateralised()) {
                 liquidating = true;
                 vault.liquidate();
+                ISEuro(seuro).revokeRole(ISEuro(seuro).MINTER_ROLE(), address(vault));
+                ISEuro(seuro).revokeRole(ISEuro(seuro).BURNER_ROLE(), address(vault));
             }
         }
         require(liquidating, "no-liquidatable-vaults");
