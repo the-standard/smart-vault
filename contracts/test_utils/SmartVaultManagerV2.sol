@@ -18,7 +18,7 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     using SafeERC20 for IERC20;
     
     string private constant INVALID_ADDRESS = "err-invalid-address";
-    uint256 public constant HUNDRED_PC = 100000;
+    uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
     address public seuro;

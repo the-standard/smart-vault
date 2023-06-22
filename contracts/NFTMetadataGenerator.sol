@@ -14,7 +14,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
     uint16 private constant TABLE_ROW_WIDTH = 1235;
     uint16 private constant TABLE_INITIAL_Y = 460;
     uint16 private constant TABLE_INITIAL_X = 357;
-    uint32 private constant HUNDRED_PC = 100000;
+    uint32 private constant HUNDRED_PC = 1e5;
 
     struct Gradient { bytes32 colour1; bytes32 colour2; bytes32 colour3; }
     struct CollateralForSVG { string text; uint256 size; }
