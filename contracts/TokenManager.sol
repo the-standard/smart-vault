@@ -11,6 +11,8 @@ contract TokenManager is ITokenManager, Ownable {
 
     Token[] private acceptedTokens;
 
+    error TokenExists(bytes32 symbol, address token);
+
     constructor(bytes32 _native, address _clNativeUsd) {
         NATIVE = _native;
         acceptedTokens.push(Token(NATIVE, address(0), 18, _clNativeUsd, IChainlink(_clNativeUsd).decimals()));
@@ -32,7 +34,7 @@ contract TokenManager is ITokenManager, Ownable {
     function addAcceptedToken(address _token, address _chainlinkFeed) external onlyOwner {
         ERC20 token = ERC20(_token);
         bytes32 symbol = bytes32(bytes(token.symbol()));
-        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == symbol) revert("err-token-exists");
+        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == symbol) revert TokenExists(symbol, _token);
         IChainlink dataFeed = IChainlink(_chainlinkFeed);
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
     }

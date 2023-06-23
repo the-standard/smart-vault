@@ -40,7 +40,7 @@ describe('TokenManager', async () => {
     await expect(add).not.to.be.reverted;
 
     add = TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
-    await expect(add).to.be.revertedWith('err-token-exists');
+    await expect(add).to.be.revertedWithCustomError(TokenManager, 'TokenExists');
 
     const tokens = await TokenManager.getAcceptedTokens();
     expect(tokens.length).to.equal(2);
