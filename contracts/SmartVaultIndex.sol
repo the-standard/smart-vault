@@ -28,8 +28,9 @@ contract SmartVaultIndex is ISmartVaultIndex, Ownable {
 
     function removeTokenId(address _user, uint256 _tokenId) private {
         uint256[] memory currentIds = tokenIds[_user];
+        uint256 idsLength = currentIds.length;
         delete tokenIds[_user];
-        for (uint256 i = 0; i < currentIds.length; i++) {
+        for (uint256 i = 0; i < idsLength; i++) {
             if (currentIds[i] != _tokenId) tokenIds[_user].push(currentIds[i]);
         }
     }

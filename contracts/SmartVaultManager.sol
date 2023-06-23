@@ -15,7 +15,6 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
-    string private constant INVALID_ADDRESS = "err-invalid-address";
     uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
@@ -50,8 +49,9 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
 
     function vaults() external view returns (SmartVaultData[] memory) {
         uint256[] memory tokenIds = smartVaultIndex.getTokenIds(msg.sender);
-        SmartVaultData[] memory vaultData = new SmartVaultData[](tokenIds.length);
-        for (uint256 i = 0; i < tokenIds.length; i++) {
+        uint256 idsLength = tokenIds.length;
+        SmartVaultData[] memory vaultData = new SmartVaultData[](idsLength);
+        for (uint256 i = 0; i < idsLength; i++) {
             uint256 tokenId = tokenIds[i];
             address vaultAddress = smartVaultIndex.getVaultAddress(tokenId);
             vaultData[i] = SmartVaultData({

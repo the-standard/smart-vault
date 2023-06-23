@@ -137,7 +137,7 @@ contract SmartVault is ISmartVault {
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
-        require(IERC20(_tokenAddr).balanceOf(address(this)) > 0, "err-insuff-funds");
+        require(IERC20(_tokenAddr).balanceOf(address(this)) != 0, "err-insuff-funds");
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
         if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
@@ -150,14 +150,14 @@ contract SmartVault is ISmartVault {
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
         uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
-        minted += _amount + fee;
+        minted = minted + _amount + fee;
         seuro.mint(_to, _amount);
         seuro.mint(manager.protocol(), fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
         uint256 fee = _amount * manager.burnFeeRate() / manager.HUNDRED_PC();
-        minted -= _amount;
+        minted = minted - _amount;
         seuro.burn(msg.sender, _amount);
         IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);
     }
