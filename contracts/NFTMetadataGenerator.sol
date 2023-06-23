@@ -91,9 +91,9 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         uint256 collateralSize = 0;
         for (uint256 i = 0; i < _collateral.length; i++) {
             ISmartVault.Asset memory asset = _collateral[i];
-            uint256 xShift = collateralSize % 2 == 0 ? 0 : TABLE_ROW_WIDTH / 2;
+            uint256 xShift = collateralSize % 2 == 0 ? 0 : TABLE_ROW_WIDTH >> 1;
             if (asset.amount > 0) {
-                uint256 currentRow = collateralSize / 2;
+                uint256 currentRow = collateralSize >> 1;
                 uint256 textYPosition = TABLE_INITIAL_Y + currentRow * TABLE_ROW_HEIGHT + paddingTop;
                 displayText = string(abi.encodePacked(displayText,
                     '<g>',
@@ -123,13 +123,13 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
 
     function mapRows(uint256 _collateralSize) private pure returns (string memory mappedRows) {
         mappedRows = "";
-        uint256 rowCount = (_collateralSize + 1) / 2;
-        for (uint256 i = 0; i < (rowCount + 1) / 2; i++) {
+        uint256 rowCount = (_collateralSize + 1) >> 1;
+        for (uint256 i = 0; i < (rowCount + 1) >> 1; i++) {
             mappedRows = string(abi.encodePacked(
                 mappedRows, '<rect class="cls-9" x="',TABLE_INITIAL_X.toString(),'" y="',(TABLE_INITIAL_Y+i*TABLE_ROW_HEIGHT).toString(),'" width="',TABLE_ROW_WIDTH.toString(),'" height="',TABLE_ROW_HEIGHT.toString(),'"/>'
             ));
         }
-        uint256 rowMidpoint = TABLE_INITIAL_X + TABLE_ROW_WIDTH / 2;
+        uint256 rowMidpoint = TABLE_INITIAL_X + TABLE_ROW_WIDTH >> 1;
         uint256 tableEndY = TABLE_INITIAL_Y + rowCount * TABLE_ROW_HEIGHT;
         mappedRows = string(abi.encodePacked(mappedRows,
         '<line class="cls-11" x1="',rowMidpoint.toString(),'" y1="',TABLE_INITIAL_Y.toString(),'" x2="',rowMidpoint.toString(),'" y2="',tableEndY.toString(),'"/>'));
