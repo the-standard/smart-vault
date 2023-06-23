@@ -9,12 +9,16 @@ contract SmartVaultDeployer is ISmartVaultDeployer {
     bytes32 private immutable NATIVE;
     address private immutable priceCalculator;
 
+    event VaultDeployed(address indexed vaultAddress, address indexed ownerAddress, address stablecoin);
+
     constructor(bytes32 _native, address _clEurUsd) {
         NATIVE = _native;
         priceCalculator = address(new PriceCalculator(NATIVE, _clEurUsd));
     }
     
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {
-        return address(new SmartVault(NATIVE, _manager, _owner, _seuro, priceCalculator));
+        address vault = address(new SmartVault(NATIVE, _manager, _owner, _seuro, priceCalculator));
+        emit VaultDeployed(vault, _owner, _seuro);
+        return vault;
     }
 }
