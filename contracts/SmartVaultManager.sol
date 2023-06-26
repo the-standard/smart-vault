@@ -29,6 +29,8 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     uint256 public mintFeeRate;
     uint256 public burnFeeRate;
 
+    event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
+
     struct SmartVaultData { 
         uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
         uint256 burnFeeRate; ISmartVault.Status status;
@@ -80,6 +82,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         _safeMint(msg.sender, tokenId);
         ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
+        emit VaultDeployed(vault, msg.sender, seuro, tokenId);
     }
 
     function liquidateVaults() external onlyLiquidator {
