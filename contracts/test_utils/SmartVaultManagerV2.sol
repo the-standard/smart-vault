@@ -21,6 +21,7 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
+    address public liquidator;
     address public seuro;
     uint256 public collateralRate;
     address public tokenManager;

@@ -22,8 +22,8 @@ describe('SmartVaultManager', async () => {
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address,
-      NFTMetadataGenerator.address
+      liquidator.address, TokenManager.address, SmartVaultDeployer.address,
+      SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -91,6 +91,9 @@ describe('SmartVaultManager', async () => {
         
         const vault = await ethers.getContractAt('SmartVault', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
+
+        liquidate = VaultManager.connect(admin).liquidateVaults();
+        await expect(liquidate).to.be.revertedWith('err-invalid-liquidator');
 
         // shouldn't liquidate any vaults, as both are sufficiently collateralised, should revert so no gas fees paid
         liquidate = VaultManager.connect(liquidator).liquidateVaults();

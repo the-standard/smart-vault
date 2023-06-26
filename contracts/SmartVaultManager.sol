@@ -18,6 +18,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
+    address public liquidator;
     address public seuro;
     uint256 public collateralRate;
     address public tokenManager;
@@ -33,7 +34,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         uint256 burnFeeRate; ISmartVault.Status status;
     }
 
-    function initialize(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator) initializer public {
+    function initialize(uint256 _collateralRate, uint256 _feeRate, address _seuro, address _protocol, address _liquidator, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator) initializer public {
         __ERC721_init("The Standard Smart Vault Manager", "TSVAULTMAN");
         __Ownable_init();
         collateralRate = _collateralRate;
@@ -41,10 +42,16 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         mintFeeRate = _feeRate;
         burnFeeRate = _feeRate;
         protocol = _protocol;
+        liquidator = _liquidator;
         tokenManager = _tokenManager;
         smartVaultDeployer = _smartVaultDeployer;
         smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
         nftMetadataGenerator = _nftMetadataGenerator;
+    }
+
+    modifier onlyLiquidator {
+        require(msg.sender == liquidator, "err-invalid-liquidator");
+        _;
     }
 
     function vaults() external view returns (SmartVaultData[] memory) {
@@ -75,7 +82,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
     }
 
-    function liquidateVaults() external {
+    function liquidateVaults() external onlyLiquidator {
         bool liquidating;
         for (uint256 i = 1; i <= lastToken; i++) {
             ISmartVault vault = ISmartVault(smartVaultIndex.getVaultAddress(i));

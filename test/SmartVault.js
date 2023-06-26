@@ -19,9 +19,9 @@ describe('SmartVault', async () => {
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
-      TokenManager.address, SmartVaultDeployer.address, SmartVaultIndex.address,
-      NFTMetadataGenerator.address
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address, 
+      protocol.address, TokenManager.address, SmartVaultDeployer.address,
+      SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -271,14 +271,14 @@ describe('SmartVault', async () => {
       const mintedValue = ethers.utils.parseEther('900');
       await Vault.connect(user).mint(user.address, mintedValue);
 
-      await expect(VaultManager.liquidateVaults()).to.be.revertedWith('no-liquidatable-vaults');
+      await expect(VaultManager.connect(protocol).liquidateVaults()).to.be.revertedWith('no-liquidatable-vaults');
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
 
       await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
 
-      await expect(VaultManager.liquidateVaults()).not.to.be.reverted;
+      await expect(VaultManager.connect(protocol).liquidateVaults()).not.to.be.reverted;
       const { minted, maxMintable, collateralValue, collateral, liquidated } = await Vault.status();
       expect(minted).to.equal(0);
       expect(maxMintable).to.equal(0);
@@ -297,7 +297,7 @@ describe('SmartVault', async () => {
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
 
-      await VaultManager.liquidateVaults();
+      await VaultManager.connect(protocol).liquidateVaults();
       const { liquidated } = await Vault.status();
       expect(liquidated).to.equal(true);
 

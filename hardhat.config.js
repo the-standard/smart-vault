@@ -35,6 +35,11 @@ module.exports = {
       url: 'https://goerli-rollup.arbitrum.io/rpc',
       chainId: 421613,
       accounts: testAccounts
+    },
+    arbitrum: {
+      url: 'https://arbitrum.meowrpc.com',
+      chainId: 42161,
+      accounts: testAccounts
     }
   },
   etherscan: {
