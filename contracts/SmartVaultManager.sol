@@ -30,6 +30,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     uint256 public burnFeeRate;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
+    event VaultLiquidated(address indexed vaultAddress);
 
     struct SmartVaultData { 
         uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
@@ -94,6 +95,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
                 vault.liquidate();
                 ISEuro(seuro).revokeRole(ISEuro(seuro).MINTER_ROLE(), address(vault));
                 ISEuro(seuro).revokeRole(ISEuro(seuro).BURNER_ROLE(), address(vault));
+                emit VaultLiquidated(address(vault));
             }
         }
         require(liquidating, "no-liquidatable-vaults");
