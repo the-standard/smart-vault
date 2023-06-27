@@ -25,6 +25,11 @@ contract SmartVault is ISmartVault {
     uint256 private minted;
     bool private liquidated;
 
+    event CollateralRemoved(bytes32 symbol, uint256 amount, address to);
+    event AssetRemoved(address token, uint256 amount, address to);
+    event SEuroMinted(address to, uint256 amount, uint256 fee);
+    event SEuroBurned(uint256 amount, uint256 fee);
+
     constructor(bytes32 _native, address _manager, address _owner, address _seuro, address _priceCalculator) {
         NATIVE = _native;
         owner = _owner;
@@ -128,12 +133,14 @@ contract SmartVault is ISmartVault {
         require(canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount), UNDER_COLL);
         (bool sent,) = _to.call{value: _amount}("");
         require(sent, "err-native-call");
+        emit CollateralRemoved(NATIVE, _amount, _to);
     }
 
     function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
         require(canRemoveCollateral(token, _amount), UNDER_COLL);
         IERC20(token.addr).safeTransfer(_to, _amount);
+        emit CollateralRemoved(_symbol, _amount, _to);
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
@@ -141,6 +148,7 @@ contract SmartVault is ISmartVault {
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
         if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
+        emit AssetRemoved(_tokenAddr, _amount, _to);
     }
 
     function fullyCollateralised(uint256 _amount) private view returns (bool) {
@@ -153,6 +161,7 @@ contract SmartVault is ISmartVault {
         minted = minted + _amount + fee;
         seuro.mint(_to, _amount);
         seuro.mint(manager.protocol(), fee);
+        emit SEuroMinted(_to, _amount, fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
@@ -160,6 +169,7 @@ contract SmartVault is ISmartVault {
         minted = minted - _amount;
         seuro.burn(msg.sender, _amount);
         IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);
+        emit SEuroBurned(_amount, fee);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

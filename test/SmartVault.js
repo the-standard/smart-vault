@@ -107,6 +107,7 @@ describe('SmartVault', async () => {
 
       remove = Vault.connect(user).removeCollateralNative(half, user.address);
       await expect(remove).not.to.be.reverted;
+      await expect(remove).to.emit(Vault, 'CollateralRemoved').withArgs(ETH, half, user.address);
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
 
@@ -121,6 +122,7 @@ describe('SmartVault', async () => {
 
     it('allows removal of ERC20 if owner and it will not undercollateralise vault', async () => {
       const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
+      const USDTBytes = ethers.utils.formatBytes32String('USDT');
       const clUsdUsdPrice = 100000000;
       const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
       await ClUsdUsd.setPrice(clUsdUsdPrice);
@@ -134,11 +136,12 @@ describe('SmartVault', async () => {
       let { collateral, maxMintable } = await Vault.status();
       expect(getCollateralOf('USDT', collateral).amount).to.equal(value);
 
-      let remove = Vault.connect(otherUser).removeCollateral(ethers.utils.formatBytes32String('USDT'), value, user.address);
+      let remove = Vault.connect(otherUser).removeCollateral(USDTBytes, value, user.address);
       await expect(remove).to.be.revertedWith('err-invalid-user');
 
-      remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), half, user.address);
+      remove = Vault.connect(user).removeCollateral(USDTBytes, half, user.address);
       await expect(remove).not.to.be.reverted;
+      await expect(remove).to.emit(Vault, 'CollateralRemoved').withArgs(USDTBytes, half, user.address);
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
 
@@ -181,7 +184,9 @@ describe('SmartVault', async () => {
 
       // partial removal, because some needed as collateral
       const part = SUSD18value.div(3);
-      await expect(Vault.connect(user).removeAsset(SUSD18.address, part, user.address)).not.to.be.reverted;
+      const remove = Vault.connect(user).removeAsset(SUSD18.address, part, user.address);
+      await expect(remove).not.to.be.reverted;
+      await expect(remove).to.emit(Vault, 'AssetRemoved').withArgs(SUSD18.address, part, user.address);
       expect(await SUSD18.balanceOf(Vault.address)).to.equal(SUSD18value.sub(part));
       expect(await SUSD18.balanceOf(user.address)).to.equal(part);
     })
@@ -202,6 +207,7 @@ describe('SmartVault', async () => {
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
       const fee = mintedValue.div(100)
+      await expect(mint).emit(Vault, 'SEuroMinted').withArgs(user.address, mintedValue, fee);
 
       expect(minted).to.equal(mintedValue.add(fee));
       expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue);
@@ -237,6 +243,7 @@ describe('SmartVault', async () => {
       // 51 minted in vault
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).not.to.be.reverted;
+      await expect(burn).to.emit(Vault, 'SEuroBurned').withArgs(burnedValue, burningFee);
 
       minted = (await Vault.status()).minted;
       expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue));
