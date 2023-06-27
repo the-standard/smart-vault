@@ -11,7 +11,7 @@ contract SmartVaultDeployer is ISmartVaultDeployer {
 
     constructor(bytes32 _native, address _clEurUsd) {
         NATIVE = _native;
-        priceCalculator = address(new PriceCalculator(NATIVE, _clEurUsd));
+        priceCalculator = address(new PriceCalculator(_native, _clEurUsd));
     }
     
     function deploy(address _manager, address _owner, address _seuro) external returns (address) {
