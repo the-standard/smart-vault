@@ -12,6 +12,8 @@ contract TokenManager is ITokenManager, Ownable {
     Token[] private acceptedTokens;
 
     error TokenExists(bytes32 symbol, address token);
+    event TokenAdded(bytes32 symbol, address token);
+    event TokenRemoved(bytes32 symbol);
 
     constructor(bytes32 _native, address _clNativeUsd) {
         NATIVE = _native;
@@ -37,6 +39,7 @@ contract TokenManager is ITokenManager, Ownable {
         for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == symbol) revert TokenExists(symbol, _token);
         IChainlink dataFeed = IChainlink(_chainlinkFeed);
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
+        emit TokenAdded(symbol, _token);
     }
 
     function removeAcceptedToken(bytes32 _symbol) external onlyOwner {
@@ -45,6 +48,7 @@ contract TokenManager is ITokenManager, Ownable {
             if (acceptedTokens[i].symbol == _symbol) {
                 acceptedTokens[i] = acceptedTokens[acceptedTokens.length - 1];
                 acceptedTokens.pop();
+                emit TokenRemoved(_symbol);
             }
         }
     }

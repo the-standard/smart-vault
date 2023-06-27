@@ -38,6 +38,7 @@ describe('TokenManager', async () => {
 
     add = TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
     await expect(add).not.to.be.reverted;
+    await expect(add).to.emit(TokenManager, 'TokenAdded').withArgs(USDTBytes, Tether.address);
 
     add = TokenManager.addAcceptedToken(Tether.address, ClUsdUsd.address);
     await expect(add).to.be.revertedWithCustomError(TokenManager, 'TokenExists');
@@ -57,6 +58,7 @@ describe('TokenManager', async () => {
 
     remove = TokenManager.removeAcceptedToken(ethers.utils.formatBytes32String('USDT'));
     await expect(remove).not.to.be.reverted;
+    await expect(remove).to.emit(TokenManager, 'TokenRemoved').withArgs(USDTBytes);
 
     expect((await TokenManager.getAcceptedTokens()).length).to.equal(1);
 
