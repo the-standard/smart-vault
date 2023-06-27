@@ -79,7 +79,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, seuro);
         tokenId = ++lastToken;
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
-        _safeMint(msg.sender, tokenId);
+        _mint(msg.sender, tokenId);
         ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
         emit VaultDeployed(vault, msg.sender, seuro, tokenId);
