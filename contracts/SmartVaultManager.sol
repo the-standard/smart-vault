@@ -31,6 +31,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
+    event VaultTransferred(uint256 indexed tokenId, address from, address to);
 
     struct SmartVaultData { 
         uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
@@ -118,5 +119,6 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         smartVaultIndex.transferTokenId(_from, _to, _tokenId);
         if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).setOwner(_to);
+        emit VaultTransferred(_tokenId, _from, _to);
     }
 }

@@ -1,5 +1,6 @@
 const { expect } = require('chai');
 const { ethers } = require('hardhat');
+const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { BigNumber } = ethers;
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf, ETH } = require('./common');
 
@@ -49,7 +50,8 @@ describe('SmartVaultManager', async () => {
 
   describe('opening', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
-      await VaultManager.connect(user).mint();
+      const mint = VaultManager.connect(user).mint();
+      await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, Seuro.address, 1);
       
       const vaults = await VaultManager.connect(user).vaults();
       expect(vaults).to.be.length(1);
@@ -105,6 +107,7 @@ describe('SmartVaultManager', async () => {
         // first user's vault should be liquidated
         liquidate = VaultManager.connect(liquidator).liquidateVaults();
         await expect(liquidate).not.to.be.reverted;
+        await expect(liquidate).to.emit(VaultManager, 'VaultLiquidated').withArgs(vaultAddress);
         const userVaults = await VaultManager.connect(user).vaults();
         const otherUserVaults = await VaultManager.connect(otherUser).vaults();
         expect(userVaults[0].status.liquidated).to.equal(true);
@@ -129,7 +132,8 @@ describe('SmartVaultManager', async () => {
         const vault = await ethers.getContractAt('SmartVault', vaultAddress);
         expect(await vault.owner()).to.equal(user.address);
 
-        await VaultManager.connect(user).transferFrom(user.address, otherUser.address, tokenId);
+        const transfer = VaultManager.connect(user).transferFrom(user.address, otherUser.address, tokenId);
+        await expect(transfer).to.emit(VaultManager, 'VaultTransferred').withArgs(tokenId, user.address, otherUser.address);
 
         expect(await VaultManager.ownerOf(tokenId)).to.equal(otherUser.address);
 
