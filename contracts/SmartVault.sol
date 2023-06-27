@@ -146,7 +146,6 @@ contract SmartVault is ISmartVault {
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
-        require(IERC20(_tokenAddr).balanceOf(address(this)) != 0, "err-insuff-funds");
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
         if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
         IERC20(_tokenAddr).safeTransfer(_to, _amount);

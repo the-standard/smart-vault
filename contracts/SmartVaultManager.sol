@@ -76,9 +76,10 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     }
 
     function mint() external returns (address vault, uint256 tokenId) {
+        tokenId = lastToken + 1;
         _safeMint(msg.sender, tokenId);
+        lastToken = tokenId;
         vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, seuro);
-        tokenId = ++lastToken;
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
         ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
         ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
