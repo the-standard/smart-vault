@@ -287,6 +287,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                         '"name": "The Standard Smart Vault #',_tokenId.toString(),'",',
                         '"description": "The Standard Smart Vault (',toShortString(_vaultStatus.vaultType),')",',
                         '"attributes": [',
+                            '{"trait_type": "Vault Address", "value": "',_vaultStatus.vaultAddress,'"},',
                             '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
                             '{"trait_type": "Debt",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
                             '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',toDecimalString(_vaultStatus.maxMintable, 18),'"},',

@@ -6,7 +6,7 @@ import "contracts/interfaces/ITokenManager.sol";
 interface ISmartVault {
     struct Asset { ITokenManager.Token token; uint256 amount; }
     struct Status { 
-        uint256 minted; uint256 maxMintable; uint256 collateralValue;
+        address vaultAddress; uint256 minted; uint256 maxMintable; uint256 collateralValue;
         Asset[] collateral; bool liquidated; uint8 version; bytes32 vaultType;
     }
 

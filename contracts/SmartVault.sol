@@ -91,8 +91,10 @@ contract SmartVault is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(minted, maxMintable(), euroCollateral(),
-            getAssets(), liquidated, version, vaultType);
+        return Status(
+            address(this), minted, maxMintable(), euroCollateral(), getAssets(),
+            liquidated, version, vaultType
+        );
     }
 
     function undercollateralised() public view returns (bool) {

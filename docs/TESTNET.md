@@ -27,10 +27,10 @@ The structure of this data is:
 [
     {
         tokenId, // the ID of the NFT which represents your vault
-        vaultAddress, // the address of your vault
         collateralRate, // the required colleteralisation percentage; 100000 = 100%
         feeRate, // the % fee you will be charged with each minting or burning of sEURO from your vault; 100000 = 100%
         status: {
+            vaultAddress, // the address of your vault
             minted, // the amount of sEURO currently borrowed from your vault
             maxMintable, // the maximum total amount of sEURO that is borrowable from your vault, based on current collateral value
             collateralValue, // value of vault collateral in terms of sEURO

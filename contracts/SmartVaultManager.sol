@@ -34,7 +34,7 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
     event VaultTransferred(uint256 indexed tokenId, address from, address to);
 
     struct SmartVaultData { 
-        uint256 tokenId; address vaultAddress; uint256 collateralRate; uint256 mintFeeRate;
+        uint256 tokenId; uint256 collateralRate; uint256 mintFeeRate;
         uint256 burnFeeRate; ISmartVault.Status status;
     }
 
@@ -64,14 +64,12 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         SmartVaultData[] memory vaultData = new SmartVaultData[](idsLength);
         for (uint256 i = 0; i < idsLength; i++) {
             uint256 tokenId = tokenIds[i];
-            address vaultAddress = smartVaultIndex.getVaultAddress(tokenId);
             vaultData[i] = SmartVaultData({
                 tokenId: tokenId,
-                vaultAddress: vaultAddress,
                 collateralRate: collateralRate,
                 mintFeeRate: mintFeeRate,
                 burnFeeRate: burnFeeRate,
-                status: ISmartVault(vaultAddress).status()
+                status: ISmartVault(smartVaultIndex.getVaultAddress(tokenId)).status()
             });
         }
         return vaultData;
