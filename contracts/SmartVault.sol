@@ -102,12 +102,14 @@ contract SmartVault is ISmartVault {
     }
 
     function liquidateNative() private {
-        (bool sent,) = payable(manager.protocol()).call{value: address(this).balance}("");
-        require(sent, "err-native-liquidate");
+        if (address(this).balance != 0) {
+            (bool sent,) = payable(manager.protocol()).call{value: address(this).balance}("");
+            require(sent, "err-native-liquidate");
+        }
     }
 
     function liquidateERC20(IERC20 _token) private {
-        _token.safeTransfer(manager.protocol(), _token.balanceOf(address(this)));
+        if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(manager.protocol(), _token.balanceOf(address(this)));
     }
 
     function liquidate() external onlyVaultManager {
