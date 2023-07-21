@@ -158,9 +158,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         Gradient memory gradient = getGradient(_tokenId);
         return
             string(
-                abi.encodePacked(
-                    "data:image/svg+xml;base64,",
-                    Base64.encode(abi.encodePacked(
+                    abi.encodePacked(
                         '<?xml version="1.0" encoding="UTF-8"?>',
                         '<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 2880 1620">',
                             '<defs>',
@@ -232,16 +230,16 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                     '<text class="cls-2" transform="translate(244.87 254.3)"><tspan x="0" y="0">NOTE: NFT marketplace caching might show older NFT data, it is up to the buyer to check the blockchain </tspan></text>',
                                 '</g>',
                                 '<text class="cls-6" transform="translate(357.54 426.33)"><tspan x="0" y="0">Collateral locked in this vault</tspan></text>',
-                                '<text class="cls-5" transform="translate(1715.63 426.33)"><tspan x="0" y="0">sEURO SmartVault #',_tokenId.toString(),'</tspan></text>',
+                                '<text class="cls-5" transform="translate(1715.63 426.33)"><tspan x="0" y="0">EUROs SmartVault #',_tokenId.toString(),'</tspan></text>',
                                 mapRows(collateral.size),
                                 collateral.text,
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1713.34 719.41)"><tspan x="0" y="0">Total Value</tspan></text>',
-                                    '<text class="cls-7" transform="translate(2191.03 719.41)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue, 18),' sEURO</tspan></text>',
+                                    '<text class="cls-7" transform="translate(2191.03 719.41)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue, 18),' EUROs</tspan></text>',
                                 '</g>',
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1713.34 822.75)"><tspan x="0" y="0">Debt</tspan></text>',
-                                    '<text class="cls-7" transform="translate(2191.03 822.75)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.minted, 18),' sEURO</tspan></text>',
+                                    '<text class="cls-7" transform="translate(2191.03 822.75)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.minted, 18),' EUROs</tspan></text>',
                                 '</g>',
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1713.34 924.1)"><tspan x="0" y="0">Collateral/Debt</tspan></text>',
@@ -249,7 +247,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                 '</g>',
                                 '<g>',
                                     '<text class="cls-5" transform="translate(1714.21 1136.92)"><tspan x="0" y="0">Total value minus debt:</tspan></text>',
-                                    '<text class="cls-5" transform="translate(1715.63 1220.22)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),' sEURO</tspan></text>',
+                                    '<text class="cls-5" transform="translate(1715.63 1220.22)"><tspan x="0" y="0">',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),' EUROs</tspan></text>',
                                 '</g>',
                             '</g>',
                             '<g>',
@@ -259,7 +257,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                     '<path class="cls-3" d="M300.59,1531.88h-60.71v-16.33h60.71c8.61,0,15.88-5.22,15.88-11.4v-24.17h16.33v24.17c0,15.29-14.45,27.73-32.21,27.73Z"/>',
                                 '</g>',
                                 '<g>',
-                                    '<text class="cls-10" transform="translate(357.2 1494.48)"><tspan x="0" y="0">sEURO SmartVault</tspan></text>',
+                                    '<text class="cls-10" transform="translate(357.2 1494.48)"><tspan x="0" y="0">EUROs SmartVault</tspan></text>',
                                 '</g>',
                             '</g>',
                             '<g>',
@@ -273,8 +271,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                 '</g>',
                             '</g>',
                         '</svg>'
-                    ))
-                )
+                    )
             );
     }
 
@@ -290,13 +287,13 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                             '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
                             '{"trait_type": "Debt",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
                             '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',toDecimalString(_vaultStatus.maxMintable, 18),'"},',
-                            '{"trait_type": "Collateral Value in sEURO", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
+                            '{"trait_type": "Collateral Value in EUROs", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
                             '{"trait_type": "Value minus debt", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),'},',
                             mapCollateralForJSON(_vaultStatus.collateral),
                             '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',
                             '{"trait_type": "Vault Type", "value": "',toShortString(_vaultStatus.vaultType),'"}',
                         '],',
-                        '"image": "',generateSvg(_tokenId, _vaultStatus),'"',
+                        '"image_data": "',generateSvg(_tokenId, _vaultStatus),'"',
                     "}"
                 ))
             )
