@@ -72,7 +72,8 @@ describe('SmartVaultManager', async () => {
       await VaultManager.connect(user).mint();
       await VaultManager.connect(user).mint();
       await VaultManager.connect(otherUser).mint();
-      ({ tokenId, vaultAddress } = (await VaultManager.connect(user).vaults())[0]);
+      ({ tokenId, status } = (await VaultManager.connect(user).vaults())[0]);
+      ({ vaultAddress } = status);
       const otherVault = (await VaultManager.connect(otherUser).vaults())[0];
       otherTokenId = otherVault.tokenId;
       otherVaultAddress = otherVault.vaultAddress;
@@ -87,7 +88,7 @@ describe('SmartVaultManager', async () => {
         const ethValue = ethers.utils.parseEther('1');
         await Tether.mint(vaultAddress, tetherValue);
         await user.sendTransaction({to: vaultAddress, value: ethValue});
-
+        
         const { maxMintable } = (await VaultManager.connect(user).vaults())[0].status;
         const mintValue = maxMintable.mul(99).div(100);
         

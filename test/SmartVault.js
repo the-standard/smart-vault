@@ -26,7 +26,8 @@ describe('SmartVault', async () => {
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
-    const { vaultAddress } = (await VaultManager.connect(user).vaults())[0];
+    const { status } = (await VaultManager.connect(user).vaults())[0];
+    const { vaultAddress } = status;
     Vault = await ethers.getContractAt('SmartVault', vaultAddress);
   });
 
@@ -163,7 +164,7 @@ describe('SmartVault', async () => {
       const SUSD6value = 1000000000;
       const SUSD18value = ethers.utils.parseEther('1000');
 
-      await expect(Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWith('err-insuff-funds');
+      await expect(Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWith('ERC20: transfer amount exceeds balance');
       
       await SUSD6.mint(Vault.address, SUSD6value);
       await SUSD18.mint(Vault.address, SUSD18value);
