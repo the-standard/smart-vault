@@ -106,6 +106,10 @@ contract SmartVaultManager is ISmartVaultManager, Initializable, ERC721Upgradeab
         return INFTMetadataGenerator(nftMetadataGenerator).generateNFTMetadata(_tokenId, vaultStatus);
     }
 
+    function totalSupply() external view returns (uint256) {
+        return lastToken;
+    }
+
     function setMintFeeRate(uint256 _rate) external onlyOwner {
         mintFeeRate = _rate;
     }
