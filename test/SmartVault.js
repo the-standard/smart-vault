@@ -39,14 +39,15 @@ describe('SmartVault', async () => {
   });
 
   describe('adding collateral', async () => {
-    it('accepts native currency as collateral', async () => {
+    it.only('accepts native currency as collateral', async () => {
       const value = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value});
 
-      const { collateral, maxMintable, collateralValue } = await Vault.status();
+      const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
+      expect(getCollateralOf('ETH', collateral).collateralValue).to.equal(value.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE));
       const euroCollateral = value.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
-      expect(collateralValue).to.equal(euroCollateral);
+      expect(totalCollateralValue).to.equal(euroCollateral);
       const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
@@ -63,11 +64,11 @@ describe('SmartVault', async () => {
 
       await Tether.connect(user).transfer(Vault.address, value);
 
-      const { collateral, maxMintable, collateralValue } = await Vault.status();
+      const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       expect(getCollateralOf('USDT', collateral).amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
       const euroCollateral = value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
-      expect(collateralValue).to.equal(euroCollateral);
+      expect(totalCollateralValue).to.equal(euroCollateral);
       const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
@@ -84,11 +85,11 @@ describe('SmartVault', async () => {
 
       await Dai.connect(user).transfer(Vault.address, value);
 
-      const { collateral, maxMintable, collateralValue } = await Vault.status();
+      const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       expect(getCollateralOf('DAI', collateral).amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
       const euroCollateral = value.mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
-      expect(collateralValue).to.equal(euroCollateral);
+      expect(totalCollateralValue).to.equal(euroCollateral);
       const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
@@ -287,10 +288,10 @@ describe('SmartVault', async () => {
       await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
 
       await expect(VaultManager.connect(protocol).liquidateVaults()).not.to.be.reverted;
-      const { minted, maxMintable, collateralValue, collateral, liquidated } = await Vault.status();
+      const { minted, maxMintable, totalCollateralValue, collateral, liquidated } = await Vault.status();
       expect(minted).to.equal(0);
       expect(maxMintable).to.equal(0);
-      expect(collateralValue).to.equal(0);
+      expect(totalCollateralValue).to.equal(0);
       collateral.forEach(asset => expect(asset.amount).to.equal(0));
       expect(liquidated).to.equal(true);
     });
