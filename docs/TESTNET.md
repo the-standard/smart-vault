@@ -33,11 +33,12 @@ The structure of this data is:
             vaultAddress, // the address of your vault
             minted, // the amount of sEURO currently borrowed from your vault
             maxMintable, // the maximum total amount of sEURO that is borrowable from your vault, based on current collateral value
-            collateralValue, // value of vault collateral in terms of sEURO
+            totalCollateralValue, // value of all vault collateral in terms of sEURO
             collateral: [
                 {
-                    symbol, // the collateral assets symbol, converted to a 32-byte array
-                    amount // amount of given collateral
+                    token, // data about the token
+                    amount, // amount of given collateral
+                    collateralValue // the value of the token as collateral (e.g. in € for sEURO vault)
                 },
                 ...
             ],
