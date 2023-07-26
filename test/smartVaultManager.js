@@ -52,6 +52,7 @@ describe('SmartVaultManager', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
       const mint = VaultManager.connect(user).mint();
       await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, Seuro.address, 1);
+      expect(await VaultManager.totalSupply()).to.equal(1);
       
       const vaults = await VaultManager.connect(user).vaults();
       expect(vaults).to.be.length(1);
@@ -59,7 +60,7 @@ describe('SmartVaultManager', async () => {
       expect(totalCollateral).to.equal(0);
       expect(vaults[0].status.minted).to.equal(0);
       expect(vaults[0].status.maxMintable).to.equal(0);
-      expect(vaults[0].status.collateralValue).to.equal(0);
+      expect(vaults[0].status.totalCollateralValue).to.equal(0);
       expect(vaults[0].collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
       expect(vaults[0].mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
       expect(vaults[0].burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
@@ -115,7 +116,7 @@ describe('SmartVaultManager', async () => {
         expect(otherUserVaults[0].status.liquidated).to.equal(false);
         expect(userVaults[0].status.minted).to.equal(0);
         expect(userVaults[0].status.maxMintable).to.equal(0);
-        expect(userVaults[0].status.collateralValue).to.equal(0);
+        expect(userVaults[0].status.totalCollateralValue).to.equal(0);
         userVaults[0].status.collateral.forEach(asset => {
           expect(asset.amount).to.equal(0);
         });
