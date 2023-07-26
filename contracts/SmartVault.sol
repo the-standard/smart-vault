@@ -67,7 +67,7 @@ contract SmartVault is ISmartVault {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            euros += calculator.tokenToEur(token, getAssetCollateral(token.symbol, token.addr));
+            euros += calculator.tokenToEur(token, getAssetBalance(token.symbol, token.addr));
         }
     }
 
@@ -75,7 +75,7 @@ contract SmartVault is ISmartVault {
         return euroCollateral() * manager.HUNDRED_PC() / manager.collateralRate();
     }
 
-    function getAssetCollateral(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
+    function getAssetBalance(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
         return _symbol == NATIVE ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
 
@@ -85,7 +85,8 @@ contract SmartVault is ISmartVault {
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            assets[i] = Asset(token, getAssetCollateral(token.symbol, token.addr));
+            uint256 assetBalance = getAssetBalance(token.symbol, token.addr);
+            assets[i] = Asset(token, assetBalance, calculator.tokenToEur(token, assetBalance));
         }
         return assets;
     }

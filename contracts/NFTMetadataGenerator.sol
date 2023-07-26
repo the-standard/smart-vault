@@ -136,7 +136,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(toDecimalString(HUNDRED_PC * _vaultStatus.collateralValue / _vaultStatus.minted, 3),"%"));
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3),"%"));
     }
 
     function getGradient(uint256 _tokenId) private pure returns (Gradient memory) {
@@ -235,7 +235,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                 collateral.text,
                                 "<g>",
                                     "<text class='cls-5' transform='translate(1713.34 719.41)'><tspan x='0' y='0'>Total Value</tspan></text>",
-                                    "<text class='cls-7' transform='translate(2191.03 719.41)'><tspan x='0' y='0'>",toDecimalString(_vaultStatus.collateralValue, 18)," EUROs</tspan></text>",
+                                    "<text class='cls-7' transform='translate(2191.03 719.41)'><tspan x='0' y='0'>",toDecimalString(_vaultStatus.totalCollateralValue, 18)," EUROs</tspan></text>",
                                 "</g>",
                                 "<g>",
                                     "<text class='cls-5' transform='translate(1713.34 822.75)'><tspan x='0' y='0'>Debt</tspan></text>",
@@ -247,7 +247,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                                 "</g>",
                                 "<g>",
                                     "<text class='cls-5' transform='translate(1714.21 1136.92)'><tspan x='0' y='0'>Total value minus debt:</tspan></text>",
-                                    "<text class='cls-5' transform='translate(1715.63 1220.22)'><tspan x='0' y='0'>",toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18)," EUROs</tspan></text>",
+                                    "<text class='cls-5' transform='translate(1715.63 1220.22)'><tspan x='0' y='0'>",toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18)," EUROs</tspan></text>",
                                 "</g>",
                             "</g>",
                             "<g>",
@@ -287,8 +287,8 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                             '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
                             '{"trait_type": "Debt",  "display_type": "number", "value": ', toDecimalString(_vaultStatus.minted, 18),'},',
                             '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',toDecimalString(_vaultStatus.maxMintable, 18),'"},',
-                            '{"trait_type": "Collateral Value in EUROs", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue, 18),'},',
-                            '{"trait_type": "Value minus debt", "display_type": "number", "value": ',toDecimalString(_vaultStatus.collateralValue - _vaultStatus.minted, 18),'},',
+                            '{"trait_type": "Collateral Value in EUROs", "display_type": "number", "value": ',toDecimalString(_vaultStatus.totalCollateralValue, 18),'},',
+                            '{"trait_type": "Value minus debt", "display_type": "number", "value": ',toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),'},',
                             mapCollateralForJSON(_vaultStatus.collateral),
                             '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',
                             '{"trait_type": "Vault Type", "value": "',toShortString(_vaultStatus.vaultType),'"}',
