@@ -30,7 +30,7 @@ contract PriceCalculator is IPriceCalculator {
                 accummulatedRoundPrices += uint256(answer);
                 roundCount++;
             } catch {
-                // do nothing, continue loop
+                // do nothing
             }
         }
         return accummulatedRoundPrices / roundCount;
