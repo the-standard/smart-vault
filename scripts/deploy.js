@@ -6,10 +6,10 @@ async function main() {
 
   const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
   await SEuro.deployed();
-  const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
   await ClEthUsd.deployed();
   await (await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)).wait();
-  const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
   await ClEurUsd.deployed();
   await (await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE)).wait();
   const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
@@ -34,7 +34,7 @@ async function main() {
   const usd18 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 18 Dec', 'SUSD18', 18);
   await usd18.deployed();
 
-  const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+  const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
   await ClUsdUsd.deployed();
   await (await ClUsdUsd.setPrice(100000000)).wait();
   await (await TokenManager.addAcceptedToken(usd6.address, ClUsdUsd.address)).wait();

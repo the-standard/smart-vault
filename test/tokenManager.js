@@ -6,7 +6,7 @@ let TokenManager, ClEthUsd;
 
 describe('TokenManager', async () => {
   beforeEach(async () => {
-    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+    ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
   });
@@ -28,7 +28,7 @@ describe('TokenManager', async () => {
   it('will let the owner add and remove accepted ERC20 tokens – cannot remove ETH', async () => {
     [ admin, user ] = await ethers.getSigners();
 
-    const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+    const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
     await ClUsdUsd.setPrice(100000000);
     const Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const USDTBytes = ethers.utils.formatBytes32String('USDT');

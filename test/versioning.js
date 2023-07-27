@@ -8,10 +8,10 @@ describe('Contract Versioning', async () => {
   it('allows for v2 vaults with versioned vault manager', async () => {
     const [ admin, protocol, user ] = await ethers.getSigners();
     const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
-    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+    const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy();
+    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
