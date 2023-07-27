@@ -1,12 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import "contracts/interfaces/IChainlink.sol";
+import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-contract ChainlinkMock is IChainlink {
+contract ChainlinkMock is AggregatorV3Interface {
+
+    string private desc;
     PriceRound[] private prices;
 
     struct PriceRound { uint256 timestamp; int256 price; }
+
+    constructor (string memory _desc) {
+        desc = _desc;
+    }
 
     function decimals() external pure returns (uint8) { return 8; }
 
@@ -24,12 +30,20 @@ contract ChainlinkMock is IChainlink {
             roundId = _roundId;
             answer = prices[roundId].price;
             updatedAt = prices[roundId].timestamp;
-        }
+    }
 
     function latestRoundData() external view 
         returns (uint80 roundId, int256 answer,uint256, uint256 updatedAt,uint80) {
             roundId = uint80(prices.length - 1);
             answer = prices[roundId].price;
             updatedAt = prices[roundId].timestamp;
-        }
+    }
+
+    function description() external view returns (string memory) {
+        return desc;
+    }
+
+    function version() external view returns (uint256) {
+        return 1;
+    }
 }
