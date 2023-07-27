@@ -23,11 +23,15 @@ contract PriceCalculator is IPriceCalculator {
         (roundId, answer,, roundTS,) = _priceFeed.latestRoundData();
         uint256 accummulatedRoundPrices = uint256(answer);
         uint256 roundCount = 1;
-        while (roundTS > startPeriod) {
-            roundCount++;
+        while (roundTS > startPeriod && roundId > 1) {
             roundId--;
-            (, answer,, roundTS,) = _priceFeed.getRoundData(roundId);
-            accummulatedRoundPrices += uint256(answer);
+            try _priceFeed.getRoundData(roundId) {
+                (, answer,, roundTS,) = _priceFeed.getRoundData(roundId);
+                accummulatedRoundPrices += uint256(answer);
+                roundCount++;
+            } catch {
+                // do nothing, continue loop
+            }
         }
         return accummulatedRoundPrices / roundCount;
     }
@@ -41,6 +45,7 @@ contract PriceCalculator is IPriceCalculator {
         uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
         uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
         uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * avgPrice(4, tokenUsdClFeed);
-        return collateralUsd / avgPrice(4, clEurUsd);
+        (, int256 eurUsdPrice,,,) = clEurUsd.latestRoundData();
+        return collateralUsd / uint256(eurUsdPrice);
     }
 }
