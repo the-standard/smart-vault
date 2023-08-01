@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "contracts/interfaces/ISEuro.sol";
+import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
@@ -15,21 +15,21 @@ contract SmartVaultV2 is ISmartVault {
     string private constant INVALID_USER = "err-invalid-user";
     string private constant UNDER_COLL = "err-under-coll";
     uint8 private constant version = 2;
-    bytes32 private constant vaultType = bytes32("SEURO");
+    bytes32 private constant vaultType = bytes32("EUROs");
     bytes32 private immutable NATIVE;
 
     address public owner;
     uint256 private minted;
     bool private liquidated;
     ISmartVaultManager public manager;
-    ISEuro public seuro;
+    IEUROs public euros;
     IPriceCalculator public calculator;
 
-    constructor(bytes32 _native, address _manager, address _owner, address _seuro, address _priceCalculator) {
+    constructor(bytes32 _native, address _manager, address _owner, address _euros, address _priceCalculator) {
         NATIVE = _native;
         owner = _owner;
         manager = ISmartVaultManager(_manager);
-        seuro = ISEuro(_seuro);
+        euros = IEUROs(_euros);
         calculator = IPriceCalculator(_priceCalculator);
     }
 
@@ -154,15 +154,15 @@ contract SmartVaultV2 is ISmartVault {
         uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;
-        seuro.mint(_to, _amount);
-        seuro.mint(manager.protocol(), fee);
+        euros.mint(_to, _amount);
+        euros.mint(manager.protocol(), fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
         uint256 fee = _amount * manager.burnFeeRate() / manager.HUNDRED_PC();
         minted -= _amount;
-        seuro.burn(msg.sender, _amount);
-        IERC20(address(seuro)).safeTransferFrom(msg.sender, manager.protocol(), fee);
+        euros.burn(msg.sender, _amount);
+        IERC20(address(euros)).safeTransferFrom(msg.sender, manager.protocol(), fee);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

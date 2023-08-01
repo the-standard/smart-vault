@@ -7,13 +7,13 @@ async function main() {
   const native = ethers.utils.formatBytes32String('AGOR');
   const manager = '0x6A301a76f67ECf0D56377F8Db384dbCa9E161203';
   const owner = user.address;
-  const seuro = '0x9C777AD2575010E3ED67F6E849cfE1115BFE2A50'
+  const euros = '0x9C777AD2575010E3ED67F6E849cfE1115BFE2A50'
   const calculator = '0xA35Ff34200432F573e0Db493872cDbc18e2d5E08'
 
   await run(`verify:verify`, {
     address: vault,
     constructorArguments: [
-      native, manager, owner, seuro, calculator
+      native, manager, owner, euros, calculator
     ],
   });
 }

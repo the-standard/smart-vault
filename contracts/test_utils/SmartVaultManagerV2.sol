@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
-import "contracts/interfaces/ISEuro.sol";
+import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
@@ -22,7 +22,7 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
 
     address public protocol;
     address public liquidator;
-    address public seuro;
+    address public euros;
     uint256 public collateralRate;
     address public tokenManager;
     address public smartVaultDeployer;
@@ -68,12 +68,12 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     }
 
     function mint() external returns (address vault, uint256 tokenId) {
-        vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, seuro);
+        vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, euros);
         tokenId = ++lastToken;
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
         _mint(msg.sender, tokenId);
-        ISEuro(seuro).grantRole(ISEuro(seuro).MINTER_ROLE(), vault);
-        ISEuro(seuro).grantRole(ISEuro(seuro).BURNER_ROLE(), vault);
+        IEUROs(euros).grantRole(IEUROs(euros).MINTER_ROLE(), vault);
+        IEUROs(euros).grantRole(IEUROs(euros).BURNER_ROLE(), vault);
     }
 
     function liquidateVaults() external {

@@ -4,7 +4,7 @@ const { expect } = require('chai');
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, Seuro, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, admin, user, otherUser, protocol;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
@@ -13,18 +13,18 @@ describe('SmartVault', async () => {
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
-    Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address, 
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
-    await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const { status } = (await VaultManager.connect(user).vaults())[0];
     const { vaultAddress } = status;
@@ -117,7 +117,7 @@ describe('SmartVault', async () => {
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
 
-      // mint max seuro
+      // mint max euros
       const mintingFee = maxMintable.div(100);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
@@ -151,7 +151,7 @@ describe('SmartVault', async () => {
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
 
-      // mint max seuro
+      // mint max euros
       const mintingFee = maxMintable.div(100);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
@@ -213,16 +213,16 @@ describe('SmartVault', async () => {
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
       const fee = mintedValue.div(100)
-      await expect(mint).emit(Vault, 'SEuroMinted').withArgs(user.address, mintedValue, fee);
+      await expect(mint).emit(Vault, 'EUROsMinted').withArgs(user.address, mintedValue, fee);
 
       expect(minted).to.equal(mintedValue.add(fee));
-      expect(await Seuro.balanceOf(user.address)).to.equal(mintedValue);
-      expect(await Seuro.balanceOf(protocol.address)).to.equal(fee);
+      expect(await EUROs.balanceOf(user.address)).to.equal(mintedValue);
+      expect(await EUROs.balanceOf(protocol.address)).to.equal(fee);
     });
   });
 
   describe('burning', async () => {
-    it('allows burning of sEURO if there is a minted amount, charges a fee', async () => {
+    it('allows burning of EUROs if there is a minted amount, charges a fee', async () => {
       const collateral = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: collateral});
 
@@ -243,20 +243,20 @@ describe('SmartVault', async () => {
       const burningFee = burnedValue.div(100);
 
       // must allow transfer to protocol
-      await Seuro.connect(user).approve(Vault.address, burningFee);
+      await EUROs.connect(user).approve(Vault.address, burningFee);
       // user pays back 50 to vault
       // .5 given to protocol
       // 51 minted in vault
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).not.to.be.reverted;
-      await expect(burn).to.emit(Vault, 'SEuroBurned').withArgs(burnedValue, burningFee);
+      await expect(burn).to.emit(Vault, 'EUROsBurned').withArgs(burnedValue, burningFee);
 
       minted = (await Vault.status()).minted;
       expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue));
 
       const fees = mintingFee.add(burningFee);
-      expect(await Seuro.balanceOf(user.address)).to.equal(minted.sub(fees));
-      expect(await Seuro.balanceOf(protocol.address)).to.equal(fees);
+      expect(await EUROs.balanceOf(user.address)).to.equal(minted.sub(fees));
+      expect(await EUROs.balanceOf(protocol.address)).to.equal(fees);
     });
   });
 
@@ -300,7 +300,7 @@ describe('SmartVault', async () => {
       expect(liquidated).to.equal(true);
     });
 
-    it('will not allow minting of seuro if liquidated', async () => {
+    it('will not allow minting of EUROs if liquidated', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 

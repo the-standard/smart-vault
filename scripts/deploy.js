@@ -2,77 +2,56 @@ const { ethers } = require("hardhat");
 const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE } = require("../test/common");
 
 async function main() {
-  const [user] = await ethers.getSigners();
+  const [deployer] = await ethers.getSigners();
 
-  const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
-  await SEuro.deployed();
-  const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
-  await ClEthUsd.deployed();
-  await (await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)).wait();
-  const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
-  await ClEurUsd.deployed();
-  await (await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE)).wait();
-  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
+  const CL_ETH_USD = '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612';
+  const CL_EUR_USD = '0xA14d53bC1F1c0F31B4aA3BD109344E5009051a84';
+  const PROTOCOL_ADDRESS = '0x99d5D7C8F40Deba9d0075E8Fff2fB13Da787996a';
+  const LIQUIDATOR_ADDRESS = deployer.address;
+  const EUROs = await (await ethers.getContractAt('AccessControl', '0x643b34980e635719c15a2d4ce69571a258f940e9'));
+  console.log(await EUROs.hasRole(await EUROs.DEFAULT_ADMIN_ROLE(),deployer.address))
+  console.log('EUROs', EUROs.address)
+  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, CL_ETH_USD);
   await TokenManager.deployed();
-  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
+  console.log('TokenManager', TokenManager.address)
+  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, CL_EUR_USD);
   await Deployer.deployed();
+  console.log('Deployer', Deployer.address)
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
+  console.log('SmartVaultIndex', SmartVaultIndex.address)
   const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
   await NFTMetadataGenerator.deployed();
+  console.log('NFTMetadataGenerator', NFTMetadataGenerator.address)
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-    DEFAULT_COLLATERAL_RATE, 1000, SEuro.address, user.address, user.address, TokenManager.address,
+    '110000', 500, EUROs.address, PROTOCOL_ADDRESS, LIQUIDATOR_ADDRESS, TokenManager.address,
     Deployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
   ]);
   await SmartVaultManager.deployed();
+  console.log('SmartVaultManager', SmartVaultManager.address)
 
   await (await SmartVaultIndex.setVaultManager(SmartVaultManager.address)).wait();
-  
-  await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), SmartVaultManager.address);
-  const usd6 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 6 Dec', 'SUSD6', 6);
-  await usd6.deployed();
-  const usd18 = await (await ethers.getContractFactory('LimitedERC20')).deploy('Standard USD 18 Dec', 'SUSD18', 18);
-  await usd18.deployed();
-
-  const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
-  await ClUsdUsd.deployed();
-  await (await ClUsdUsd.setPrice(100000000)).wait();
-  await (await TokenManager.addAcceptedToken(usd6.address, ClUsdUsd.address)).wait();
-  await (await TokenManager.addAcceptedToken(usd18.address, ClUsdUsd.address)).wait();
+  await (await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), SmartVaultManager.address));
 
   console.log({
-    SEuro: SEuro.address,
-    ClEthUsd: ClEthUsd.address,
-    ClEurUsd: ClEurUsd.address,
+    EUROs: EUROs.address,
     TokenManager: TokenManager.address,
     Deployer: Deployer.address,
     SmartVaultIndex: SmartVaultIndex.address,
     NFTMetadataGenerator: NFTMetadataGenerator.address,
     SmartVaultManager: SmartVaultManager.address,
-    USD6: usd6.address,
-    USD18: usd18.address
   });
 
   await new Promise(resolve => setTimeout(resolve, 60000));
 
   await run(`verify:verify`, {
-    address: SEuro.address,
-    constructorArguments: [],
-  });
-
-  await run(`verify:verify`, {
-    address: ClEthUsd.address,
-    constructorArguments: [],
-  });
-
-  await run(`verify:verify`, {
     address: TokenManager.address,
-    constructorArguments: [ETH, ClEthUsd.address],
+    constructorArguments: [ETH, CL_ETH_USD],
   });
 
   await run(`verify:verify`, {
     address: Deployer.address,
-    constructorArguments: [ETH, ClEurUsd.address],
+    constructorArguments: [ETH, CL_EUR_USD],
   });
 
   await run(`verify:verify`, {
@@ -81,8 +60,13 @@ async function main() {
   });
 
   await run(`verify:verify`, {
-    address: usd6.address,
-    constructorArguments: ['Standard USD 6 Dec', 'SUSD6', 6]
+    address: NFTMetadataGenerator.address,
+    constructorArguments: [],
+  });
+
+  await run(`verify:verify`, {
+    address: SmartVaultIndex.address,
+    constructorArguments: [],
   });
 }
 

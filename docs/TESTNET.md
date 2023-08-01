@@ -28,17 +28,17 @@ The structure of this data is:
     {
         tokenId, // the ID of the NFT which represents your vault
         collateralRate, // the required colleteralisation percentage; 100000 = 100%
-        feeRate, // the % fee you will be charged with each minting or burning of sEURO from your vault; 100000 = 100%
+        feeRate, // the % fee you will be charged with each minting or burning of EUROs from your vault; 100000 = 100%
         status: {
             vaultAddress, // the address of your vault
-            minted, // the amount of sEURO currently borrowed from your vault
-            maxMintable, // the maximum total amount of sEURO that is borrowable from your vault, based on current collateral value
-            totalCollateralValue, // value of all vault collateral in terms of sEURO
+            minted, // the amount of EUROs currently borrowed from your vault
+            maxMintable, // the maximum total amount of EUROs that is borrowable from your vault, based on current collateral value
+            totalCollateralValue, // value of all vault collateral in terms of EUROs
             collateral: [
                 {
                     token, // data about the token
                     amount, // amount of given collateral
-                    collateralValue // the value of the token as collateral (e.g. in € for sEURO vault)
+                    collateralValue // the value of the token as collateral (e.g. in € for EUROs vault)
                 },
                 ...
             ],
@@ -55,34 +55,34 @@ This data is flattened into a tuple when accessed from block explorers, so will 
 
 ![Vaults data](images/vaults-data.png)
 
-## Borrowing sEURO
+## Borrowing EUROs
 
 You can send test ETH/MATIC directly to your vault address to add some collateral. You can also send some [test tokens](#test-tokens) to your vault as collateral.
 
-Once you have some collateral in your vault, you can go to the vault address to borrow some sEURO. Use the `mint` in the Smart Vault write interfaces:
+Once you have some collateral in your vault, you can go to the vault address to borrow some EUROs. Use the `mint` in the Smart Vault write interfaces:
 
 ```
-_to (address) // the address of the user you want to receive the sEURO
+_to (address) // the address of the user you want to receive the EUROs
 _amount (uint259) // the amount you'd like to borrow (excl. minting fee)
-                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to mint 100 sEURO
+                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to mint 100 EUROs
 ```
 
 Please note you will not be able to borrow up the `maxMintable` amount, as a minting fee will be applied on top of this amount.
 
-## Repaying sEURO
+## Repaying EUROs
 
-You can repay borrowed sEURO into your vault using `burn` in the Smart Vault write interface:
+You can repay borrowed EUROs into your vault using `burn` in the Smart Vault write interface:
 
 ```
 _amount (uint259) // the amount you'd like to repay into your vault (excl. burning fee)
-                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to burn 100 sEURO
+                  // amount should be given in full 18 decimal form e.g. enter 100000000000000000000 to burn 100 EUROs
 ```
 
-Please note, you will have to make an approval for the amount of sEURO that will be transferred as a fee. By default this will be 1% of the amount that you want to repay e.g. if you want to repay 100 sEURO, you will have to approve your vault address for 1 sEURO.
+Please note, you will have to make an approval for the amount of EUROs that will be transferred as a fee. By default this will be 1% of the amount that you want to repay e.g. if you want to repay 100 EUROs, you will have to approve your vault address for 1 EUROs.
 
-You will not be able to repay your full personal balance of sEURO, because a burning fee will be transferred in addition to the amount you repay.
+You will not be able to repay your full personal balance of EUROs, because a burning fee will be transferred in addition to the amount you repay.
 
-Please also note that you cannot repay borrowed sEURO by simply transferring sEURO to your vault.
+Please also note that you cannot repay borrowed EUROs by simply transferring EUROs to your vault.
 
 ## Test Tokens
 
@@ -90,7 +90,7 @@ There are two mock tokens that you can use as vault collateral: [6 decimal sUSD]
 
 Connect your wallet and use the `mint` interface to mint yourself 1000 of each token (limited to one transaction per 24 hours).
 
-Send these tokens to your vault to use them as collateral. Both tokens are worth roughly 0.95 sEURO.
+Send these tokens to your vault to use them as collateral. Both tokens are worth roughly 0.95 EUROs.
 
 ## Addresses
 
@@ -98,13 +98,13 @@ Send these tokens to your vault to use them as collateral. Both tokens are worth
 {
     "sepolia": {
         "SmartVaultManager": "0x8e8fb106D22d0Eb7BB3D31BDB29964B5791c7C0E",
-        "SEuro": "0xf23F59316A2700D88F6F503B24aEE01118255645",
+        "EUROs": "0xf23F59316A2700D88F6F503B24aEE01118255645",
         "SUSD6": "0x78D4BDd6771C87B66d66a5A89FE52d5F19D778c5",
         "SUSD18": "0x4904AFBf65480Ca77Eb2DdfF39EdcEABE53D4373"
     },
     "mumbai": {
         "SmartVaultManager": "0xF05b859c70c58EF88A4418F808c8d197Bb4Caa79",
-        "SEuro": "0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f",
+        "EUROs": "0xB0Bae7c7cDC0448eCF4bCbaACc25Ae8742Dc378f",
         "SUSD6": "0x0174347E772DA6358D7A5e57E47D6DCE105FA6c5",
         "SUSD18": "0xa42d9A1Be0cEBe19B37FE9Ce7aC881e62D97D6aC"
     }

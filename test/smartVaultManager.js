@@ -4,7 +4,7 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { BigNumber } = ethers;
 const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf, ETH } = require('./common');
 
-let VaultManager, TokenManager, Seuro, Tether, ClEthUsd, ClUsdUsd, admin, user, protocol, liquidator, otherUser;
+let VaultManager, TokenManager, EUROs, Tether, ClEthUsd, ClUsdUsd, admin, user, protocol, liquidator, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
@@ -16,18 +16,18 @@ describe('SmartVaultManager', async () => {
     ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
     await ClUsdUsd.setPrice(100000000);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    Seuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, Seuro.address, protocol.address,
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
-    await Seuro.grantRole(await Seuro.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
 
   describe('mint and burn fee', async () => {
@@ -51,7 +51,7 @@ describe('SmartVaultManager', async () => {
   describe('opening', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
       const mint = VaultManager.connect(user).mint();
-      await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, Seuro.address, 1);
+      await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, EUROs.address, 1);
       expect(await VaultManager.totalSupply()).to.equal(1);
       
       const vaults = await VaultManager.connect(user).vaults();

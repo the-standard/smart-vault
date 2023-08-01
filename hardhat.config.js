@@ -6,8 +6,8 @@ require("@nomiclabs/hardhat-etherscan");
 require('@openzeppelin/hardhat-upgrades');
 
 const { 
-  INFURA_API_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY, POLYGONSCAN_KEY,
-  ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY
+  INFURA_API_KEY, MAIN_ACCOUNT_PRIVATE_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY,
+  POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY, ALCHEMY_ARBITRUM_KEY
 } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
@@ -15,6 +15,10 @@ module.exports = {
   solidity: "0.8.17",
   defaultNetwork: 'hardhat',
   networks: {
+    mainnet: {
+      url: `https://mainnet.infura.io/v3/${INFURA_API_KEY}`,
+      accounts: [MAIN_ACCOUNT_PRIVATE_KEY]
+    },
     goerli: {
       url: `https://goerli.infura.io/v3/${INFURA_API_KEY}`,
       accounts: testAccounts
@@ -37,9 +41,8 @@ module.exports = {
       accounts: testAccounts
     },
     arbitrum: {
-      url: 'https://arbitrum.meowrpc.com',
-      chainId: 42161,
-      accounts: testAccounts
+      url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`,
+      accounts: [MAIN_ACCOUNT_PRIVATE_KEY]
     }
   },
   etherscan: {
@@ -47,7 +50,8 @@ module.exports = {
       goerli: ETHERSCAN_KEY,
       sepolia: ETHERSCAN_KEY,
       polygonMumbai: POLYGONSCAN_KEY,
-      arbitrumGoerli: ARBISCAN_KEY
+      arbitrumGoerli: ARBISCAN_KEY,
+      arbitrumOne: ARBISCAN_KEY
     }
   }
 };

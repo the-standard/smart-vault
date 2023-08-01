@@ -7,7 +7,7 @@ describe('Contract Versioning', async () => {
   // TODO test new liquidations (where collateral isn't sent)
   it('allows for v2 vaults with versioned vault manager', async () => {
     const [ admin, protocol, user ] = await ethers.getSigners();
-    const SEuro = await (await ethers.getContractFactory('SEuroMock')).deploy();
+    const EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     const ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
@@ -17,17 +17,17 @@ describe('Contract Versioning', async () => {
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-      DEFAULT_COLLATERAL_RATE, 1000, SEuro.address, protocol.address, admin.address,
+      DEFAULT_COLLATERAL_RATE, 1000, EUROs.address, protocol.address, admin.address,
       TokenManager.address, VaultDeployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
     ]);
-    await SEuro.grantRole(await SEuro.DEFAULT_ADMIN_ROLE(), VaultManagerV1.address);
+    await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManagerV1.address);
     await SmartVaultIndex.setVaultManager(VaultManagerV1.address);
 
     await VaultManagerV1.connect(user).mint();
     let vaults = await VaultManagerV1.connect(user).vaults();
     let v1Vault = vaults[0];
     expect(v1Vault.status.version).to.equal(1);
-    expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('SEURO'));
+    expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
 
     // version smart vault manager, to deploy v2 with different vaults
     const VaultDeployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
@@ -60,8 +60,8 @@ describe('Contract Versioning', async () => {
     v1Vault = vaults[0];
     const v2Vault = vaults[1]
     expect(v1Vault.status.version).to.equal(1);
-    expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('SEURO'));
+    expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
     expect(v2Vault.status.version).to.equal(2);
-    expect(v2Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('SEURO'));
+    expect(v2Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
   });
 });
