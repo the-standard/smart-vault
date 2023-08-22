@@ -22,14 +22,14 @@ contract SmartVaultV2 is ISmartVault {
     uint256 private minted;
     bool private liquidated;
     ISmartVaultManager public manager;
-    IEUROs public euros;
+    IEUROs public EUROs;
     IPriceCalculator public calculator;
 
     constructor(bytes32 _native, address _manager, address _owner, address _euros, address _priceCalculator) {
         NATIVE = _native;
         owner = _owner;
         manager = ISmartVaultManager(_manager);
-        euros = IEUROs(_euros);
+        EUROs = IEUROs(_euros);
         calculator = IPriceCalculator(_priceCalculator);
     }
 
@@ -154,15 +154,15 @@ contract SmartVaultV2 is ISmartVault {
         uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted += _amount + fee;
-        euros.mint(_to, _amount);
-        euros.mint(manager.protocol(), fee);
+        EUROs.mint(_to, _amount);
+        EUROs.mint(manager.protocol(), fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
         uint256 fee = _amount * manager.burnFeeRate() / manager.HUNDRED_PC();
         minted -= _amount;
-        euros.burn(msg.sender, _amount);
-        IERC20(address(euros)).safeTransferFrom(msg.sender, manager.protocol(), fee);
+        EUROs.burn(msg.sender, _amount);
+        IERC20(address(EUROs)).safeTransferFrom(msg.sender, manager.protocol(), fee);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {
