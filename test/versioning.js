@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const { ethers, upgrades } = require("hardhat");
-const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE } = require('./common');
+const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, getNFTMetadataContract } = require('./common');
 
 describe('Contract Versioning', async () => {
   // TODO test using more than one currency vault
@@ -15,7 +15,7 @@ describe('Contract Versioning', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     const VaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
-    const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
+    const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     const VaultManagerV1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, 1000, EUROs.address, protocol.address, admin.address,
       TokenManager.address, VaultDeployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address

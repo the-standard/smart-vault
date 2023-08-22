@@ -10,6 +10,17 @@ const ETH = ethers.utils.formatBytes32String('ETH');
 
 const getCollateralOf = (symbol, collateral) => collateral.filter(c => c.token.symbol === ethers.utils.formatBytes32String(symbol))[0];
 
+const getNFTMetadataContract = async () => {
+  const LibContract = await ethers.getContractFactory('NFTUtils');
+  const lib = await LibContract.deploy();
+  await lib.deployed();
+  return await ethers.getContractFactory('NFTMetadataGenerator', {
+    libraries: {
+      NFTUtils: lib.address,
+    },
+  });
+}
+
 module.exports = {
   HUNDRED_PC,
   DEFAULT_COLLATERAL_RATE,
@@ -17,5 +28,6 @@ module.exports = {
   DEFAULT_EUR_USD_PRICE,
   PROTOCOL_FEE_RATE,
   ETH,
-  getCollateralOf
+  getCollateralOf,
+  getNFTMetadataContract
 }

@@ -1,8 +1,9 @@
 const { ethers, upgrades } = require("hardhat");
+const { getNFTMetadataContract } = require("../test/common");
 
 async function main() {
 
-  const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
+  const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
   await NFTMetadataGenerator.deployed();
   console.log(NFTMetadataGenerator.address)
   await upgrades.upgradeProxy('0xF05b859c70c58EF88A4418F808c8d197Bb4Caa79',

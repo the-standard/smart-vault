@@ -1,7 +1,7 @@
 const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
 let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, admin, user, otherUser, protocol;
@@ -17,7 +17,7 @@ describe('SmartVault', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
-    const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
+    const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,

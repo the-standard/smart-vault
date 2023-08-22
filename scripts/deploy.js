@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE } = require("../test/common");
+const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, getNFTMetadataContract } = require("../test/common");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -20,7 +20,7 @@ async function main() {
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
   console.log('SmartVaultIndex', SmartVaultIndex.address)
-  const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator')).deploy();
+  const NFTMetadataGenerator = await (getNFTMetadataContract()).deploy();
   await NFTMetadataGenerator.deployed();
   console.log('NFTMetadataGenerator', NFTMetadataGenerator.address)
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
