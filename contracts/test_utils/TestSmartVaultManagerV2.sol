@@ -14,7 +14,7 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
-contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract TestSmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     string private constant INVALID_ADDRESS = "err-invalid-address";

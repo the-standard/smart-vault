@@ -9,7 +9,7 @@ import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
-contract SmartVaultV2 is ISmartVault {
+contract TestSmartVaultV2 is ISmartVault {
     using SafeERC20 for IERC20;
 
     string private constant INVALID_USER = "err-invalid-user";

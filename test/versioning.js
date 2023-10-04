@@ -30,12 +30,12 @@ describe('Contract Versioning', async () => {
     expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
 
     // version smart vault manager, to deploy v2 with different vaults
-    const VaultDeployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
+    const VaultDeployerV2 = await (await ethers.getContractFactory('TestSmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
     const TokenManagerV2 = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
 
     // try upgrading with non-owner
     let upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
-      await ethers.getContractFactory('SmartVaultManagerV2', user), {
+      await ethers.getContractFactory('TestSmartVaultManagerV2', user), {
         call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
       }
     );
@@ -43,14 +43,14 @@ describe('Contract Versioning', async () => {
     await expect(upgrade).to.be.revertedWith('Ownable: caller is not the owner');
 
     upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
-      await ethers.getContractFactory('SmartVaultManagerV2'), {
+      await ethers.getContractFactory('TestSmartVaultManagerV2'), {
         call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
       }
     );
 
     await expect(upgrade).not.to.be.reverted;
 
-    const VaultManagerV2 = await ethers.getContractAt('SmartVaultManagerV2', VaultManagerV1.address);
+    const VaultManagerV2 = await ethers.getContractAt('TestSmartVaultManagerV2', VaultManagerV1.address);
     expect(await VaultManagerV2.owner()).to.equal(admin.address);
     expect(await VaultManagerV2.ownerOf(1)).to.equal(user.address);
 

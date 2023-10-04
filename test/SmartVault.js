@@ -318,4 +318,10 @@ describe('SmartVault', async () => {
       await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWith('err-liquidated');
     });
   });
+
+  describe('swaps', async () => {
+    it('provides a swap estimate for a given swap', async () => {
+      console.log(await Vault.status());
+    });
+  });
 });
