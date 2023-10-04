@@ -15,7 +15,7 @@ describe('SmartVault', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
@@ -319,9 +319,22 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('swaps', async () => {
+  describe.only('swaps', async () => {
+    beforeEach(async () => {
+      const Stablecoin = await (await ethers.getContractFactory('ERC20Mock')).deploy('USD', 'USD', 18);
+      const clUsdUsdPrice = 100000000;
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
+      await ClUsdUsd.setPrice(clUsdUsdPrice);
+      await TokenManager.addAcceptedToken(Stablecoin.address, ClUsdUsd.address);
+    });
+
     it('provides a swap estimate for a given swap', async () => {
       console.log(await Vault.status());
+      // const tokenA = ethers.utils.formatBytes32String('ETH');
+      // const tokenB = ethers.utils.formatBytes32String('USD');
+      // const inValue = ethers.utils.parseEther('1');
+      // const outValue = ethers.utils.parseEther('1800');
+      // expect(await Vault.estimateSwap(tokenA, tokenB, inValue)).to.equal(outValue);
     });
   });
 });
