@@ -7,6 +7,8 @@ import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
+import "contracts/interfaces/ISmartVaultManagerV2.sol";
+import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
 
 contract SmartVaultV2 is ISmartVault {
@@ -17,7 +19,7 @@ contract SmartVaultV2 is ISmartVault {
     uint8 private constant version = 2;
     bytes32 private constant vaultType = bytes32("EUROs");
     bytes32 private immutable NATIVE;
-    ISmartVaultManager public immutable manager;
+    address public immutable manager;
     IEUROs public immutable EUROs;
     IPriceCalculator public immutable calculator;
 
@@ -33,13 +35,13 @@ contract SmartVaultV2 is ISmartVault {
     constructor(bytes32 _native, address _manager, address _owner, address _euros, address _priceCalculator) {
         NATIVE = _native;
         owner = _owner;
-        manager = ISmartVaultManager(_manager);
+        manager = _manager;
         EUROs = IEUROs(_euros);
         calculator = IPriceCalculator(_priceCalculator);
     }
 
     modifier onlyVaultManager {
-        require(msg.sender == address(manager), INVALID_USER);
+        require(msg.sender == manager, INVALID_USER);
         _;
     }
 
@@ -59,11 +61,11 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function getTokenManager() private view returns (ITokenManager) {
-        return ITokenManager(manager.tokenManager());
+        return ITokenManager(ISmartVaultManager(manager).tokenManager());
     }
 
     function euroCollateral() private view returns (uint256 euros) {
-        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+        ITokenManager tokenManager = ITokenManager(ISmartVaultManager(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
@@ -72,7 +74,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function maxMintable() private view returns (uint256) {
-        return euroCollateral() * manager.HUNDRED_PC() / manager.collateralRate();
+        return euroCollateral() * ISmartVaultManager(manager).HUNDRED_PC() / ISmartVaultManager(manager).collateralRate();
     }
 
     function getAssetBalance(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
@@ -80,7 +82,7 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function getAssets() private view returns (Asset[] memory) {
-        ITokenManager tokenManager = ITokenManager(manager.tokenManager());
+        ITokenManager tokenManager = ITokenManager(ISmartVaultManager(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
@@ -104,13 +106,13 @@ contract SmartVaultV2 is ISmartVault {
 
     function liquidateNative() private {
         if (address(this).balance != 0) {
-            (bool sent,) = payable(manager.protocol()).call{value: address(this).balance}("");
+            (bool sent,) = payable(ISmartVaultManager(manager).protocol()).call{value: address(this).balance}("");
             require(sent, "err-native-liquidate");
         }
     }
 
     function liquidateERC20(IERC20 _token) private {
-        if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(manager.protocol(), _token.balanceOf(address(this)));
+        if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(ISmartVaultManager(manager).protocol(), _token.balanceOf(address(this)));
     }
 
     function liquidate() external onlyVaultManager {
@@ -118,7 +120,7 @@ contract SmartVaultV2 is ISmartVault {
         liquidated = true;
         minted = 0;
         liquidateNative();
-        ITokenManager.Token[] memory tokens = ITokenManager(manager.tokenManager()).getAcceptedTokens();
+        ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManager(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol != NATIVE) liquidateERC20(IERC20(tokens[i].addr));
         }
@@ -160,24 +162,48 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
-        uint256 fee = _amount * manager.mintFeeRate() / manager.HUNDRED_PC();
+        uint256 fee = _amount * ISmartVaultManager(manager).mintFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         require(fullyCollateralised(_amount + fee), UNDER_COLL);
         minted = minted + _amount + fee;
         EUROs.mint(_to, _amount);
-        EUROs.mint(manager.protocol(), fee);
+        EUROs.mint(ISmartVaultManager(manager).protocol(), fee);
         emit EUROsMinted(_to, _amount, fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
-        uint256 fee = _amount * manager.burnFeeRate() / manager.HUNDRED_PC();
+        uint256 fee = _amount * ISmartVaultManager(manager).burnFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         minted = minted - _amount;
         EUROs.burn(msg.sender, _amount);
-        IERC20(address(EUROs)).safeTransferFrom(msg.sender, manager.protocol(), fee);
+        IERC20(address(EUROs)).safeTransferFrom(msg.sender, ISmartVaultManager(manager).protocol(), fee);
         emit EUROsBurned(_amount, fee);
     }
 
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minAmount) external {
+    function getSwapAddressFor(bytes32 _symbol) private view returns (address swapAddress) {
+        bool validToken;
+        ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManager(manager).tokenManager()).getAcceptedTokens();
+        for (uint256 i = 0; i < tokens.length; i++) {
+            if (tokens[i].symbol == _symbol) {
+                validToken = true;
+                swapAddress = tokens[i].addr;
+            }
+        }
+        require(validToken, "err-invalid-swap");
+        if (swapAddress == address(0)) swapAddress = ISmartVaultManagerV2(manager).weth();
+    }
 
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount) external {
+        ISwapRouter(ISmartVaultManagerV2(manager).swapRouter()).exactInputSingle{value: _amount}(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: getSwapAddressFor(_inToken),
+                tokenOut: getSwapAddressFor(_outToken),
+                fee: 3000,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amount,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

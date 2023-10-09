@@ -32,6 +32,8 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     address public nftMetadataGenerator;
     uint256 public mintFeeRate;
     uint256 public burnFeeRate;
+    address public weth;
+    address public swapRouter;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
@@ -108,6 +110,14 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
 
     function setBurnFeeRate(uint256 _rate) external onlyOwner {
         burnFeeRate = _rate;   
+    }
+
+    function setWethAddress(address _weth) external onlyOwner() {
+        weth = _weth;
+    }
+
+    function setSwapRouterAddress(address _swapRouter) external onlyOwner() {
+        swapRouter = _swapRouter;
     }
 
     function setNFTMetadataGenerator(address _nftMetadataGenerator) external onlyOwner() {
