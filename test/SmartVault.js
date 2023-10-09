@@ -1,10 +1,10 @@
 const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, admin, user, otherUser, protocol;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
@@ -18,17 +18,18 @@ describe('SmartVault', async () => {
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
-    VaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
+    MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
+    VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
-      SmartVaultIndex.address, NFTMetadataGenerator.address
-    ]);
+      SmartVaultIndex.address, NFTMetadataGenerator.address, MockSwapRouter
+    );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const { status } = (await VaultManager.connect(user).vaults())[0];
     const { vaultAddress } = status;
-    Vault = await ethers.getContractAt('SmartVault', vaultAddress);
+    Vault = await ethers.getContractAt('SmartVaultV2', vaultAddress);
   });
 
   describe('ownership', async () => {
@@ -319,22 +320,36 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('swaps', async () => {
+  describe('swaps', async () => {
+    let Stablecoin;
+
     beforeEach(async () => {
-      const Stablecoin = await (await ethers.getContractFactory('ERC20Mock')).deploy('USD', 'USD', 18);
+      Stablecoin = await (await ethers.getContractFactory('ERC20Mock')).deploy('sUSD', 'sUSD', 18);
       const clUsdUsdPrice = 100000000;
-      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('sUSD / USD');
       await ClUsdUsd.setPrice(clUsdUsdPrice);
       await TokenManager.addAcceptedToken(Stablecoin.address, ClUsdUsd.address);
     });
 
-    it('provides a swap estimate for a given swap', async () => {
-      console.log(await Vault.status());
-      // const tokenA = ethers.utils.formatBytes32String('ETH');
-      // const tokenB = ethers.utils.formatBytes32String('USD');
-      // const inValue = ethers.utils.parseEther('1');
-      // const outValue = ethers.utils.parseEther('1800');
-      // expect(await Vault.estimateSwap(tokenA, tokenB, inValue)).to.equal(outValue);
-    });
+    // it('invokes swaprouter with value for eth swap', async () => {
+    //   await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
+    //   const inToken = ethers.utils.formatBytes32String('ETH');
+    //   const outToken = ethers.utils.formatBytes32String('sUSD');
+    //   const swapValue = ethers.utils.parseEther('0.5');
+    //   const minSwapValue = swapValue.mul(99).div(100);
+    //   const swap = await Vault.swap(inToken, outToken, swapValue, minSwapValue);
+    //   const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
+
+    //   expect(await MockSwapRouter.receivedSwap()).to.equal({
+    //     tokenIn: WETH_ADDRESS,
+    //     tokenOut: Stablecoin.address,
+    //     fee: 3000,
+    //     recipient: Vault.address,
+    //     deadline: ts,
+    //     amountIn: swapValue,
+    //     amountOutMinimum: minSwapValue,
+    //     sqrtPriceLimitX96: 0
+    //   });
+    // });
   });
 });

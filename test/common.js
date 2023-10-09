@@ -1,4 +1,4 @@
-const { ethers } = require('hardhat');
+const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 
 const HUNDRED_PC = BigNumber.from(100000);
@@ -21,6 +21,23 @@ const getNFTMetadataContract = async () => {
   });
 }
 
+const fullyUpgradedSmartVaultManager = async (
+  collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
+  liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
+  smartVaultIndexAddress, nFTMetadataGeneratorAddress, swapRouterAddress
+) => {
+  const v1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
+    collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
+    liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
+    smartVaultIndexAddress, nFTMetadataGeneratorAddress
+  ]);
+
+  const v1WithUpgradeableNftGenerator = await upgrades.upgradeProxy(v1.address,
+    await ethers.getContractFactory('SmartVaultManagerNewNFTGenerator'));
+  
+  return v1WithUpgradeableNftGenerator;
+}
+
 module.exports = {
   HUNDRED_PC,
   DEFAULT_COLLATERAL_RATE,
@@ -29,5 +46,6 @@ module.exports = {
   PROTOCOL_FEE_RATE,
   ETH,
   getCollateralOf,
-  getNFTMetadataContract
+  getNFTMetadataContract,
+  fullyUpgradedSmartVaultManager
 }

@@ -176,9 +176,9 @@ contract SmartVaultV2 is ISmartVault {
         emit EUROsBurned(_amount, fee);
     }
 
-    // function estimateSwap(bytes32 _inAsset, bytes32 _outAsset, uint256 _amount) external view returns (uint256) {
-    //     return 1800 * 10 ** 18;
-    // }
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minAmount) external {
+
+    }
 
     function setOwner(address _newOwner) external onlyVaultManager {
         owner = _newOwner;

@@ -13,10 +13,10 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 
 //
-// adds ability to set NFT metadata generator address
-// upgraded 22/08/23
+// deploys v2 of the vaults, and includes swap router address
+// upgraded blah blah
 //
-contract SmartVaultManagerNewNFTGenerator is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     uint256 public constant HUNDRED_PC = 1e5;
