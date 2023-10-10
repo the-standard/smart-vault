@@ -2,9 +2,9 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { BigNumber } = ethers;
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, HUNDRED_PC, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS } = require('./common');
 
-let VaultManager, TokenManager, EUROs, Tether, ClEthUsd, ClUsdUsd, admin, user, protocol, liquidator, otherUser;
+let VaultManager, TokenManager, EUROs, Tether, ClEthUsd, ClUsdUsd, NFTMetadataGenerator, MockSwapRouter, admin, user, protocol, liquidator, otherUser;
 
 describe('SmartVaultManager', async () => {
   beforeEach(async () => {
@@ -20,31 +20,53 @@ describe('SmartVaultManager', async () => {
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
-    const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
+    MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
+    NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
-      SmartVaultIndex.address, NFTMetadataGenerator.address
+      SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
+      MockSwapRouter.address
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
 
-  describe('mint and burn fee', async () => {
-    it('allows owner to update mint and burn fee', async () => {
+  describe('setting admin data', async () => {
+    it('allows owner to admin data', async () => {
       expect(await VaultManager.mintFeeRate()).to.equal(PROTOCOL_FEE_RATE);
       expect(await VaultManager.burnFeeRate()).to.equal(PROTOCOL_FEE_RATE);
+      expect(await VaultManager.swapFeeRate()).to.equal(PROTOCOL_FEE_RATE);
+      expect(await VaultManager.nftMetadataGenerator()).to.equal(NFTMetadataGenerator.address);
+      expect(await VaultManager.swapRouter()).to.equal(MockSwapRouter.address);
+      expect(await VaultManager.weth()).to.equal(WETH_ADDRESS);
 
       const newMintFeeRate = 2000;
       const newBurnFeeRate = 3000;
+      const newSwapFeeRate = 4000;
+      const newGenerator = await (await getNFTMetadataContract()).deploy();
+      const newSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
+      const newWeth = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Ether', 'WETH', 18);
       await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setSwapFeeRate(newSwapFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setNFTMetadataGenerator(newGenerator.address)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setSwapRouterAddress(newSwapRouter.address)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setWethAddress(newWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(VaultManager.setMintFeeRate(newMintFeeRate)).not.to.be.reverted;
       await expect(VaultManager.setBurnFeeRate(newBurnFeeRate)).not.to.be.reverted;
+      await expect(VaultManager.setSwapFeeRate(newSwapFeeRate)).not.to.be.reverted;
+      await expect(VaultManager.setNFTMetadataGenerator(newGenerator.address)).not.to.be.reverted;
+      await expect(VaultManager.setSwapRouterAddress(newSwapRouter.address)).not.to.be.reverted;
+      await expect(VaultManager.setWethAddress(newWeth.address)).not.to.be.reverted;
 
       expect(await VaultManager.mintFeeRate()).to.equal(newMintFeeRate);
       expect(await VaultManager.burnFeeRate()).to.equal(newBurnFeeRate);
+      expect(await VaultManager.swapFeeRate()).to.equal(newSwapFeeRate);
+      expect(await VaultManager.nftMetadataGenerator()).to.equal(newGenerator.address);
+      expect(await VaultManager.swapRouter()).to.equal(newSwapRouter.address);
+      expect(await VaultManager.weth()).to.equal(newWeth.address);
     });
   });
 

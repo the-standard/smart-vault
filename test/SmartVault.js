@@ -120,7 +120,7 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
 
       // mint max euros
-      const mintingFee = maxMintable.div(100);
+      const mintingFee = maxMintable.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
       // cannot remove any eth
@@ -154,7 +154,7 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
 
       // mint max euros
-      const mintingFee = maxMintable.div(100);
+      const mintingFee = maxMintable.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
       // cannot remove any eth
@@ -214,7 +214,7 @@ describe('SmartVault', async () => {
       mint = Vault.connect(user).mint(user.address, mintedValue);
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
-      const fee = mintedValue.div(100)
+      const fee = mintedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC)
       await expect(mint).emit(Vault, 'EUROsMinted').withArgs(user.address, mintedValue, fee);
 
       expect(minted).to.equal(mintedValue.add(fee));
@@ -241,8 +241,8 @@ describe('SmartVault', async () => {
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).to.be.revertedWith('ERC20: insufficient allowance');
 
-      const mintingFee = mintedValue.div(100);
-      const burningFee = burnedValue.div(100);
+      const mintingFee = mintedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const burningFee = burnedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
 
       // must allow transfer to protocol
       await EUROs.connect(user).approve(Vault.address, burningFee);
@@ -321,7 +321,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('swaps', async () => {
+  describe('swaps', async () => {
     let Stablecoin;
 
     beforeEach(async () => {

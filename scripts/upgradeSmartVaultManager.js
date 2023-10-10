@@ -1,21 +1,22 @@
 const { ethers, upgrades } = require("hardhat");
-const { getNFTMetadataContract } = require("../test/common");
+const { PROTOCOL_FEE_RATE } = require("../test/common");
 
 async function main() {
+  const managerAddress = '0x2342755a637451e9af75545e257Cb007EaC930B1';
+  await upgrades.upgradeProxy(managerAddress,
+    await ethers.getContractFactory('SmartVaultManagerV2'));
 
-  const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
-  await NFTMetadataGenerator.deployed();
-  console.log(NFTMetadataGenerator.address)
-  await upgrades.upgradeProxy('0xF05b859c70c58EF88A4418F808c8d197Bb4Caa79',
-    await ethers.getContractFactory('SmartVaultManagerNewNFTGenerator'), {
-      call: {fn: 'completeUpgrade', args: [NFTMetadataGenerator.address]}
-    }
-  );
+  const fee = await v2.setSwapFeeRate(PROTOCOL_FEE_RATE);
+  await fee.wait();
+  const weth = await v2.setWethAddress(wethAddress);
+  await weth.wait();
+  const router = await v2.setSwapRouterAddress(swapRouterAddress);
+  await router.wait();
 
   await new Promise(resolve => setTimeout(resolve, 60000));
 
   await run(`verify:verify`, {
-    address: NFTMetadataGenerator.address,
+    address: managerAddress,
     constructorArguments: [],
   });
 }
