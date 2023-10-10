@@ -11,12 +11,13 @@ import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
+import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
 //
 // deploys v2 of the vaults, and includes swap router address
 // upgraded blah blah
 //
-contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV2 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     uint256 public constant HUNDRED_PC = 1e5;
@@ -32,6 +33,7 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
     address public nftMetadataGenerator;
     uint256 public mintFeeRate;
     uint256 public burnFeeRate;
+    uint256 public swapFeeRate;
     address public weth;
     address public swapRouter;
 
@@ -110,6 +112,10 @@ contract SmartVaultManagerV2 is ISmartVaultManager, Initializable, ERC721Upgrade
 
     function setBurnFeeRate(uint256 _rate) external onlyOwner {
         burnFeeRate = _rate;   
+    }
+
+    function setSwapFeeRate(uint256 _rate) external onlyOwner {
+        swapFeeRate = _rate;   
     }
 
     function setWethAddress(address _weth) external onlyOwner() {

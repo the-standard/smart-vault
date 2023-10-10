@@ -5,7 +5,7 @@ const HUNDRED_PC = BigNumber.from(100000);
 const DEFAULT_COLLATERAL_RATE = BigNumber.from(120000); // 120%
 const DEFAULT_ETH_USD_PRICE = BigNumber.from(160000000000); // $1600
 const DEFAULT_EUR_USD_PRICE = BigNumber.from(106000000); // $1.06
-const PROTOCOL_FEE_RATE = BigNumber.from(1000); // 1%
+const PROTOCOL_FEE_RATE = BigNumber.from(500); // 0.5%
 const ETH = ethers.utils.formatBytes32String('ETH');
 const WETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
 
@@ -38,6 +38,7 @@ const fullyUpgradedSmartVaultManager = async (
   
   const v2 = await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV2'));
 
+  await v2.setSwapFeeRate(protocolFeeRate);
   await v2.setWethAddress(wethAddress);
   await v2.setSwapRouterAddress(swapRouterAddress);
   return v2;

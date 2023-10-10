@@ -321,7 +321,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('swaps', async () => {
+  describe('swaps', async () => {
     let Stablecoin;
 
     beforeEach(async () => {
@@ -337,6 +337,8 @@ describe('SmartVault', async () => {
       const inToken = ethers.utils.formatBytes32String('ETH');
       const outToken = ethers.utils.formatBytes32String('sUSD');
       const swapValue = ethers.utils.parseEther('0.5');
+      const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const protocolBalance = await protocol.getBalance();
       const swap = await Vault.swap(inToken, outToken, swapValue);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
@@ -350,10 +352,11 @@ describe('SmartVault', async () => {
       expect(fee).to.equal(3000);
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts);
-      expect(amountIn).to.equal(swapValue);
+      expect(amountIn).to.equal(swapValue.sub(swapFee));
       expect(amountOutMinimum).to.equal(0);
       expect(sqrtPriceLimitX96).to.equal(0);
-      expect(txValue).to.equal(swapValue);
+      expect(txValue).to.equal(swapValue.sub(swapFee));
+      expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
     });
   });
 });
