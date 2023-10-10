@@ -7,7 +7,8 @@ require('@openzeppelin/hardhat-upgrades');
 
 const { 
   INFURA_API_KEY, MAIN_ACCOUNT_PRIVATE_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY,
-  POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY, ALCHEMY_ARBITRUM_KEY
+  POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY, ALCHEMY_ARBITRUM_KEY,
+  ALCHEMY_ARBITRUM_GOERLI_KEY
 } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
@@ -36,8 +37,7 @@ module.exports = {
       accounts: testAccounts
     },
     arbitrum_goerli: {
-      url: 'https://goerli-rollup.arbitrum.io/rpc',
-      chainId: 421613,
+      url: `https://arb-goerli.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_GOERLI_KEY}`,
       accounts: testAccounts
     },
     arbitrum: {
