@@ -198,10 +198,12 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function executeERC20SwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
+        IERC20(_params.tokenIn).transfer(ISmartVaultManager(manager).protocol(), _swapFee);
+        IERC20(_params.tokenIn).approve(ISmartVaultManagerV2(manager).swapRouter(), _params.amountIn);
         ISwapRouter(ISmartVaultManagerV2(manager).swapRouter()).exactInputSingle(_params);
     }
 
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount) external {
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount) external onlyOwner {
         uint256 swapFee = _amount * ISmartVaultManagerV2(manager).swapFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         address inToken = getSwapAddressFor(_inToken);
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({

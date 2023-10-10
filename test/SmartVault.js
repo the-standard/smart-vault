@@ -321,7 +321,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('swaps', async () => {
+  describe.only('swaps', async () => {
     let Stablecoin;
 
     beforeEach(async () => {
@@ -332,6 +332,15 @@ describe('SmartVault', async () => {
       await TokenManager.addAcceptedToken(Stablecoin.address, ClUsdUsd.address);
     });
 
+    it('only allows owner to perform swap', async () => {
+      const inToken = ethers.utils.formatBytes32String('ETH');
+      const outToken = ethers.utils.formatBytes32String('sUSD');
+      const swapValue = ethers.utils.parseEther('0.5');
+      const swap = Vault.connect(admin).swap(inToken, outToken, swapValue);
+
+      await expect(swap).to.be.revertedWith('err-invalid-user');
+    });
+
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
       const inToken = ethers.utils.formatBytes32String('ETH');
@@ -339,11 +348,11 @@ describe('SmartVault', async () => {
       const swapValue = ethers.utils.parseEther('0.5');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       const protocolBalance = await protocol.getBalance();
-      const swap = await Vault.swap(inToken, outToken, swapValue);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
-        tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, 
+        tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
         sqrtPriceLimitX96, txValue
       } = await MockSwapRouter.receivedSwap();
 
@@ -357,6 +366,33 @@ describe('SmartVault', async () => {
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
+    });
+
+    it('invokes swaprouter after creating approval for erc20, paying fees to protocol', async () => {
+      await Stablecoin.mint(Vault.address, ethers.utils.parseEther('100'));
+      const inToken = ethers.utils.formatBytes32String('sUSD');
+      const outToken = ethers.utils.formatBytes32String('ETH');
+      const swapValue = ethers.utils.parseEther('50');
+      const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const actualSwap = swapValue.sub(swapFee);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
+      const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
+
+      expect(await Stablecoin.allowance(Vault.address, MockSwapRouter.address)).to.equal(actualSwap);
+      const {
+        tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
+        sqrtPriceLimitX96, txValue
+      } = await MockSwapRouter.receivedSwap();
+      expect(tokenIn).to.equal(Stablecoin.address);
+      expect(tokenOut).to.equal(WETH_ADDRESS);
+      expect(fee).to.equal(3000);
+      expect(recipient).to.equal(Vault.address);
+      expect(deadline).to.equal(ts);
+      expect(amountIn).to.equal(actualSwap);
+      expect(amountOutMinimum).to.equal(0);
+      expect(sqrtPriceLimitX96).to.equal(0);
+      expect(txValue).to.equal(0);
+      expect(await Stablecoin.balanceOf(protocol.address)).to.equal(swapFee);
     });
   });
 });
