@@ -1,10 +1,10 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, MockWeth, admin, user, otherUser, protocol;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
@@ -19,10 +19,11 @@ describe('SmartVault', async () => {
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
+    MockWeth = await (await ethers.getContractFactory('MockWETH')).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
-      SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
+      SmartVaultIndex.address, NFTMetadataGenerator.address, MockWeth.address,
       MockSwapRouter.address
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
@@ -356,7 +357,7 @@ describe('SmartVault', async () => {
         sqrtPriceLimitX96, txValue
       } = await MockSwapRouter.receivedSwap();
 
-      expect(tokenIn).to.equal(WETH_ADDRESS);
+      expect(tokenIn).to.equal(MockWeth.address);
       expect(tokenOut).to.equal(Stablecoin.address);
       expect(fee).to.equal(3000);
       expect(recipient).to.equal(Vault.address);
@@ -368,7 +369,7 @@ describe('SmartVault', async () => {
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
     });
 
-    it('invokes swaprouter after creating approval for erc20, paying fees to protocol', async () => {
+    it('invokes swaprouter after creating approval for erc20, paying fees to protocol, converting all weth back to eth', async () => {
       await Stablecoin.mint(Vault.address, ethers.utils.parseEther('100'));
       const inToken = ethers.utils.formatBytes32String('sUSD');
       const outToken = ethers.utils.formatBytes32String('ETH');
@@ -384,7 +385,7 @@ describe('SmartVault', async () => {
         sqrtPriceLimitX96, txValue
       } = await MockSwapRouter.receivedSwap();
       expect(tokenIn).to.equal(Stablecoin.address);
-      expect(tokenOut).to.equal(WETH_ADDRESS);
+      expect(tokenOut).to.equal(MockWeth.address);
       expect(fee).to.equal(3000);
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts);
