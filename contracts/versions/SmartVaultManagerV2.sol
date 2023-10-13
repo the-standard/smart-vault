@@ -130,6 +130,10 @@ contract SmartVaultManagerV2 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         nftMetadataGenerator = _nftMetadataGenerator;
     }
 
+    function setSmartVaultDeployer(address _smartVaultDeployer) external onlyOwner() {
+        smartVaultDeployer = _smartVaultDeployer;
+    }
+
     // TODO test transfer
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
         smartVaultIndex.transferTokenId(_from, _to, _tokenId);
