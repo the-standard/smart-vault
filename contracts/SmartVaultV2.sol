@@ -10,6 +10,7 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
+import "contracts/interfaces/IWETH.sol";
 
 contract SmartVaultV2 is ISmartVault {
     using SafeERC20 for IERC20;
@@ -198,9 +199,13 @@ contract SmartVaultV2 is ISmartVault {
     }
 
     function executeERC20SwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
-        IERC20(_params.tokenIn).transfer(ISmartVaultManager(manager).protocol(), _swapFee);
-        IERC20(_params.tokenIn).approve(ISmartVaultManagerV2(manager).swapRouter(), _params.amountIn);
+        IERC20(_params.tokenIn).safeTransfer(ISmartVaultManager(manager).protocol(), _swapFee);
+        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV2(manager).swapRouter(), _params.amountIn);
         ISwapRouter(ISmartVaultManagerV2(manager).swapRouter()).exactInputSingle(_params);
+        IWETH weth = IWETH(ISmartVaultManagerV2(manager).weth());
+        // convert potentially received weth to eth
+        uint256 wethBalance = weth.balanceOf(address(this));
+        if (wethBalance > 0) weth.withdraw(wethBalance);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount) external onlyOwner {
