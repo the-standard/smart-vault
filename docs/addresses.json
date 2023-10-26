@@ -5,7 +5,8 @@
         "TokenManager": "0x33c5A816382760b6E5fb50d8854a61b3383a32a0",
         "Deployer": "0x53509eF0e49c8a386b81093711aF1eF29357cc25",
         "SmartVaultIndex": "0x56c7506410e5e242261c5E0db6941956c686E5A1",
-        "NFTMetadataGenerator": "0x3C70276Ee29FD659a9D06983522b731784012c54"
+        "NFTMetadataGenerator": "0x3C70276Ee29FD659a9D06983522b731784012c54",
+        "Directory": "0xBe57E0d3126a1F28a2E840ECbB842cb357e56866"
     },
     "arbitrum_goerli": {
         "SmartVaultManager": "0x2342755a637451e9af75545e257Cb007EaC930B1",
