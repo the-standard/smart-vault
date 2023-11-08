@@ -84,7 +84,7 @@ contract SmartVaultManagerV3 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function liquidateVaults() external onlyLiquidator {
         bool liquidating;
-        for (uint256 i = 165; i <= 168; i++) {
+        for (uint256 i = 1; i <= lastToken; i++) {
             ISmartVault vault = ISmartVault(smartVaultIndex.getVaultAddress(i));
             try vault.undercollateralised() returns (bool _undercollateralised) {
                 if (_undercollateralised) {
