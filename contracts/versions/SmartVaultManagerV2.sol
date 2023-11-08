@@ -15,7 +15,7 @@ import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
 //
 // deploys v2 of the vaults, and includes swap router address
-// upgraded blah blah
+// upgraded 11/10/23
 //
 contract SmartVaultManagerV2 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
