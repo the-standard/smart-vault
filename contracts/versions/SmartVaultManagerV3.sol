@@ -117,7 +117,7 @@ contract SmartVaultManagerV3 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     }
 
     function setSwapFeeRate(uint256 _rate) external onlyOwner {
-        swapFeeRate = _rate;   
+        swapFeeRate = _rate;
     }
 
     function setWethAddress(address _weth) external onlyOwner() {
