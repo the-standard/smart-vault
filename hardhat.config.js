@@ -8,7 +8,7 @@ require('@openzeppelin/hardhat-upgrades');
 const { 
   INFURA_API_KEY, MAIN_ACCOUNT_PRIVATE_KEY, TEST_ACCOUNT_PRIVATE_KEY, ETHERSCAN_KEY,
   POLYGONSCAN_KEY, ALCHEMY_MUMBAI_KEY, ARBISCAN_KEY, ALCHEMY_ARBITRUM_KEY,
-  ALCHEMY_ARBITRUM_GOERLI_KEY
+  ALCHEMY_ARBITRUM_GOERLI_KEY, ALCHEMY_ARBITRUM_SEPOLIA_KEY
 } = process.env;
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
@@ -36,17 +36,17 @@ module.exports = {
       url: 'https://rpc.public.zkevm-test.net',
       accounts: testAccounts
     },
-    arbitrum_goerli: {
-      url: `https://arb-goerli.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_GOERLI_KEY}`,
-      accounts: testAccounts
-    },
     arbitrum: {
       url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`,
       accounts: [MAIN_ACCOUNT_PRIVATE_KEY]
     },
+    arbitrum_sepolia: {
+      url: `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_SEPOLIA_KEY}`,
+      accounts: testAccounts
+    },
     // hardhat: {
     //   forking: {
-    //     url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`
+    //     url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`,
     //   }
     // }
   },
@@ -55,8 +55,18 @@ module.exports = {
       goerli: ETHERSCAN_KEY,
       sepolia: ETHERSCAN_KEY,
       polygonMumbai: POLYGONSCAN_KEY,
-      arbitrumGoerli: ARBISCAN_KEY,
-      arbitrumOne: ARBISCAN_KEY
-    }
+      arbitrumOne: ARBISCAN_KEY,
+      arbitrumSepolia: ARBISCAN_KEY
+    },
+    customChains: [
+      {
+        network: "arbitrumSepolia",
+        chainId: 421614,
+        urls: {
+          apiURL: "https://api-sepolia.arbiscan.io/api",
+          browserURL: "https://sepolia.arbiscan.io/"
+        }
+      }
+    ]
   }
 };
