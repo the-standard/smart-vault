@@ -123,18 +123,23 @@ describe('SmartVaultManager', async () => {
         const vault = await ethers.getContractAt('SmartVault', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
 
-        liquidate = VaultManager.connect(admin).liquidateVaults();
+        let liquidate = VaultManager.connect(admin).liquidateVault(1);
         await expect(liquidate).to.be.revertedWith('err-invalid-liquidator');
 
         // shouldn't liquidate any vaults, as both are sufficiently collateralised, should revert so no gas fees paid
-        liquidate = VaultManager.connect(liquidator).liquidateVaults();
-        await expect(liquidate).to.be.revertedWith('no-liquidatable-vaults');
+        liquidate = VaultManager.connect(liquidator).liquidateVault(1);
+        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
+        liquidate = VaultManager.connect(liquidator).liquidateVault(2);
+        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
 
         // drop price of eth to $1000, first vault becomes undercollateralised
         await ClEthUsd.setPrice(100000000000);
 
+        
+        liquidate = VaultManager.connect(liquidator).liquidateVault(2);
+        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
         // first user's vault should be liquidated
-        liquidate = VaultManager.connect(liquidator).liquidateVaults();
+        liquidate = VaultManager.connect(liquidator).liquidateVault(1);
         await expect(liquidate).not.to.be.reverted;
         await expect(liquidate).to.emit(VaultManager, 'VaultLiquidated').withArgs(vaultAddress);
         const userVaults = await VaultManager.connect(user).vaults();
