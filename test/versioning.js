@@ -29,14 +29,14 @@ describe('Contract Versioning', async () => {
     expect(v1Vault.status.version).to.equal(1);
     expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
 
-    // version smart vault manager, to deploy v2 with different vaults
-    const VaultDeployerV2 = await (await ethers.getContractFactory('TestSmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
+    // version smart vault manager, to deploy v3 with different vaults
+    const VaultDeployerV3 = await (await ethers.getContractFactory('TestSmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
     const TokenManagerV2 = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
 
     // try upgrading with non-owner
     let upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
       await ethers.getContractFactory('TestSmartVaultManagerV2', user), {
-        call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
+        call: {fn: 'completeUpgrade', args: [VaultDeployerV3.address]}
       }
     );
 
@@ -44,7 +44,7 @@ describe('Contract Versioning', async () => {
 
     upgrade = upgrades.upgradeProxy(VaultManagerV1.address,
       await ethers.getContractFactory('TestSmartVaultManagerV2'), {
-        call: {fn: 'completeUpgrade', args: [VaultDeployerV2.address]}
+        call: {fn: 'completeUpgrade', args: [VaultDeployerV3.address]}
       }
     );
 

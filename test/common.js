@@ -37,12 +37,13 @@ const fullyUpgradedSmartVaultManager = async (
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerNewNFTGenerator'));
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV2'));
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV3'));
-  const v4 = await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV4'));
+  await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV4'));
+  const V5 = await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV5'));
 
-  await v4.setSwapFeeRate(protocolFeeRate);
-  await v4.setWethAddress(wethAddress);
-  await v4.setSwapRouterAddress(swapRouterAddress);
-  return v4;
+  await V5.setSwapFeeRate(protocolFeeRate);
+  await V5.setWethAddress(wethAddress);
+  await V5.setSwapRouter2(swapRouterAddress);
+  return V5;
 }
 
 module.exports = {

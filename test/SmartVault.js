@@ -15,7 +15,7 @@ describe('SmartVault', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV3')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
@@ -31,7 +31,7 @@ describe('SmartVault', async () => {
     await VaultManager.connect(user).mint();
     const { status } = (await VaultManager.connect(user).vaults())[0];
     const { vaultAddress } = status;
-    Vault = await ethers.getContractAt('SmartVaultV2', vaultAddress);
+    Vault = await ethers.getContractAt('SmartVaultV3', vaultAddress);
   });
 
   describe('ownership', async () => {
@@ -326,7 +326,7 @@ describe('SmartVault', async () => {
     let Stablecoin;
 
     beforeEach(async () => {
-      Stablecoin = await (await ethers.getContractFactory('ERC20Mock')).deploy('sUSD', 'sUSD', 18);
+      Stablecoin = await (await ethers.getContractFactory('ERC20Mock')).deploy('sUSD', 'sUSD', 6);
       const clUsdUsdPrice = 100000000;
       const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('sUSD / USD');
       await ClUsdUsd.setPrice(clUsdUsdPrice);
@@ -343,11 +343,25 @@ describe('SmartVault', async () => {
     });
 
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
+      // user has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
+      // user borrows 1200 EUROs
+      const borrowValue = ethers.utils.parseEther('1200');
+      await Vault.connect(user).mint(user.address, borrowValue);
       const inToken = ethers.utils.formatBytes32String('ETH');
       const outToken = ethers.utils.formatBytes32String('sUSD');
+      // user is swapping .5 ETH
       const swapValue = ethers.utils.parseEther('0.5');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      // minimum collateral after swap must be €1200 (borrowed) + €6 (fee) * 1.2 (rate) = €1447.2
+      // remaining collateral not swapped: .5 ETH * $1600 = $800 = $800 / 1.06 = €754.72
+      // swap must receive at least €1320 - €754.72 = €692.48 = $734.032;
+      const ethCollateralValue = swapValue.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
+      const borrowFee = borrowValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const minCollateralInUsd = borrowValue.add(borrowFee).mul(DEFAULT_COLLATERAL_RATE).div(HUNDRED_PC) // 110% of borrowed (with fee)
+                                  .sub(ethCollateralValue) // some collateral will not be swapped
+                                  .mul(DEFAULT_EUR_USD_PRICE).div(100000000) // convert to USD
+                                  .div(BigNumber.from(10).pow(12)) // scale down because stablecoin is 6 dec
       const protocolBalance = await protocol.getBalance();
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
@@ -363,7 +377,7 @@ describe('SmartVault', async () => {
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
-      expect(amountOutMinimum).to.equal(0);
+      expect(amountOutMinimum).to.equal(minCollateralInUsd);
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
