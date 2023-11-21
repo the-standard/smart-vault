@@ -40,12 +40,27 @@ contract PriceCalculator is IPriceCalculator {
         return _symbol == NATIVE ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
-    function tokenToEur(ITokenManager.Token memory _token, uint256 _amount) external view returns (uint256) {
+    function tokenToEurAvg(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
-        uint256 clScaleDiff = clEurUsd.decimals() - tokenUsdClFeed.decimals();
-        uint256 scaledCollateral = _amount * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-        uint256 collateralUsd = scaledCollateral * 10 ** clScaleDiff * avgPrice(4, tokenUsdClFeed);
+        uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
+        uint256 collateralUsd = scaledCollateral * avgPrice(4, tokenUsdClFeed);
         (, int256 eurUsdPrice,,,) = clEurUsd.latestRoundData();
         return collateralUsd / uint256(eurUsdPrice);
+    }
+
+    function tokenToEur(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
+        Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
+        uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
+        (,int256 _tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
+        uint256 collateralUsd = scaledCollateral * uint256(_tokenUsdPrice);
+        (, int256 eurUsdPrice,,,) = clEurUsd.latestRoundData();
+        return collateralUsd / uint256(eurUsdPrice);
+    }
+
+    function eurToToken(ITokenManager.Token memory _token, uint256 _eurValue) external view returns (uint256) {
+        Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
+        (, int256 tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
+        (, int256 eurUsdPrice,,,) = clEurUsd.latestRoundData();
+        return _eurValue * uint256(eurUsdPrice) / uint256(tokenUsdPrice) / 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
     }
 }
