@@ -343,7 +343,7 @@ describe('SmartVault', async () => {
     });
 
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
-      // user has 1 ETH collateral
+      // user vault has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
       // user borrows 1200 EUROs
       const borrowValue = ethers.utils.parseEther('1200');
@@ -378,6 +378,44 @@ describe('SmartVault', async () => {
       expect(deadline).to.equal(ts);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
       expect(amountOutMinimum).to.equal(minCollateralInUsd);
+      expect(sqrtPriceLimitX96).to.equal(0);
+      expect(txValue).to.equal(swapValue.sub(swapFee));
+      expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
+    });
+
+    it('amount out minimum is 0 if over collateral still', async () => {
+      // user vault has 1 ETH collateral
+      await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
+      // user borrows 500 EUROs
+      const borrowValue = ethers.utils.parseEther('500');
+      await Vault.connect(user).mint(user.address, borrowValue);
+      const inToken = ethers.utils.formatBytes32String('ETH');
+      const outToken = ethers.utils.formatBytes32String('sUSD');
+      // user is swapping .5 ETH
+      const swapValue = ethers.utils.parseEther('0.5');
+      const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      // 1 ETH collateral = $1600 / 1.06 (eur / usd) = €1509.43
+      // borrowed = 500 EUROs
+      // required collateral = 120% of 500 = €600
+      // .5 swap = 50% of 1509.43 = €754.72
+      // even if swap returned 0 assets, vault would remain above €600 required collateral value
+      // minimum swap therefore 0
+      const protocolBalance = await protocol.getBalance();
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
+      const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
+
+      const {
+        tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
+        sqrtPriceLimitX96, txValue
+      } = await MockSwapRouter.receivedSwap();
+
+      expect(tokenIn).to.equal(MockWeth.address);
+      expect(tokenOut).to.equal(Stablecoin.address);
+      expect(fee).to.equal(3000);
+      expect(recipient).to.equal(Vault.address);
+      expect(deadline).to.equal(ts);
+      expect(amountIn).to.equal(swapValue.sub(swapFee));
+      expect(amountOutMinimum).to.equal(0);
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));

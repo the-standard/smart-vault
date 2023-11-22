@@ -5,7 +5,7 @@ const { BigNumber } = ethers;
 
 let PriceCalculator, Ethereum, WBTC;
 
-describe.only('PriceCalculator', async () => {
+describe('PriceCalculator', async () => {
   beforeEach(async () => {
     const now = Math.floor(new Date / 1000);
     const hour = 60 * 60;
