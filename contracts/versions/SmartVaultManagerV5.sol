@@ -17,6 +17,7 @@ import "hardhat/console.sol";
 
 //
 // allows use of different swap router address (post 7/11 attack)
+// allows setting of protocol wallet address + liquidator address
 // upgraded zz/zz/zz
 //
 contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
@@ -133,6 +134,14 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function setSmartVaultDeployer(address _smartVaultDeployer) external onlyOwner() {
         smartVaultDeployer = _smartVaultDeployer;
+    }
+
+    function setProtocolAddress(address _protocol) external onlyOwner() {
+        protocol = _protocol;
+    }
+
+    function setLiquidatorAddress(address _liquidator) external onlyOwner() {
+        liquidator = _liquidator;
     }
 
     // TODO test transfer
