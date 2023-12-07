@@ -2,15 +2,18 @@ const { ethers, upgrades } = require("hardhat");
 const { PROTOCOL_FEE_RATE, DEFAULT_EUR_USD_PRICE } = require("../test/common");
 
 async function main() {
-  const managerAddress = '0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC';
-  const v4 = await upgrades.upgradeProxy(managerAddress,
-    await ethers.getContractFactory('SmartVaultManagerV4'));
+  const managerAddress = '0xBbB704f184E716410a9c00435530eA055CfAD187';
+  const V5 = await upgrades.upgradeProxy(managerAddress,
+    await ethers.getContractFactory('SmartVaultManagerV5'));
+
+  set = await V5.setLiquidatorAddress('0x2C051f4f2B00695e773De4C3431F70c0163B3788');
+  await set.wait()
 
   await new Promise(resolve => setTimeout(resolve, 60000));
   
   await run(`verify:verify`, {
-    address: v4.address,
-    constructorArguments: [],
+    address: V5.address,
+    constructorArguments: []
   });
 }
 
