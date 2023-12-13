@@ -94,10 +94,8 @@ contract SmartVaultV3 is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(
-            address(this), minted, maxMintable(), euroCollateral(), getAssets(),
-            liquidated, version, vaultType
-        );
+        return Status(address(this), minted, maxMintable(), euroCollateral(),
+            getAssets(), liquidated, version, vaultType);
     }
 
     function undercollateralised() public view returns (bool) {
@@ -182,18 +180,14 @@ contract SmartVaultV3 is ISmartVault {
     function getToken(bytes32 _symbol) private view returns (ITokenManager.Token memory _token) {
         ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
-            if (tokens[i].symbol == _symbol) {
-                _token = tokens[i];
-            }
+            if (tokens[i].symbol == _symbol) _token = tokens[i];
         }
         require(_token.symbol != bytes32(0), "err-invalid-swap");
     }
 
     function getSwapAddressFor(bytes32 _symbol) private view returns (address) {
         ITokenManager.Token memory _token = getToken(_symbol);
-        return _token.addr == address(0) ?
-            ISmartVaultManagerV3(manager).weth() :
-            _token.addr;
+        return _token.addr == address(0) ? ISmartVaultManagerV3(manager).weth() : _token.addr;
     }
 
     function executeNativeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
@@ -217,8 +211,7 @@ contract SmartVaultV3 is ISmartVault {
         uint256 requiredCollateralValue = minted * _manager.collateralRate() / _manager.HUNDRED_PC();
         uint256 collateralValueMinusSwapValue = euroCollateral() - calculator.tokenToEur(getToken(_inTokenSymbol), _amount);
         return collateralValueMinusSwapValue >= requiredCollateralValue ?
-            0 :
-            calculator.eurToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
+            0 : calculator.eurToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount) external onlyOwner {

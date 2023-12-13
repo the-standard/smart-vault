@@ -50,8 +50,7 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         uint256 burnFeeRate; ISmartVault.Status status;
     }
 
-    function initialize() initializer public {
-    }
+    function initialize() initializer public {}
 
     modifier onlyLiquidator {
         require(msg.sender == liquidator, "err-invalid-liquidator");
