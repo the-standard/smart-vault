@@ -337,7 +337,7 @@ describe('SmartVault', async () => {
       const inToken = ethers.utils.formatBytes32String('ETH');
       const outToken = ethers.utils.formatBytes32String('sUSD');
       const swapValue = ethers.utils.parseEther('0.5');
-      const swap = Vault.connect(admin).swap(inToken, outToken, swapValue);
+      const swap = Vault.connect(admin).swap(inToken, outToken, swapValue, 0);
 
       await expect(swap).to.be.revertedWith('err-invalid-user');
     });
@@ -363,7 +363,7 @@ describe('SmartVault', async () => {
                                   .mul(DEFAULT_EUR_USD_PRICE).div(100000000) // convert to USD
                                   .div(BigNumber.from(10).pow(12)) // scale down because stablecoin is 6 dec
       const protocolBalance = await protocol.getBalance();
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
@@ -383,7 +383,7 @@ describe('SmartVault', async () => {
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
     });
 
-    it('amount out minimum is 0 if over collateral still', async () => {
+    it('amount out minimum is given by user if larger than minimum collateral value', async () => {
       // user vault has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
       // user borrows 500 EUROs
@@ -394,6 +394,7 @@ describe('SmartVault', async () => {
       // user is swapping .5 ETH
       const swapValue = ethers.utils.parseEther('0.5');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const swapMinimum = 500_000_000; // user expect 500 sUSD out of swap
       // 1 ETH collateral = $1600 / 1.06 (eur / usd) = €1509.43
       // borrowed = 500 EUROs
       // required collateral = 120% of 500 = €600
@@ -401,7 +402,7 @@ describe('SmartVault', async () => {
       // even if swap returned 0 assets, vault would remain above €600 required collateral value
       // minimum swap therefore 0
       const protocolBalance = await protocol.getBalance();
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, swapMinimum);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
@@ -415,7 +416,7 @@ describe('SmartVault', async () => {
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
-      expect(amountOutMinimum).to.equal(0);
+      expect(amountOutMinimum).to.equal(swapMinimum);
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
@@ -428,7 +429,7 @@ describe('SmartVault', async () => {
       const swapValue = ethers.utils.parseEther('50');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       const actualSwap = swapValue.sub(swapFee);
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       expect(await Stablecoin.allowance(Vault.address, MockSwapRouter.address)).to.equal(actualSwap);
