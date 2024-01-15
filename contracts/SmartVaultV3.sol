@@ -16,7 +16,7 @@ contract SmartVaultV3 is ISmartVault {
 
     string private constant INVALID_USER = "err-invalid-user";
     string private constant UNDER_COLL = "err-under-coll";
-    uint8 private constant version = 2;
+    uint8 private constant version = 3;
     bytes32 private constant vaultType = bytes32("EUROs");
     bytes32 private immutable NATIVE;
     address public immutable manager;
