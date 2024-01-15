@@ -13,8 +13,6 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
-import "hardhat/console.sol";
-
 //
 // allows use of different swap router address (post 7/11 attack)
 // allows setting of protocol wallet address + liquidator address
@@ -72,6 +70,20 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
             });
         }
         return vaultData;
+    }
+
+    function vaultIDs(address _holder) external view returns (uint256[] memory) {
+        return smartVaultIndex.getTokenIds(_holder);
+    }
+
+    function vaultData(uint256 _tokenID) external view returns (SmartVaultData memory) {
+        return SmartVaultData({
+            tokenId: _tokenID,
+            collateralRate: collateralRate,
+            mintFeeRate: mintFeeRate,
+            burnFeeRate: burnFeeRate,
+            status: ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).status()
+        });
     }
 
     function mint() external returns (address vault, uint256 tokenId) {
