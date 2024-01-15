@@ -24,7 +24,7 @@ async function main() {
   await NFTMetadataGenerator.deployed();
   console.log('NFTMetadataGenerator', NFTMetadataGenerator.address)
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-    '110000', 500, EUROs.address, PROTOCOL_ADDRESS, LIQUIDATOR_ADDRESS, TokenManager.address,
+    '110000', 500, EUROs.address, TokenManager.address,
     Deployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
   ]);
   await SmartVaultManager.deployed();
