@@ -55,23 +55,6 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         _;
     }
 
-    function vaults() external view returns (SmartVaultData[] memory) {
-        uint256[] memory tokenIds = smartVaultIndex.getTokenIds(msg.sender);
-        uint256 idsLength = tokenIds.length;
-        SmartVaultData[] memory vaultData = new SmartVaultData[](idsLength);
-        for (uint256 i = 0; i < idsLength; i++) {
-            uint256 tokenId = tokenIds[i];
-            vaultData[i] = SmartVaultData({
-                tokenId: tokenId,
-                collateralRate: collateralRate,
-                mintFeeRate: mintFeeRate,
-                burnFeeRate: burnFeeRate,
-                status: ISmartVault(smartVaultIndex.getVaultAddress(tokenId)).status()
-            });
-        }
-        return vaultData;
-    }
-
     function vaultIDs(address _holder) external view returns (uint256[] memory) {
         return smartVaultIndex.getTokenIds(_holder);
     }
