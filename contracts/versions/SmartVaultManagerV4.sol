@@ -86,6 +86,20 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         return vaultData;
     }
 
+    function vaultIDs(address _holder) external view returns (uint256[] memory) {
+        return smartVaultIndex.getTokenIds(_holder);
+    }
+
+    function vaultData(uint256 _tokenID) external view returns (SmartVaultData memory) {
+        return SmartVaultData({
+            tokenId: _tokenID,
+            collateralRate: collateralRate,
+            mintFeeRate: mintFeeRate,
+            burnFeeRate: burnFeeRate,
+            status: ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).status()
+        });
+    }
+
     function mint() external returns (address vault, uint256 tokenId) {
         tokenId = lastToken + 1;
         _safeMint(msg.sender, tokenId);
