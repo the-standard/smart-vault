@@ -24,8 +24,7 @@ describe('Contract Versioning', async () => {
     await SmartVaultIndex.setVaultManager(VaultManagerV1.address);
 
     await VaultManagerV1.connect(user).mint();
-    let vaults = await VaultManagerV1.connect(user).vaults();
-    let v1Vault = vaults[0];
+    let [ v1Vault ] = await VaultManagerV1.connect(user).vaults();
     expect(v1Vault.status.version).to.equal(1);
     expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
 
@@ -56,9 +55,9 @@ describe('Contract Versioning', async () => {
 
     await VaultManagerV2.connect(user).mint();
 
-    vaults = await VaultManagerV2.connect(user).vaults();
+    const vaults = await VaultManagerV2.connect(user).vaults();
     v1Vault = vaults[0];
-    const v2Vault = vaults[1]
+    const v2Vault = vaults[1];
     expect(v1Vault.status.version).to.equal(1);
     expect(v1Vault.status.vaultType).to.equal(ethers.utils.formatBytes32String('EUROs'));
     expect(v2Vault.status.version).to.equal(2);

@@ -89,30 +89,29 @@ describe('SmartVaultManager', async () => {
       await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, EUROs.address, 1);
       expect(await VaultManager.totalSupply()).to.equal(1);
       
-      const vaults = await VaultManager.connect(user).vaults();
-      expect(vaults).to.be.length(1);
-      const totalCollateral = vaults[0].status.collateral.reduce((a, b) => a.add(b.amount), BigNumber.from(0));
+      const vaultIDs = await VaultManager.vaultIDs(user.address);
+      expect(vaultIDs).to.be.length(1);
+      const vaultData = await VaultManager.vaultData(vaultIDs[0])
+      const totalCollateral = vaultData.status.collateral.reduce((a, b) => a.add(b.amount), BigNumber.from(0));
       expect(totalCollateral).to.equal(0);
-      expect(vaults[0].status.minted).to.equal(0);
-      expect(vaults[0].status.maxMintable).to.equal(0);
-      expect(vaults[0].status.totalCollateralValue).to.equal(0);
-      expect(vaults[0].collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
-      expect(vaults[0].mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
-      expect(vaults[0].burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
+      expect(vaultData.status.minted).to.equal(0);
+      expect(vaultData.status.maxMintable).to.equal(0);
+      expect(vaultData.status.totalCollateralValue).to.equal(0);
+      expect(vaultData.collateralRate).to.equal(DEFAULT_COLLATERAL_RATE);
+      expect(vaultData.mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
+      expect(vaultData.burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
     });
   });
 
   context('open vault', async () => {
-    let tokenId, vaultAddress, otherTokenId, otherVaultAddress;
+    let tokenId, vaultAddress, status;
     beforeEach(async () => {
       await VaultManager.connect(user).mint();
       await VaultManager.connect(user).mint();
       await VaultManager.connect(otherUser).mint();
-      ({ tokenId, status } = (await VaultManager.connect(user).vaults())[0]);
+      const [ vaultID ] = await VaultManager.connect(user).vaultIDs(user.address);
+      ({ tokenId, status } = await VaultManager.vaultData(vaultID));
       ({ vaultAddress } = status);
-      const otherVault = (await VaultManager.connect(otherUser).vaults())[0];
-      otherTokenId = otherVault.tokenId;
-      otherVaultAddress = otherVault.vaultAddress;
     });
 
     describe('liquidation', async () => {
@@ -125,8 +124,9 @@ describe('SmartVaultManager', async () => {
         await Tether.mint(vaultAddress, tetherValue);
         await user.sendTransaction({to: vaultAddress, value: ethValue});
         
-        const { maxMintable } = (await VaultManager.connect(user).vaults())[0].status;
-        const mintValue = maxMintable.mul(99).div(100);
+        const [ vaultID ] = await VaultManager.vaultIDs(user.address);
+        const { status } = await VaultManager.vaultData(vaultID);
+        const mintValue = status.maxMintable.mul(99).div(100);
         
         const vault = await ethers.getContractAt('SmartVault', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
@@ -150,14 +150,16 @@ describe('SmartVaultManager', async () => {
         liquidate = VaultManager.connect(liquidator).liquidateVault(1);
         await expect(liquidate).not.to.be.reverted;
         await expect(liquidate).to.emit(VaultManager, 'VaultLiquidated').withArgs(vaultAddress);
-        const userVaults = await VaultManager.connect(user).vaults();
-        const otherUserVaults = await VaultManager.connect(otherUser).vaults();
-        expect(userVaults[0].status.liquidated).to.equal(true);
-        expect(otherUserVaults[0].status.liquidated).to.equal(false);
-        expect(userVaults[0].status.minted).to.equal(0);
-        expect(userVaults[0].status.maxMintable).to.equal(0);
-        expect(userVaults[0].status.totalCollateralValue).to.equal(0);
-        userVaults[0].status.collateral.forEach(asset => {
+        let [ tokenID ] = await VaultManager.vaultIDs(user.address);
+        const userVault = await VaultManager.vaultData(tokenID);
+        [ tokenID ] = await VaultManager.vaultIDs(otherUser.address);
+        const otherUserVault = await VaultManager.vaultData(tokenID);
+        expect(userVault.status.liquidated).to.equal(true);
+        expect(otherUserVault.status.liquidated).to.equal(false);
+        expect(userVault.status.minted).to.equal(0);
+        expect(userVault.status.maxMintable).to.equal(0);
+        expect(userVault.status.totalCollateralValue).to.equal(0);
+        userVault.status.collateral.forEach(asset => {
           expect(asset.amount).to.equal(0);
         });
         expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
@@ -167,10 +169,10 @@ describe('SmartVaultManager', async () => {
 
     describe('transfer', async () => {
       it('should update all the ownership data properly', async () => {
-        let userVaults = await VaultManager.connect(user).vaults();
-        expect(userVaults).to.have.length(2);
-        let otherUserVaults = await VaultManager.connect(otherUser).vaults();
-        expect(otherUserVaults).to.have.length(1);
+        let userVaultIDs = await VaultManager.vaultIDs(user.address);
+        expect(userVaultIDs).to.have.length(2);
+        let otherUserVaultIDs = await VaultManager.vaultIDs(otherUser.address);
+        expect(otherUserVaultIDs).to.have.length(1);
         const vault = await ethers.getContractAt('SmartVault', vaultAddress);
         expect(await vault.owner()).to.equal(user.address);
 
@@ -179,11 +181,11 @@ describe('SmartVaultManager', async () => {
 
         expect(await VaultManager.ownerOf(tokenId)).to.equal(otherUser.address);
 
-        userVaults = await VaultManager.connect(user).vaults();
-        expect(userVaults).to.have.length(1);
-        otherUserVaults = await VaultManager.connect(otherUser).vaults();
-        expect(otherUserVaults).to.have.length(2);
-        expect(otherUserVaults.map(v => v.tokenId.toString())).to.include(tokenId.toString());
+        userVaultIDs = await VaultManager.vaultIDs(user.address);
+        expect(userVaultIDs).to.have.length(1);
+        otherUserVaultIDs = await VaultManager.vaultIDs(otherUser.address);
+        expect(otherUserVaultIDs).to.have.length(2);
+        expect(otherUserVaultIDs.map(id => id.toString())).to.include(tokenId.toString());
         
         expect(await vault.owner()).to.equal(otherUser.address);
       });

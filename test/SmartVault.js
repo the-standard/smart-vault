@@ -29,7 +29,8 @@ describe('SmartVault', async () => {
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
-    const { status } = (await VaultManager.connect(user).vaults())[0];
+    const [ vaultID ] = await VaultManager.vaultIDs(user.address);
+    const { status } = await VaultManager.vaultData(vaultID);
     const { vaultAddress } = status;
     Vault = await ethers.getContractAt('SmartVaultV3', vaultAddress);
   });
@@ -239,14 +240,9 @@ describe('SmartVault', async () => {
       const mintedValue = ethers.utils.parseEther('100');
       await Vault.connect(user).mint(user.address, mintedValue);
 
-      burn = Vault.connect(user).burn(burnedValue);
-      await expect(burn).to.be.revertedWith('ERC20: insufficient allowance');
-
       const mintingFee = mintedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       const burningFee = burnedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
 
-      // must allow transfer to protocol
-      await EUROs.connect(user).approve(Vault.address, burningFee);
       // user pays back 50 to vault
       // .5 given to protocol
       // 51 minted in vault
