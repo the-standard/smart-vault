@@ -1,16 +1,27 @@
 const { ethers, upgrades } = require("hardhat");
-const { PROTOCOL_FEE_RATE, DEFAULT_EUR_USD_PRICE } = require("../test/common");
+const { PROTOCOL_FEE_RATE, DEFAULT_EUR_USD_PRICE, ETH } = require("../test/common");
 
 async function main() {
-  const managerAddress = '0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC';
-  const V4 = await upgrades.upgradeProxy(managerAddress,
-    await ethers.getContractFactory('SmartVaultManagerV4'));
+  const managerAddress = '0xBbB704f184E716410a9c00435530eA055CfAD187';
+  const V5 = await upgrades.upgradeProxy(managerAddress,
+    await ethers.getContractFactory('SmartVaultManagerV5'));
+  
+  const deployer = await (await ethers.getContractFactory('SmartVaultDeployerV3')).deploy(ETH, '0x34319A7424bC39C29958d2eb905D743C2b1cAFCa');
+  await deployer.deployed();
+
+  const set = await V5.setSmartVaultDeployer(deployer.address);
+  await set.wait();
 
   await new Promise(resolve => setTimeout(resolve, 60000));
   
   await run(`verify:verify`, {
     address: managerAddress,
     constructorArguments: []
+  });
+  
+  await run(`verify:verify`, {
+    address: deployer.address,
+    constructorArguments: [ETH, '0x34319A7424bC39C29958d2eb905D743C2b1cAFCa']
   });
 }
 

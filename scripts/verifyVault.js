@@ -3,20 +3,18 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   const [ user ] = await ethers.getSigners();
 
-  const vault = '0x2579E077826BC309B2FDD02bAEc87508d91Ff86F';
+  const vault = '0x318034a72b000FE38798355e295Aa2faBE275EaE';
   const native = ethers.utils.formatBytes32String('ETH');
-  const manager = await ethers.getContractAt('SmartVaultManagerV2', '0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC')
   const owner = user.address;
-  const euros = '0x643b34980E635719C15a2D4ce69571a258F940E9'
-  const calculator = '0x97517b3Fef774cBe3f520253cDf04067A4b9aaFb'
+  const euros = '0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b'
+  const calculator = '0x0f0De637F96deb10dF6f556A1DE26C041f22f923'
 
-  // await run(`verify:verify`, {
-  //   address: vault,
-  //   constructorArguments: [
-  //     native, manager.address, owner, euros, calculator
-  //   ],
-  // });
-  console.log(await manager.connect(user).vaults());
+  await run(`verify:verify`, {
+    address: vault,
+    constructorArguments: [
+      native, '0xBbB704f184E716410a9c00435530eA055CfAD187', owner, euros, calculator
+    ],
+  });
 }
 
 main().catch((error) => {
