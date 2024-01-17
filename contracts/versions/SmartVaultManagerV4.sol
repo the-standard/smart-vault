@@ -13,8 +13,6 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
-import "hardhat/console.sol";
-
 //
 // switches to liquidating one vault at a time
 // upgraded 13/11/23
