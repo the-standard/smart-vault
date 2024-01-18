@@ -200,6 +200,7 @@ contract SmartVaultV3 is ISmartVault {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter2(), _params.amountIn);
         ISwapRouter(ISmartVaultManagerV3(manager).swapRouter2()).exactInputSingle(_params);
+        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter2(), 0);
         IWETH weth = IWETH(ISmartVaultManagerV3(manager).weth());
         // convert potentially received weth to eth
         uint256 wethBalance = weth.balanceOf(address(this));
