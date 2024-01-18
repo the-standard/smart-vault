@@ -172,7 +172,7 @@ contract SmartVaultV3 is ISmartVault {
         uint256 fee = _amount * ISmartVaultManagerV3(manager).burnFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         minted = minted - _amount;
         EUROs.burn(msg.sender, _amount + fee);
-        EUROs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
+        if (fee > 0) EUROs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
         emit EUROsBurned(_amount, fee);
     }
 
