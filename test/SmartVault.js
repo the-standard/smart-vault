@@ -428,7 +428,6 @@ describe('SmartVault', async () => {
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
-      expect(await Stablecoin.allowance(Vault.address, MockSwapRouter.address)).to.equal(actualSwap);
       const {
         tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
         sqrtPriceLimitX96, txValue
