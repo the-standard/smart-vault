@@ -11,6 +11,8 @@ import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IWETH.sol";
 
+import "hardhat/console.sol";
+
 contract SmartVaultV3 is ISmartVault {
     using SafeERC20 for IERC20;
 
@@ -73,8 +75,8 @@ contract SmartVaultV3 is ISmartVault {
         }
     }
 
-    function maxMintable() private view returns (uint256) {
-        return euroCollateral() * ISmartVaultManagerV3(manager).HUNDRED_PC() / ISmartVaultManagerV3(manager).collateralRate();
+    function maxMintable(uint256 _collateral) private view returns (uint256) {
+        return _collateral * ISmartVaultManagerV3(manager).HUNDRED_PC() / ISmartVaultManagerV3(manager).collateralRate();
     }
 
     function getAssetBalance(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
@@ -94,12 +96,13 @@ contract SmartVaultV3 is ISmartVault {
     }
 
     function status() external view returns (Status memory) {
-        return Status(address(this), minted, maxMintable(), euroCollateral(),
+        uint256 _collateral = euroCollateral();
+        return Status(address(this), minted, maxMintable(_collateral), _collateral,
             getAssets(), liquidated, version, vaultType);
     }
 
     function undercollateralised() public view returns (bool) {
-        return minted > maxMintable();
+        return minted > maxMintable(euroCollateral());
     }
 
     function liquidateNative() private {
@@ -128,10 +131,9 @@ contract SmartVaultV3 is ISmartVault {
 
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
         if (minted == 0) return true;
-        uint256 currentMintable = maxMintable();
         uint256 eurValueToRemove = calculator.tokenToEurAvg(_token, _amount);
-        return currentMintable >= eurValueToRemove &&
-            minted <= currentMintable - eurValueToRemove;
+        uint256 _newCollateral = euroCollateral() - eurValueToRemove;
+        return maxMintable(_newCollateral) >= minted;
     }
 
     function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
@@ -156,7 +158,7 @@ contract SmartVaultV3 is ISmartVault {
     }
 
     function fullyCollateralised(uint256 _amount) private view returns (bool) {
-        return minted + _amount <= maxMintable();
+        return minted + _amount <= maxMintable(euroCollateral());
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
