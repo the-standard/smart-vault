@@ -2,7 +2,7 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { BigNumber } = ethers;
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS, TEST_VAULT_LIMIT } = require('./common');
 
 let VaultManager, TokenManager, EUROs, Tether, ClEthUsd, ClEurUsd, ClUsdUsd, NFTMetadataGenerator,
 MockSwapRouter, SmartVaultDeployer, admin, user, protocol, liquidator, otherUser, LiquidationPoolManager;
@@ -27,7 +27,7 @@ describe('SmartVaultManager', async () => {
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
-      MockSwapRouter.address
+      MockSwapRouter.address, TEST_VAULT_LIMIT
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -101,6 +101,21 @@ describe('SmartVaultManager', async () => {
       expect(vaultData.mintFeeRate).to.equal(PROTOCOL_FEE_RATE);
       expect(vaultData.burnFeeRate).to.equal(PROTOCOL_FEE_RATE);
     });
+
+    it('does not let user exceed vault limit', async () => {
+      for (let i = 0; i < TEST_VAULT_LIMIT; i++) {
+        await VaultManager.connect(user).mint();
+      }
+      await expect(VaultManager.connect(user).mint()).to.be.revertedWith('err-vault-limit')
+    });
+
+    // it.only('supports a user having x amount of vaults', async () => {
+    //   for (let i = 0; i < 1000; i++) {
+    //     console.log(await VaultManager.connect(user).estimateGas.mint())
+    //     await VaultManager.connect(user).mint();
+    //     console.log(await VaultManager.vaultData(i + 1));
+    //   }
+    // });
   });
 
   context('open vault', async () => {
