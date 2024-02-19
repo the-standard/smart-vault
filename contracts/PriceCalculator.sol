@@ -40,14 +40,6 @@ contract PriceCalculator is IPriceCalculator {
         return _symbol == NATIVE ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
-    function tokenToEurAvg(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
-        Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
-        uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-        uint256 collateralUsd = scaledCollateral * avgPrice(4, tokenUsdClFeed);
-        (, int256 eurUsdPrice,,,) = clEurUsd.latestRoundData();
-        return collateralUsd / uint256(eurUsdPrice);
-    }
-
     function tokenToEur(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
         uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);

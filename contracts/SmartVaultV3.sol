@@ -69,7 +69,7 @@ contract SmartVaultV3 is ISmartVault {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            euros += calculator.tokenToEurAvg(token, getAssetBalance(token.symbol, token.addr));
+            euros += calculator.tokenToEur(token, getAssetBalance(token.symbol, token.addr));
         }
     }
 
@@ -88,7 +88,7 @@ contract SmartVaultV3 is ISmartVault {
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
             uint256 assetBalance = getAssetBalance(token.symbol, token.addr);
-            assets[i] = Asset(token, assetBalance, calculator.tokenToEurAvg(token, assetBalance));
+            assets[i] = Asset(token, assetBalance, calculator.tokenToEur(token, assetBalance));
         }
         return assets;
     }
@@ -129,7 +129,7 @@ contract SmartVaultV3 is ISmartVault {
 
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
         if (minted == 0) return true;
-        uint256 eurValueToRemove = calculator.tokenToEurAvg(_token, _amount);
+        uint256 eurValueToRemove = calculator.tokenToEur(_token, _amount);
         uint256 _newCollateral = euroCollateral() - eurValueToRemove;
         return maxMintable(_newCollateral) >= minted;
     }
@@ -218,14 +218,14 @@ contract SmartVaultV3 is ISmartVault {
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _requestedMinOut) external onlyOwner {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getSwapAddressFor(_inToken);
-        uint256 minimumAmountOut = calculateMinimumAmountOut(_inToken, _outToken, _amount);
+        uint256 minimumAmountOut = calculateMinimumAmountOut(_inToken, _outToken, _amount + swapFee);
         if (_requestedMinOut > minimumAmountOut) minimumAmountOut = _requestedMinOut;
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: inToken,
                 tokenOut: getSwapAddressFor(_outToken),
                 fee: 3000,
                 recipient: address(this),
-                deadline: block.timestamp,
+                deadline: block.timestamp + 60,
                 amountIn: _amount - swapFee,
                 amountOutMinimum: minimumAmountOut,
                 sqrtPriceLimitX96: 0

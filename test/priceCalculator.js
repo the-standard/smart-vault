@@ -40,34 +40,6 @@ describe('PriceCalculator', async () => {
     };
   });
 
-  describe('tokenToEurAvg', async () => {
-    it('calculates value of token in EUR based on chainlink average over 4 hours', async () => {
-      // converting 1 ether to usd
-      // avg. price eth / usd = (1500 + 1400 + 1000) / 3 = $1300
-      // 1 ether = $1300
-      // eur price = $1.06
-      // $1300 = ~€1226.42
-      const etherValue = ethers.utils.parseEther('1');
-      const averageEthUsd = BigNumber.from(150000000000).add(140000000000).add(100000000000).div(3);
-      let expectedEurValue = etherValue.mul(averageEthUsd).div(DEFAULT_EUR_USD_PRICE);
-      let eurValue = await PriceCalculator.tokenToEurAvg(Ethereum, etherValue);
-      expect(eurValue).to.equal(expectedEurValue);
-
-      
-      // converting .5 wbtc to usd
-      // avg. price wbtc / usd = (34000 + 37000 + 34000) / 3 = $35000
-      // .5 wbtc = $17500
-      // eur price = $1.06
-      // $17500 = ~€16509.43
-      const wbtcValue = BigNumber.from(50000000);
-      const averageWbtcUsd = BigNumber.from(3400000000000).add(3700000000000).add(3400000000000).div(3);
-      expectedEurValue = wbtcValue.mul(BigNumber.from(10).pow(10)) // scale up because bitcoin is 8 dec
-                          .mul(averageWbtcUsd).div(DEFAULT_EUR_USD_PRICE);
-      eurValue = await PriceCalculator.tokenToEurAvg(WBTC, wbtcValue);
-      expect(eurValue).to.equal(expectedEurValue);
-    });
-  });
-
   describe('tokenToEur', async () => {
     it('returns the value of token in EUR based on the latest chainlink price', async () => {
       // latest ETH price is $1000
