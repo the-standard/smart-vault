@@ -210,7 +210,8 @@ contract SmartVaultV3 is ISmartVault {
     function calculateMinimumAmountOut(bytes32 _inTokenSymbol, bytes32 _outTokenSymbol, uint256 _amount) private view returns (uint256) {
         ISmartVaultManagerV3 _manager = ISmartVaultManagerV3(manager);
         uint256 requiredCollateralValue = minted * _manager.collateralRate() / _manager.HUNDRED_PC();
-        uint256 collateralValueMinusSwapValue = euroCollateral() - calculator.tokenToEur(getToken(_inTokenSymbol), _amount);
+        // add 1% min collateral buffer
+        uint256 collateralValueMinusSwapValue = euroCollateral() - calculator.tokenToEur(getToken(_inTokenSymbol), _amount * 101 / 100);
         return collateralValueMinusSwapValue >= requiredCollateralValue ?
             0 : calculator.eurToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
     }
