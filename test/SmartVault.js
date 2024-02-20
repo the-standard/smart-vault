@@ -349,15 +349,7 @@ describe('SmartVault', async () => {
       // user is swapping .5 ETH
       const swapValue = ethers.utils.parseEther('0.5');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
-      // minimum collateral after swap must be €1200 (borrowed) + €6 (fee) * 1.2 (rate) = €1447.2
-      // remaining collateral not swapped: 0.4975 ETH (inc fee) * $1600 = $796 = $796 / 1.06 = €750.94
-      // swap must receive at least €1447.2 - €750.94 = €696.26 = ~$738.03
-      const ethCollateralValue = swapValue.sub(swapFee).mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
-      const borrowFee = borrowValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
-      const minCollateralInUsd = borrowValue.add(borrowFee).mul(DEFAULT_COLLATERAL_RATE).div(HUNDRED_PC) // 110% of borrowed (with fee)
-                                  .sub(ethCollateralValue) // some collateral will not be swapped
-                                  .mul(DEFAULT_EUR_USD_PRICE).div(100000000) // convert to USD
-                                  .div(BigNumber.from(10).pow(12)) // scale down because stablecoin is 6 dec
+      
       const protocolBalance = await protocol.getBalance();
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
