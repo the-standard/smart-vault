@@ -3,10 +3,13 @@
         "SmartVaultManager": "0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC",
         "EUROs": "0x643b34980e635719c15a2d4ce69571a258f940e9",
         "TokenManager": "0x33c5A816382760b6E5fb50d8854a61b3383a32a0",
-        "Deployer": "0x53509eF0e49c8a386b81093711aF1eF29357cc25",
+        "Deployer": "0xa4879376995E60A7469e140C29f96744A7188278",
         "SmartVaultIndex": "0x56c7506410e5e242261c5E0db6941956c686E5A1",
         "NFTMetadataGenerator": "0x3C70276Ee29FD659a9D06983522b731784012c54",
-        "Directory": "0xBe57E0d3126a1F28a2E840ECbB842cb357e56866"
+        "Directory": "0xBe57E0d3126a1F28a2E840ECbB842cb357e56866",
+        "LiquidationPool": "0x6F3e7d650D7Fe0fd4232c76561c8022D12107c93",
+        "LiquidationPoolManager": "0x2a823EE5F731c5699E75E51AcA799e1141d29910",
+        "LiquidationAutomation": "0x6C454266202ad23Fd6C624d54D23358CE546C61B"
     },
     "arbitrum_sepolia": {
         "EUROs": "0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b",
