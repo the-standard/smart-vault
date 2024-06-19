@@ -9,10 +9,9 @@
         "Directory": "0xBe57E0d3126a1F28a2E840ECbB842cb357e56866",
         "LiquidationPool": "0x6F3e7d650D7Fe0fd4232c76561c8022D12107c93",
         "LiquidationPoolManager": "0x2a823EE5F731c5699E75E51AcA799e1141d29910",
-        "LiquidationAutomation": "0x6C454266202ad23Fd6C624d54D23358CE546C61B",
-        "Staking": "0xd598035C18eC16bEec41c428922395B060fB12Bf",
-        "RewardGateway": "0x212ED942e183cC6Dc08b01f0d8ca07c54EF4735b",
-        "LiquidationAutomation_new": "0xb831f6574af006B3e5dBf827E687600372465242"
+        "Staking": "0x2b422Fafc9C5841e6dFaDB383a62406B4BF13Ece",
+        "RewardGateway": "0xb7ba62932d90C3c7ef841eF4339995eB93299dC9",
+        "LiquidationAutomation": "0x2B218f2a96B7F738aF4936FC596A0c02A351C746"
     },
     "arbitrum_sepolia": {
         "EUROs": "0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b",
