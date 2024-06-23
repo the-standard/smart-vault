@@ -77,7 +77,7 @@ contract SVGGenerator {
     }
 
 
-    function calculateCollateralLockedWidth(uint256 value) public view returns (string memory) {
+    function calculateCollateralLockedWidth(uint256 value) private view returns (string memory) {
         // @return value must be between 0 and 690
         return "100";
     }
