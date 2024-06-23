@@ -79,7 +79,7 @@ contract SVGGenerator {
 
     function calculateCollateralLockedWidth(uint256 value) private view returns (string memory) {
         // @return value must be between 0 and 690
-        return "100";
+        return "690";
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
