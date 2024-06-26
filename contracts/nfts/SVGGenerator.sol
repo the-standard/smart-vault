@@ -77,13 +77,12 @@ contract SVGGenerator {
     }
 
 
-    function calculateCollateralLockedWidth(uint256 value) private view returns (string memory) {
-        // @return value must be between 0 and 690
-        return "690";
+    function calculateCollateralLockedWidth(uint256 value) private view returns (uint256) {
+        return (value * 690) / 100;
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3), "%"));
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3), " %"));
     }
 
     function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
@@ -110,14 +109,14 @@ contract SVGGenerator {
                 "<text x='145' y='490' text-anchor='middle'>Total Value</text>", "<rect x='107' y='504' width='132' height='40' rx='11' fill='#DA76EE'/>",
                 "<text x='170' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18), "</text>",
                 "<text x='280' y='490' text-anchor='middle'>Debt</text>", "<rect x='263' y='504' width='132' height='40' rx='11' fill='#9F8CF2'/>",
-                "<text x='325' y='528' font-weight='bold' text-anchor='middle'>&#8364;", NFTUtils.toDecimalString(_vaultStatus.minted, 18), "</text>",
+                "<text x='325' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.minted, 18), "</text>",
                 "<text x='470' y='490' text-anchor='middle'>Collateral/Debt</text>", "<rect x='419' y='504' width='132' height='40' rx='11' fill='#979DFA'/>",
                 "<text x='485' y='528' font-weight='bold' text-anchor='middle'>", collateralDebtPecentage(_vaultStatus), "</text>", "<text x='720' y='490' text-anchor='middle'>Total Minus Debt</text>",
                 "<rect x='662' y='504' width='132' height='40' rx='11' fill='url(#paint4_linear_428_47)'/>",
                 "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364;", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
                 "<text x='221' y='622' font-size='18' text-anchor='middle'>Collateral locked in this vault</text>",
-                "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; 84 </text>", "<rect x='107' y='640' width='687' height='16' rx='8' fill='#AC99F7'/>",
-                "<rect x='107' y='640' width='", calculateCollateralLockedWidth(0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",
+                "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; N/V </text>", "<rect x='107' y='640' width='687' height='16' rx='8' fill='#AC99F7'/>",
+                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(calculateCollateralLockedWidth(50), 0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",
                 "<filter id='filter0_d_428_47' x='-39' y='153' width='919' height='687' filterUnits='userSpaceOnUse' color-interpolation-filters='sRGB'>", "<feFlood flood-opacity='0' result='BackgroundImageFix'/>",
                 "<feColorMatrix in='SourceAlpha' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0' result='hardAlpha'/>", "<feOffset dx='-30' dy='68'/>", "<feGaussianBlur stdDeviation='33'/>", "<feComposite in2='hardAlpha' operator='out'/>",
                 "<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0'/>", "<feBlend mode='normal' in2='BackgroundImageFix' result='effect1_dropShadow_428_47'/>",
