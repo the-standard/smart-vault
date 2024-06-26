@@ -1,7 +1,7 @@
 const {ethers} = require("hardhat");
 
 
-describe('SVG Generator', async () => {
+describe.only('SVG Generator', async () => {
     let svgGenerator;
 
     beforeEach(async () => {
@@ -34,7 +34,7 @@ describe('SVG Generator', async () => {
             vaultType: ethers.utils.formatBytes32String("sampleVault")
         };
 
-        const svg = await svgGenerator.generateSvg(1, sampleStatus);
+        const svg = await svgGenerator.generateSvg(6, sampleStatus);
 
         const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 
