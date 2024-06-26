@@ -83,7 +83,7 @@ contract SVGGenerator {
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3),"%"));
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3), "%"));
     }
 
     function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
@@ -92,7 +92,9 @@ contract SVGGenerator {
         string(
             abi.encodePacked(
                 "<svg width='900' height='900' viewBox='0 0 900 900' fill='none' xmlns='http://www.w3.org/2000/svg'>",
-                "<style>","text { font-family: Arial; fill: white; font-size=14}","</style>", "<g clip-path='url(#clip0_428_47)'>", "<rect width='900' height='900' fill='url(#paint0_linear_428_47)'/>",
+                defGenerator.generateDefs(_tokenId),
+                "<style>","text { font-family: Arial; fill: white; font-size=14}","</style>", "<g clip-path='url(#clip0_428_47)'>",
+                "<rect width='900' height='900' class='token-",_tokenId.toString(),"-cls-12'/>",
                 "<circle cx='52.5' cy='751.5' r='328.5' fill='#FF3BC9'/>", "<g filter='url(#filter0_d_428_47)'>", "<rect x='57' y='153' width='787' height='553' rx='72' fill='url(#paint1_linear_428_47)'/>",
                 "<rect x='58.5' y='154.5' width='784' height='550' rx='70.5' stroke='white' stroke-opacity='0.14' stroke-width='3'/>", "</g>",
                 "<rect x='57' y='261' width='787' height='445' rx='72' fill='url(#paint2_linear_428_47)'/>", "<rect x='57' y='261' width='787' height='445' rx='72' fill='url(#paint3_radial_428_47)' fill-opacity='0.74'/>",
