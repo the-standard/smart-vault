@@ -34,7 +34,7 @@ describe.only('SVG Generator', async () => {
             vaultType: ethers.utils.formatBytes32String("sampleVault")
         };
 
-        const svg = await svgGenerator.generateSvg(6, sampleStatus);
+        const svg = await svgGenerator.generateSvg(3, sampleStatus);
 
         const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
 
