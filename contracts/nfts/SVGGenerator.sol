@@ -15,6 +15,7 @@ contract SVGGenerator {
     uint16 private constant TABLE_INITIAL_Y = 1250;
     uint16 private constant TABLE_INITIAL_X = 357;
     uint32 private constant HUNDRED_PC = 1e5;
+    uint32 private constant WIDTH_OF_COL_BAR = 690;
 
     DefGenerator private immutable defGenerator;
 
@@ -76,19 +77,14 @@ contract SVGGenerator {
         "<line class='cls-11' x1='",rowMidpoint.toString(),"' y1='",TABLE_INITIAL_Y.toString(),"' x2='",rowMidpoint.toString(),"' y2='",tableEndY.toString(),"'/>"));
     }
 
-
-    function calculateCollateralLockedWidth(uint256 value) private view returns (uint256) {
-        return (value * 690) / 100;
-    }
-
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
         return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3), " %"));
     }
 
     function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
         CollateralForSVG memory collateral = mapCollateralForSVG(_vaultStatus.collateral);
-        return
-        string(
+        uint256 colWidth = NFTUtils.calculateCollateralLockedWidth(_vaultStatus.totalCollateralValue, _vaultStatus.minted, WIDTH_OF_COL_BAR);
+        return string(
             abi.encodePacked(
                 "<svg width='900' height='900' viewBox='0 0 900 900' fill='none' xmlns='http://www.w3.org/2000/svg'>",
                 defGenerator.generateDefs(_tokenId),
@@ -117,8 +113,10 @@ contract SVGGenerator {
                 "<rect x='662' y='504' width='132' height='40' rx='11' fill='url(#paint4_linear_428_47)'/>",
                 "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
                 "<text x='221' y='622' font-size='18' text-anchor='middle'>Collateral locked in this vault</text>",
-                "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; N/V </text>", "<rect x='107' y='640' width='687' height='16' rx='8' fill='#AC99F7'/>",
-                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(calculateCollateralLockedWidth(50), 0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",
+                "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; ",
+                NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),
+                "</text>", "<rect x='107' y='640' width='",NFTUtils.toDecimalString(WIDTH_OF_COL_BAR, 0),"' height='16' rx='8' fill='#AC99F7'/>",
+                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(colWidth, 0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",
                 "<filter id='filter0_d_428_47' x='-39' y='153' width='919' height='687' filterUnits='userSpaceOnUse' color-interpolation-filters='sRGB'>", "<feFlood flood-opacity='0' result='BackgroundImageFix'/>",
                 "<feColorMatrix in='SourceAlpha' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0' result='hardAlpha'/>", "<feOffset dx='-30' dy='68'/>", "<feGaussianBlur stdDeviation='33'/>", "<feComposite in2='hardAlpha' operator='out'/>",
                 "<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0'/>", "<feBlend mode='normal' in2='BackgroundImageFix' result='effect1_dropShadow_428_47'/>",

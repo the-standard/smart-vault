@@ -1,5 +1,5 @@
 const {ethers} = require("hardhat");
-
+const {expect} = require('chai');
 
 describe('SVG Generator', async () => {
     let svgGenerator;
@@ -25,7 +25,7 @@ describe('SVG Generator', async () => {
         // Create a sample Status struct
         const minted = ethers.utils.parseUnits('2500', 18);
         const maxMintable = ethers.utils.parseUnits('1000', 18);
-        const totalCollateralValue = ethers.utils.parseUnits('5000', 18);
+        const totalCollateralValue = ethers.utils.parseUnits('10000', 18);
 
         const sampleStatus = {
             vaultAddress: "0x1234567890123456789012345678901234567890",
@@ -39,9 +39,9 @@ describe('SVG Generator', async () => {
         };
 
         const svg = await svgGenerator.generateSvg(3, sampleStatus);
-
         const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
-
-        console.log(`Open the following URL in your browser to see the SVG: \n \n ${svgDataUrl}`);
+        expect(svgDataUrl).to.not.be.undefined;
+        // TODO uncomment to test svg in browser
+        // console.log(`Open the following URL in your browser to see the SVG: \n \n ${svgDataUrl}`);
     });
 })
