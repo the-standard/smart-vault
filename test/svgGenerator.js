@@ -1,7 +1,7 @@
 const {ethers} = require("hardhat");
 
 
-describe.only('SVG Generator', async () => {
+describe('SVG Generator', async () => {
     let svgGenerator;
 
     beforeEach(async () => {
