@@ -115,7 +115,7 @@ contract SVGGenerator {
                 "<text x='470' y='490' text-anchor='middle'>Collateral/Debt</text>", "<rect x='419' y='504' width='132' height='40' rx='11' fill='#979DFA'/>",
                 "<text x='485' y='528' font-weight='bold' text-anchor='middle'>", collateralDebtPecentage(_vaultStatus), "</text>", "<text x='720' y='490' text-anchor='middle'>Total Minus Debt</text>",
                 "<rect x='662' y='504' width='132' height='40' rx='11' fill='url(#paint4_linear_428_47)'/>",
-                "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364;", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
+                "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
                 "<text x='221' y='622' font-size='18' text-anchor='middle'>Collateral locked in this vault</text>",
                 "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; N/V </text>", "<rect x='107' y='640' width='687' height='16' rx='8' fill='#AC99F7'/>",
                 "<rect x='107' y='640' width='", NFTUtils.toDecimalString(calculateCollateralLockedWidth(50), 0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",

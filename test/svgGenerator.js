@@ -23,11 +23,15 @@ describe('SVG Generator', async () => {
 
     it('should create an svg', async function () {
         // Create a sample Status struct
+        const minted = ethers.utils.parseUnits('2500', 18);
+        const maxMintable = ethers.utils.parseUnits('1000', 18);
+        const totalCollateralValue = ethers.utils.parseUnits('5000', 18);
+
         const sampleStatus = {
             vaultAddress: "0x1234567890123456789012345678901234567890",
-            minted: ethers.BigNumber.from("1000"),
-            maxMintable: ethers.BigNumber.from("10000"),
-            totalCollateralValue: ethers.BigNumber.from("500000"),
+            minted: ethers.BigNumber.from(minted),
+            maxMintable: ethers.BigNumber.from(maxMintable),
+            totalCollateralValue: ethers.BigNumber.from(totalCollateralValue),
             collateral: [],
             liquidated: false,
             version: 1,
