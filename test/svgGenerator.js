@@ -1,7 +1,22 @@
 const {ethers} = require("hardhat");
 const {expect} = require('chai');
 
-describe('SVG Generator', async () => {
+const getSvgMintConfog = (minted, maxMintable, totalCollateralValue) => {
+    return {
+        vaultAddress: "0x1234567890123456789012345678901234567890",
+        minted: ethers.BigNumber.from(ethers.utils.parseUnits(minted, 18)),
+        maxMintable: ethers.BigNumber.from(ethers.utils.parseUnits(maxMintable, 18),),
+        totalCollateralValue: ethers.BigNumber.from(ethers.utils.parseUnits(totalCollateralValue, 18)),
+        collateral: [],
+        liquidated: false,
+        version: 1,
+        vaultType: ethers.utils.formatBytes32String("sampleVault")
+    }
+};
+
+describe.only('SVG Generator', async () => {
+    // uncomment to show svg
+    let printViewableSvgInTest = false;
     let svgGenerator;
 
     beforeEach(async () => {
@@ -9,39 +24,43 @@ describe('SVG Generator', async () => {
         const NFTUtils = await ethers.getContractFactory("NFTUtils");
         const nftUtils = await NFTUtils.deploy();
         await nftUtils.deployed();
-
         svgGenerator = await ethers.getContractFactory("SVGGenerator", {
             libraries: {
                 NFTUtils: nftUtils.address,
             },
         });
-
-        // Deploy the SVGGenerator contract
         svgGenerator = await svgGenerator.deploy();
         await svgGenerator.deployed();
     });
 
     it('should create an svg', async function () {
-        // Create a sample Status struct
-        const minted = ethers.utils.parseUnits('2500', 18);
-        const maxMintable = ethers.utils.parseUnits('1000', 18);
-        const totalCollateralValue = ethers.utils.parseUnits('10000', 18);
-
-        const sampleStatus = {
-            vaultAddress: "0x1234567890123456789012345678901234567890",
-            minted: ethers.BigNumber.from(minted),
-            maxMintable: ethers.BigNumber.from(maxMintable),
-            totalCollateralValue: ethers.BigNumber.from(totalCollateralValue),
-            collateral: [],
-            liquidated: false,
-            version: 1,
-            vaultType: ethers.utils.formatBytes32String("sampleVault")
-        };
-
-        const svg = await svgGenerator.generateSvg(3, sampleStatus);
+        const config = getSvgMintConfog("2500", "1000", "10000");
+        const svg = await svgGenerator.generateSvg(1, config);
         const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
         expect(svgDataUrl).to.not.be.undefined;
-        // TODO uncomment to test svg in browser
-        // console.log(`Open the following URL in your browser to see the SVG: \n \n ${svgDataUrl}`);
+        if (printViewableSvgInTest) {
+            console.log(`Open the following URL in your browser to see the SVG: \n \n ${svgDataUrl}`);
+        }
+    });
+
+    it('should create an svg with token id 5', async function () {
+        const config = getSvgMintConfog("2500", "1000", "10000");
+        const svg = await svgGenerator.generateSvg(5, config);
+        const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+        expect(svgDataUrl).to.not.be.undefined;
+    });
+
+    it('should create an svg with token id 1234', async function () {
+        const config = getSvgMintConfog("2500", "1000", "10000");
+        const svg = await svgGenerator.generateSvg(1234, config);
+        const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+        expect(svgDataUrl).to.not.be.undefined;
+    });
+
+    it('should work with different configurations', async function () {
+        const config = getSvgMintConfog("100", "50", "2000");
+        const svg = await svgGenerator.generateSvg(1234, config);
+        const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
+        expect(svgDataUrl).to.not.be.undefined;
     });
 })
