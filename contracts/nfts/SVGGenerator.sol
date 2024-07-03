@@ -98,26 +98,27 @@ contract SVGGenerator {
                 "<path d='M107 230.509H126.509C130.927 230.509 134.509 226.927 134.509 222.509V216.754' stroke='white' stroke-width='4'/>",
                 "<text x='115' y='223' font-weight='bold' font-size='18'> &#8364; </text>", "<text x='150' y='223' font-weight='bold' font-size='18'>EUROs SmartVault</text>",
                 "<path d='M631 203.246H611.491C607.073 203.246 603.491 206.827 603.491 211.246V217' stroke='white' stroke-width='4'/>",
-
                 "<path d='M601.772 230.754H621.281C625.699 230.754 629.281 227.173 629.281 222.754V217' stroke='white' stroke-width='4'/>",
                 "<path d='M614.927 225.473V209.561H618.429V225.473H614.927Z' fill='white'/>"
                 "<path d='M614.927 225.473V209.561H618.429V225.473H614.927Z'/>", "<text x='645' y='223' font-weight='bold' font-size='18'>TheStandard.io</text>",
                 "<text x='130' y='400' font-size='40' font-weight='900'>THE OWNER OF THIS NFT OWNS</text>", "<text x='170' y='440' font-size='40' font-weight='900'>THE COLLATERAL AND DEBT</text>",
                 "<text x='350' y='310' font-size='18'>EUROs SmartVault # ", _tokenId.toString(), "</text>",
-                "<text x='145' y='490' text-anchor='middle'>Total Value</text>", "<rect x='107' y='504' width='132' height='40' rx='11' fill='#DA76EE'/>",
+                "<text x='145' y='490' text-anchor='middle'>Collateral</text>", "<rect x='107' y='504' width='132' height='40' rx='11' fill='#DA76EE'/>",
                 "<text x='170' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18), "</text>",
                 "<text x='280' y='490' text-anchor='middle'>Debt</text>", "<rect x='263' y='504' width='132' height='40' rx='11' fill='#9F8CF2'/>",
                 "<text x='325' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.minted, 18), "</text>",
-                "<text x='470' y='490' text-anchor='middle'>Collateral/Debt</text>", "<rect x='419' y='504' width='132' height='40' rx='11' fill='#979DFA'/>",
+                "<text x='470' y='490' text-anchor='middle'>Collateral Ratio</text>",
+                "<text x='520' y='560' text-anchor='middle' font-size='12' font-weight='bold' opacity='0.65'>min 110%</text>",
+                "<rect x='419' y='504' width='132' height='40' rx='11' fill='#979DFA'/>",
                 "<text x='485' y='528' font-weight='bold' text-anchor='middle'>", collateralDebtPecentage(_vaultStatus), "</text>", "<text x='720' y='490' text-anchor='middle'>Total Minus Debt</text>",
                 "<rect x='662' y='504' width='132' height='40' rx='11' fill='url(#paint4_linear_428_47)'/>",
                 "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
-                "<text x='221' y='622' font-size='18' text-anchor='middle'>Collateral locked in this vault</text>",
-                "<text x='790' y='628' font-size='18' font-weight='bold' text-anchor='end'>&#8364; ",
-                NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),
-                "</text>", "<rect x='107' y='640' width='",NFTUtils.toDecimalString(WIDTH_OF_COL_BAR, 0),"' height='16' rx='8' fill='#AC99F7'/>",
-                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(colWidth, 0), "' height='16' rx='8' fill='white'/>", "</g>", "<defs>",
-                "<filter id='filter0_d_428_47' x='-39' y='153' width='919' height='687' filterUnits='userSpaceOnUse' color-interpolation-filters='sRGB'>", "<feFlood flood-opacity='0' result='BackgroundImageFix'/>",
+                "<text x='130' y='622' font-size='18' text-anchor='middle'>Debt</text>",
+                "<text x='790' y='628' font-size='18' text-anchor='end'>Collateral</text>",
+                "<rect x='107' y='640' width='",NFTUtils.toDecimalString(WIDTH_OF_COL_BAR, 0),"' height='16' rx='8' fill='#AC99F7'/>",
+                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(colWidth, 0), "' height='16' rx='8' fill='white'/>",
+                "<path d='M734.927 608.473V657.561H738.429V638.473H734.927Z' fill='red'/>",
+                "</g>", "<defs>", "<filter id='filter0_d_428_47' x='-39' y='153' width='919' height='687' filterUnits='userSpaceOnUse' color-interpolation-filters='sRGB'>", "<feFlood flood-opacity='0' result='BackgroundImageFix'/>",
                 "<feColorMatrix in='SourceAlpha' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0' result='hardAlpha'/>", "<feOffset dx='-30' dy='68'/>", "<feGaussianBlur stdDeviation='33'/>", "<feComposite in2='hardAlpha' operator='out'/>",
                 "<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0'/>", "<feBlend mode='normal' in2='BackgroundImageFix' result='effect1_dropShadow_428_47'/>",
                 "<feBlend mode='normal' in='SourceGraphic' in2='effect1_dropShadow_428_47' result='shape'/>", "</filter>", "<linearGradient id='paint0_linear_428_47' x1='-654.5' y1='275.5' x2='347' y2='1261.5' gradientUnits='userSpaceOnUse'>",
@@ -132,5 +133,4 @@ contract SVGGenerator {
             )
         );
     }
-
 }
