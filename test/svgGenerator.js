@@ -34,7 +34,7 @@ describe.only('SVG Generator', async () => {
     });
 
     it('should create an svg', async function () {
-        const config = getSvgMintConfog("900", "1000", "10000");
+        const config = getSvgMintConfog("2500", "1000", "10000");
         const svg = await svgGenerator.generateSvg(1, config);
         const svgDataUrl = `data:image/svg+xml;base64,${Buffer.from(svg).toString('base64')}`;
         expect(svgDataUrl).to.not.be.undefined;

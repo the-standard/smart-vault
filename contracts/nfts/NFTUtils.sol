@@ -69,6 +69,6 @@ library NFTUtils {
     function calculateCollateralLockedWidth(uint256 totalCollateral, uint256 mintedAmount, uint256 widthOfBar) public view returns (uint256) {
         if (totalCollateral == 0) return 0;
         uint256 result = (((mintedAmount * 100) / totalCollateral * widthOfBar) / 100);
-        return widthOfBar - result;
+         return widthOfBar - result;
     }
 }
