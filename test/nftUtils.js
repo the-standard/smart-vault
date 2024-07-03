@@ -16,16 +16,16 @@ describe('NFT Utils', function () {
         // all zero
         expect(await nftUtils.calculateCollateralLockedWidth(0, 0, fullWidth)).to.eq(0)
         // 100% case
-        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 10_000, fullWidth)).to.eq(0);
+        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 10_000, fullWidth)).to.eq(fullWidth);
         // 99% case
-        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 9_999, fullWidth)).to.eq(7)
+        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 9_999, fullWidth)).to.eq(683)
         // 75% case
-        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 7_500, fullWidth)).to.eq(173)
+        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 7_500, fullWidth)).to.eq(517)
         // 50% case
         expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 5_000, fullWidth)).to.eq(fullWidth / 2)
         // 25% case
-        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 2_500, fullWidth)).to.eq(518);
+        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 2_500, fullWidth)).to.eq(172);
         // 1% case
-        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 1, fullWidth)).to.eq(fullWidth);
+        expect(await nftUtils.calculateCollateralLockedWidth(testTotalValue, 1, fullWidth)).to.eq(0);
     });
 });
