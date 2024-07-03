@@ -12,9 +12,10 @@ contract SVGGenerator {
 
     uint16 private constant TABLE_ROW_HEIGHT = 67;
     uint16 private constant TABLE_ROW_WIDTH = 1235;
-    uint16 private constant TABLE_INITIAL_Y = 460;
+    uint16 private constant TABLE_INITIAL_Y = 1250;
     uint16 private constant TABLE_INITIAL_X = 357;
     uint32 private constant HUNDRED_PC = 1e5;
+    uint32 private constant WIDTH_OF_COL_BAR = 690;
 
     DefGenerator private immutable defGenerator;
 
@@ -22,7 +23,7 @@ contract SVGGenerator {
         defGenerator = new DefGenerator();
     }
 
-    struct CollateralForSVG { string text; uint256 size; }
+    struct CollateralForSVG {string text; uint256 size;}
 
     function mapCollateralForSVG(ISmartVault.Asset[] memory _collateral) private pure returns (CollateralForSVG memory) {
         string memory displayText = "";
@@ -67,7 +68,7 @@ contract SVGGenerator {
         uint256 rowCount = (_collateralSize + 1) >> 1;
         for (uint256 i = 0; i < (rowCount + 1) >> 1; i++) {
             mappedRows = string(abi.encodePacked(
-                mappedRows, "<rect class='cls-9' x='",TABLE_INITIAL_X.toString(),"' y='",(TABLE_INITIAL_Y+i*TABLE_ROW_HEIGHT).toString(),"' width='",TABLE_ROW_WIDTH.toString(),"' height='",TABLE_ROW_HEIGHT.toString(),"'/>"
+                mappedRows, "<rect class='cls-9' x='", TABLE_INITIAL_X.toString(), "' y='", (TABLE_INITIAL_Y + i * TABLE_ROW_HEIGHT).toString(), "' width='", TABLE_ROW_WIDTH.toString(), "' height='", TABLE_ROW_HEIGHT.toString(), "'/>"
             ));
         }
         uint256 rowMidpoint = TABLE_INITIAL_X + TABLE_ROW_WIDTH >> 1;
@@ -77,70 +78,59 @@ contract SVGGenerator {
     }
 
     function collateralDebtPecentage(ISmartVault.Status memory _vaultStatus) private pure returns (string memory) {
-        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3),"%"));
+        return _vaultStatus.minted == 0 ? "N/A" : string(abi.encodePacked(NFTUtils.toDecimalString(HUNDRED_PC * _vaultStatus.totalCollateralValue / _vaultStatus.minted, 3), " %"));
     }
 
     function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
         CollateralForSVG memory collateral = mapCollateralForSVG(_vaultStatus.collateral);
-        return
-            string(
-                    abi.encodePacked(
-                        "<?xml version='1.0' encoding='UTF-8'?>",
-                        "<svg xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 2880 1620'>",
-                            defGenerator.generateDefs(_tokenId),
-                            "<g>",
-                                "<rect class='token-",_tokenId.toString(),"-cls-12' width='2880' height='1620'/>",
-                                "<rect width='2600' height='1540' class='transparent-background-container' transform='translate(140, 40)' rx='80'/>",
-                            "</g>",
-                            "<g>",
-                                "<g>",
-                                    "<text class='cls-4' transform='translate(239.87 164.27)'><tspan x='0' y='0'>The owner of this NFT owns the collateral and debt</tspan></text>",
-                                    "<text class='cls-2' transform='translate(244.87 254.3)'><tspan x='0' y='0'>NOTE: NFT marketplace caching might show older NFT data, it is up to the buyer to check the blockchain </tspan></text>",
-                                "</g>",
-                                "<text class='cls-6' transform='translate(357.54 426.33)'><tspan x='0' y='0'>Collateral locked in this vault</tspan></text>",
-                                "<text class='cls-5' transform='translate(1715.63 426.33)'><tspan x='0' y='0'>EUROs SmartVault #",_tokenId.toString(),"</tspan></text>",
-                                mapRows(collateral.size),
-                                collateral.text,
-                                "<g>",
-                                    "<text class='cls-5' transform='translate(1713.34 719.41)'><tspan x='0' y='0'>Total Value</tspan></text>",
-                                    "<text class='cls-7' transform='translate(2191.03 719.41)'><tspan x='0' y='0'>",NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18)," EUROs</tspan></text>",
-                                "</g>",
-                                "<g>",
-                                    "<text class='cls-5' transform='translate(1713.34 822.75)'><tspan x='0' y='0'>Debt</tspan></text>",
-                                    "<text class='cls-7' transform='translate(2191.03 822.75)'><tspan x='0' y='0'>",NFTUtils.toDecimalString(_vaultStatus.minted, 18)," EUROs</tspan></text>",
-                                "</g>",
-                                "<g>",
-                                    "<text class='cls-5' transform='translate(1713.34 924.1)'><tspan x='0' y='0'>Collateral/Debt</tspan></text>",
-                                    "<text class='cls-7' transform='translate(2191.03 924.1)'><tspan x='0' y='0'>",collateralDebtPecentage(_vaultStatus),"</tspan></text>",
-                                "</g>",
-                                "<g>",
-                                    "<text class='cls-5' transform='translate(1714.21 1136.92)'><tspan x='0' y='0'>Total value minus debt:</tspan></text>",
-                                    "<text class='cls-5' transform='translate(1715.63 1220.22)'><tspan x='0' y='0'>",NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18)," EUROs</tspan></text>",
-                                "</g>",
-                            "</g>",
-                            "<g>",
-                                "<g>",
-                                    "<path class='cls-3' d='M293.17,1446c2.92,0,5.59,.31,8.01,.92,2.42,.61,4.77,1.48,7.05,2.58l-4.2,9.9c-1.99-.88-3.82-1.56-5.52-2.06-1.69-.5-3.47-.74-5.34-.74-3.45,0-6.31,1.01-8.58,3.02-2.28,2.01-3.74,4.92-4.38,8.71h17.25v7.53h-17.87c0,.23-.02,.54-.04,.92-.03,.38-.04,.83-.04,1.36v1.31c0,.41,.03,.85,.09,1.31h15.15v7.62h-14.45c1.4,6.95,5.98,10.42,13.75,10.42,2.22,0,4.31-.22,6.26-.66,1.96-.44,3.78-1.04,5.47-1.8v10.95c-1.64,.82-3.46,1.45-5.47,1.88-2.01,.44-4.37,.66-7.05,.66-6.83,0-12.52-1.85-17.08-5.56-4.55-3.71-7.44-9.01-8.67-15.9h-5.87v-7.62h5.08c-.12-.82-.18-1.69-.18-2.63v-1.31c0-.41,.03-.73,.09-.96h-4.99v-7.53h5.69c.76-4.67,2.31-8.67,4.64-12,2.33-3.33,5.31-5.88,8.93-7.66,3.62-1.78,7.71-2.67,12.26-2.67Z'/>",
-                                    "<path class='cls-3' d='M255.82,1479.57h-16.33v-23.22c0-17.76,14.45-32.21,32.21-32.21h61.25v16.33h-61.25c-8.75,0-15.88,7.12-15.88,15.88v23.22Z'/>",
-                                    "<path class='cls-3' d='M300.59,1531.88h-60.71v-16.33h60.71c8.61,0,15.88-5.22,15.88-11.4v-24.17h16.33v24.17c0,15.29-14.45,27.73-32.21,27.73Z'/>",
-                                "</g>",
-                                "<g>",
-                                    "<text class='cls-10' transform='translate(357.2 1494.48)'><tspan x='0' y='0'>EUROs SmartVault</tspan></text>",
-                                "</g>",
-                            "</g>",
-                            "<g>",
-                                "<g>",
-                                    "<g>",
-                                        "<text class='cls-1' transform='translate(2173.2 1496.1)'><tspan x='0' y='0'>TheStandard.io</tspan></text>",
-                                    "</g>",
-                                    "<rect class='cls-3' x='2097.6' y='1453.66' width='16.43' height='49.6'/>",
-                                    "<path class='cls-3' d='M2074.82,1479.74h-16.38v-23.29c0-17.81,14.49-32.31,32.31-32.31h61.43v16.38h-61.43c-8.78,0-15.93,7.14-15.93,15.93v23.29Z'/>",
-                                    "<path class='cls-3' d='M2119.72,1532.21h-60.9v-16.38h60.9c8.63,0,15.93-5.24,15.93-11.44v-24.24h16.38v24.24c0,15.34-14.49,27.82-32.31,27.82Z'/>",
-                                "</g>",
-                            "</g>",
-                        "</svg>"
-                    )
-            );
+        uint256 colWidth = NFTUtils.calculateCollateralLockedWidth(_vaultStatus.totalCollateralValue, _vaultStatus.minted, WIDTH_OF_COL_BAR);
+        return string(
+            abi.encodePacked(
+                "<svg width='900' height='900' viewBox='0 0 900 900' fill='none' xmlns='http://www.w3.org/2000/svg'>",
+                defGenerator.generateDefs(_tokenId),
+                "<style>","text { font-family: Arial; fill: white; font-size=14}","</style>", "<g clip-path='url(#clip0_428_47)'>",
+                "<rect width='900' height='900' class='token-",_tokenId.toString(),"-cls-12'/>",
+                "<circle cx='52.5' cy='751.5' r='328.5' fill='#FF3BC9'/>", "<g>", "<rect x='57' y='153' width='787' height='553' rx='72' fill='url(#paint1_linear_428_47)' fill-opacity='0.76'/>",
+                "<rect x='58.5' y='154.5' width='784' height='550' rx='70.5' stroke='white' stroke-opacity='0.14' stroke-width='3'/>", "</g>",
+                "<rect x='57' y='261' width='787' height='445' rx='72' fill='url(#paint2_linear_428_47)' fill-opacity='0.76'/>", "<rect x='57' y='261' width='787' height='445' rx='72' fill='url(#paint3_radial_428_47)' fill-opacity='0.74'/>",
+                "<rect x='58.5' y='262.5' width='784' height='442' rx='70.5' stroke='white' stroke-opacity='0.12' stroke-width='3'/>",
+                "<path d='M136.228 203H116.719C112.301 203 108.719 206.582 108.719 211V216.754' stroke='white' stroke-width='4'/>",
+                "<path d='M107 230.509H126.509C130.927 230.509 134.509 226.927 134.509 222.509V216.754' stroke='white' stroke-width='4'/>",
+                "<text x='115' y='223' font-weight='bold' font-size='18'> &#8364; </text>", "<text x='150' y='223' font-weight='bold' font-size='18'>EUROs SmartVault</text>",
+                "<path d='M631 203.246H611.491C607.073 203.246 603.491 206.827 603.491 211.246V217' stroke='white' stroke-width='4'/>",
+                "<path d='M601.772 230.754H621.281C625.699 230.754 629.281 227.173 629.281 222.754V217' stroke='white' stroke-width='4'/>",
+                "<path d='M614.927 225.473V209.561H618.429V225.473H614.927Z' fill='white'/>"
+                "<path d='M614.927 225.473V209.561H618.429V225.473H614.927Z'/>", "<text x='645' y='223' font-weight='bold' font-size='18'>TheStandard.io</text>",
+                "<text x='130' y='400' font-size='40' font-weight='900'>THE OWNER OF THIS NFT OWNS</text>", "<text x='170' y='440' font-size='40' font-weight='900'>THE COLLATERAL AND DEBT</text>",
+                "<text x='350' y='310' font-size='18'>EUROs SmartVault # ", _tokenId.toString(), "</text>",
+                "<text x='144' y='490' text-anchor='middle'>Collateral</text>", "<rect x='107' y='504' width='132' height='40' rx='11' fill='#DA76EE'/>",
+                "<text x='170' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18), "</text>",
+                "<text x='280' y='490' text-anchor='middle'>Debt</text>", "<rect x='263' y='504' width='132' height='40' rx='11' fill='#9F8CF2'/>",
+                "<text x='325' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.minted, 18), "</text>",
+                "<text x='473' y='490' text-anchor='middle'>Collateral Ratio</text>",
+                "<text x='520' y='560' text-anchor='middle' font-size='12' font-weight='bold' opacity='0.65'>min 110%</text>",
+                "<rect x='419' y='504' width='132' height='40' rx='11' fill='#979DFA'/>",
+                "<text x='485' y='528' font-weight='bold' text-anchor='middle'>", collateralDebtPecentage(_vaultStatus), "</text>", "<text x='720' y='490' text-anchor='middle'>Total Minus Debt</text>",
+                "<rect x='662' y='504' width='132' height='40' rx='11' fill='url(#paint4_linear_428_47)'/>",
+                "<text x='730' y='528' font-weight='bold' text-anchor='middle'>&#8364; ", NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18), "</text>",
+                "<text x='130' y='622' font-size='18' text-anchor='middle'>Debt</text>",
+                "<text x='790' y='628' font-size='18' text-anchor='end'>Collateral</text>",
+                "<rect x='107' y='640' width='",NFTUtils.toDecimalString(WIDTH_OF_COL_BAR, 0),"' height='16' rx='8' fill='#AC99F7'/>",
+                "<rect x='107' y='640' width='", NFTUtils.toDecimalString(colWidth, 0), "' height='16' rx='8' fill='white'/>",
+                "<path d='M734.927 608.473V657.561H738.429V638.473H734.927Z' fill='red'/>",
+                "</g>", "<defs>", "<filter id='filter0_d_428_47' x='-39' y='153' width='919' height='687' filterUnits='userSpaceOnUse' color-interpolation-filters='sRGB'>", "<feFlood flood-opacity='0' result='BackgroundImageFix'/>",
+                "<feColorMatrix in='SourceAlpha' type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0' result='hardAlpha'/>", "<feOffset dx='-30' dy='68'/>", "<feGaussianBlur stdDeviation='33'/>", "<feComposite in2='hardAlpha' operator='out'/>",
+                "<feColorMatrix type='matrix' values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.25 0'/>", "<feBlend mode='normal' in2='BackgroundImageFix' result='effect1_dropShadow_428_47'/>",
+                "<feBlend mode='normal' in='SourceGraphic' in2='effect1_dropShadow_428_47' result='shape'/>", "</filter>", "<linearGradient id='paint0_linear_428_47' x1='-654.5' y1='275.5' x2='347' y2='1261.5' gradientUnits='userSpaceOnUse'>",
+                "<stop stop-color='#00FFAA'/>", "<stop offset='0.517251' stop-color='#4579F5'/>", "<stop offset='0.999815' stop-color='#9C42F5'/>", "</linearGradient>",
+                "<linearGradient id='paint1_linear_428_47' x1='110' y1='173.5' x2='816.5' y2='692' gradientUnits='userSpaceOnUse'>",
+                "<stop stop-color='#3EB0DE'/>", "<stop offset='0.522557' stop-color='#7582F7'/>", "<stop offset='1' stop-color='#A365F7'/>", "</linearGradient>",
+                "<linearGradient id='paint2_linear_428_47' x1='105.5' y1='285' x2='797' y2='685' gradientUnits='userSpaceOnUse'>", "<stop stop-color='#52ACE6'/>", "<stop offset='1' stop-color='#A465F7'/>", "</linearGradient>",
+                "<radialGradient id='paint3_radial_428_47' cx='0' cy='0' r='1' gradientUnits='userSpaceOnUse' gradientTransform='translate(127.5 673) rotate(-36.8186) scale(335.4 526.783)'>",
+                "<stop stop-color='#FF3BC9'/>", "<stop offset='0.402382' stop-color='#FF3BC9'/>", "<stop offset='0.657404' stop-color='#FF3BC9' stop-opacity='0.56'/>", "<stop offset='1' stop-color='#FF3BC9' stop-opacity='0'/>",
+                "</radialGradient>", "<linearGradient id='paint4_linear_428_47' x1='665.5' y1='548' x2='810.5' y2='459' gradientUnits='userSpaceOnUse'>",
+                "<stop stop-color='#F05BBD'/>", "<stop offset='1' stop-color='#8A28ED'/>", "</linearGradient>", "<clipPath id='clip0_428_47'>", "<rect width='900' height='900' fill='white'/>", "</clipPath>", "</defs>", "</svg>"
+            )
+        );
     }
-
 }

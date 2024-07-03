@@ -65,4 +65,10 @@ library NFTUtils {
         if (fractionalPartPadded.length > maxDecPlaces) fractionalPartPadded = truncateFraction(fractionalPartPadded, maxDecPlaces);
         return string(abi.encodePacked(wholePart, ".", fractionalPartPadded));
     }
+
+    function calculateCollateralLockedWidth(uint256 totalCollateral, uint256 mintedAmount, uint256 widthOfBar) public view returns (uint256) {
+        if (totalCollateral == 0) return 0;
+        uint256 result = (((mintedAmount * 100) / totalCollateral * widthOfBar) / 100);
+         return result;
+    }
 }
