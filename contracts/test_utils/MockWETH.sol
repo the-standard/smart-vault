@@ -9,6 +9,10 @@ contract MockWETH is IWETH, ERC20 {
     constructor() ERC20("Wrapped Ether", "WETH") {
     }
 
+    function deposit() external payable {
+        _mint(msg.sender, msg.value);
+    }
+
     function withdraw(uint256) external {
     }
 }

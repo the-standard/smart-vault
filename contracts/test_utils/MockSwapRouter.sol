@@ -31,6 +31,10 @@ contract MockSwapRouter is ISwapRouter {
         txValue = msg.value;
     }
 
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn) {
+        
+    }
+
     function receivedSwap() external view returns (MockSwapData memory) {
         return MockSwapData(
             tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,

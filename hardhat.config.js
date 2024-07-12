@@ -44,11 +44,11 @@ module.exports = {
       url: `https://arb-sepolia.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_SEPOLIA_KEY}`,
       accounts: testAccounts
     },
-    // hardhat: {
-    //   forking: {
-    //     url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`,
-    //   }
-    // }
+    hardhat: {
+      forking: {
+        url: `https://arb-mainnet.g.alchemy.com/v2/${ALCHEMY_ARBITRUM_KEY}`,
+      }
+    }
   },
   etherscan: {
     apiKey: {
