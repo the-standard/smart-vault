@@ -14,11 +14,10 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
 //
-// allows use of different swap router address (post 7/11 attack)
-// allows setting of protocol wallet address + liquidator address
-// upgraded zz/zz/zz
+// TODO describe changes
+// TODO upgraded zz/zz/zz
 //
-contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     uint256 public constant HUNDRED_PC = 1e5;
