@@ -27,7 +27,7 @@ const fullyUpgradedSmartVaultManager = async (
   collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
   liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
   smartVaultIndexAddress, nFTMetadataGeneratorAddress, wethAddress, 
-  swapRouterAddress, vaultLimit
+  swapRouterAddress, vaultLimit, yieldManagerAddress
 ) => {
   const v1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
     collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
@@ -45,6 +45,7 @@ const fullyUpgradedSmartVaultManager = async (
   await V6.setSwapFeeRate(protocolFeeRate);
   await V6.setWethAddress(wethAddress);
   await V6.setSwapRouter2(swapRouterAddress);
+  await V6.setYieldManager(yieldManagerAddress);
   await V6.setUserVaultLimit(vaultLimit);
   return V6;
 }

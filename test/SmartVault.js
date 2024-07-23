@@ -20,11 +20,12 @@ describe('SmartVault', async () => {
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     MockWeth = await (await ethers.getContractFactory('MockWETH')).deploy();
+    const YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, MockWeth.address,
-      MockSwapRouter.address, TEST_VAULT_LIMIT
+      MockSwapRouter.address, TEST_VAULT_LIMIT, YieldManager.address
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -32,7 +33,7 @@ describe('SmartVault', async () => {
     const [ vaultID ] = await VaultManager.vaultIDs(user.address);
     const { status } = await VaultManager.vaultData(vaultID);
     const { vaultAddress } = status;
-    Vault = await ethers.getContractAt('SmartVaultV3', vaultAddress);
+    Vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
   });
 
   describe('ownership', async () => {
@@ -437,9 +438,18 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('yield', async () => {
+  describe.only('yield', async () => {
     it('puts all of given collateral asset into yield', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1')
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+      
+      let { collateral, totalCollateralValue } = await Vault.status();
+      expect(getCollateralOf('ETH', collateral).amount).to.equal(ethCollateral);
 
+      await Vault.depositYield(ETH);
+      ({ collateral, totalCollateralValue } = await Vault.status());
+      expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
+      expect(totalCollateralValue).to.be.greaterThan(0);
     });
   });
 });

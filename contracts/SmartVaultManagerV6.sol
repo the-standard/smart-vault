@@ -38,6 +38,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     address public swapRouter;
     address public swapRouter2;
     uint16 public userVaultLimit;
+    address public yieldManager;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
@@ -140,6 +141,10 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner() {
         userVaultLimit = _userVaultLimit;
+    }
+
+    function setYieldManager(address _yieldManager) external onlyOwner() {
+        yieldManager = _yieldManager;
     }
 
     // TODO test transfer

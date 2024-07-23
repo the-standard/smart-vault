@@ -7,6 +7,7 @@ import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManagerV3.sol";
+import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IWETH.sol";
@@ -234,6 +235,10 @@ contract SmartVaultV4 is ISmartVault {
         inToken == ISmartVaultManagerV3(manager).weth() ?
             executeNativeSwapAndFee(params, swapFee) :
             executeERC20SwapAndFee(params, swapFee);
+    }
+
+    function depositYield(bytes32 _symbol) external {
+        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_symbol);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {
