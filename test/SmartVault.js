@@ -15,7 +15,7 @@ describe('SmartVault', async () => {
     await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV3')).deploy(ETH, ClEurUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
@@ -434,6 +434,12 @@ describe('SmartVault', async () => {
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(0);
       expect(await Stablecoin.balanceOf(protocol.address)).to.equal(swapFee);
+    });
+  });
+
+  describe('yield', async () => {
+    it('puts all of given collateral asset into yield', async () => {
+
     });
   });
 });
