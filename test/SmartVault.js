@@ -444,12 +444,13 @@ describe('SmartVault', async () => {
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
       
       let { collateral, totalCollateralValue } = await Vault.status();
+      const preYieldCollateral = totalCollateralValue;
       expect(getCollateralOf('ETH', collateral).amount).to.equal(ethCollateral);
 
-      await Vault.depositYield(ETH);
+      await Vault.depositYield(ETH, HUNDRED_PC.div(2));
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
-      expect(totalCollateralValue).to.be.greaterThan(0);
+      expect(totalCollateralValue).to.eq(preYieldCollateral);
     });
   });
 });
