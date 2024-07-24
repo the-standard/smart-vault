@@ -237,8 +237,8 @@ contract SmartVaultV4 is ISmartVault {
             executeERC20SwapAndFee(params, swapFee);
     }
 
-    function depositYield(bytes32 _symbol) external {
-        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_symbol);
+    function depositYield(bytes32 _symbol, uint256 _euroPercentage) external {
+        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_symbol, _euroPercentage);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {
