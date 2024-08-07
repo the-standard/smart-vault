@@ -1,10 +1,10 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT, WETH_ADDRESS } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, MockWeth, admin, user, otherUser, protocol;
+let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
@@ -20,7 +20,15 @@ describe('SmartVault', async () => {
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     MockWeth = await (await ethers.getContractFactory('MockWETH')).deploy();
-    const YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy();
+    const EURA = await (await ethers.getContractFactory('ERC20Mock')).deploy('EURA', 'EURA', 18);
+    const UniProxyMock = await (await ethers.getContractFactory('UniProxyMock')).deploy();
+    const EUROsGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
+      'EUROs-EURA', 'EUROs-EURA', EUROs.address, EURA.address
+    );
+    YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
+      EUROs.address, EURA.address, MockWeth.address, UniProxyMock.address, MockSwapRouter.address, EUROsGammaVaultMock.address,
+      MockSwapRouter.address
+    );
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
@@ -440,6 +448,17 @@ describe('SmartVault', async () => {
 
   describe.only('yield', async () => {
     it('puts all of given collateral asset into yield', async () => {
+      
+
+      const WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
+        'WETH-WBTC', 'WETH-WBTC', WETH_ADDRESS, WBTC.address
+      );
+
+      await YieldManager.addVaultData(
+        WETH_ADDRESS, , 500,
+        ethers.utils.solidityPack(['address', 'uint24', 'address'], [WETH_ADDRESS, 3000, EURA.address])
+      )
+
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
       

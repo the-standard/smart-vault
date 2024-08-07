@@ -4,6 +4,7 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/IEUROs.sol";
+import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManagerV3.sol";
@@ -23,6 +24,7 @@ contract SmartVaultV4 is ISmartVault {
     address public immutable manager;
     IEUROs public immutable EUROs;
     IPriceCalculator public immutable calculator;
+    address[] private vaultTokens;
 
     address public owner;
     uint256 private minted;
@@ -65,13 +67,43 @@ contract SmartVaultV4 is ISmartVault {
         return ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
     }
 
+    function yieldVaultCollateral(ITokenManager.Token[] memory _acceptedTokens) private view returns (uint256 _euros) {
+        for (uint256 i = 0; i < vaultTokens.length; i++) {
+            IHypervisor _vaultToken = IHypervisor(vaultTokens[i]);
+            uint256 _balance = _vaultToken.balanceOf(address(this));
+            if (_balance > 0) {
+                uint256 _totalSupply = _vaultToken.totalSupply();
+                (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
+                address _token0 = _vaultToken.token0();
+                address _token1 = _vaultToken.token1();
+                uint256 _underlying0 = _balance * _underlyingTotal0 / _totalSupply;
+                uint256 _underlying1 = _balance * _underlyingTotal1 / _totalSupply;
+                if (_token0 == address(EUROs) || _token1 == address(EUROs)) {
+                    // both EUROs and its vault pair are € stablecoins, but can be equivalent to €1 in collateral
+                    _euros += _underlying0;
+                    _euros += _underlying1;
+                } else {
+                    // TODO how do we deal with WETH as underlying token?
+                    // add WETH as collateral? or check for it here?
+                    for (uint256 j = 0; i < _acceptedTokens.length; j++) {
+                        ITokenManager.Token memory _token = _acceptedTokens[j];
+                        if (_token.addr == _token0) _euros += calculator.tokenToEur(_token, _underlying0);
+                        if (_token.addr == _token1) _euros += calculator.tokenToEur(_token, _underlying1);
+                    }
+                }
+            }
+        }
+    }
+ 
     function euroCollateral() private view returns (uint256 euros) {
         ITokenManager tokenManager = ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
-            ITokenManager.Token memory token = acceptedTokens[i];
-            euros += calculator.tokenToEur(token, getAssetBalance(token.symbol, token.addr));
+            ITokenManager.Token memory _token = acceptedTokens[i];
+            euros += calculator.tokenToEur(_token, getAssetBalance(_token.symbol, _token.addr));
         }
+
+        euros += yieldVaultCollateral(acceptedTokens);
     }
 
     function maxMintable(uint256 _collateral) private view returns (uint256) {
@@ -238,7 +270,11 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function depositYield(bytes32 _symbol, uint256 _euroPercentage) external {
-        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_symbol, _euroPercentage);
+        ITokenManager.Token memory _token = getTokenManager().getToken(_symbol);
+        uint256 _balance = getAssetBalance(_symbol, _token.addr);
+        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_token.addr, _euroPercentage);
+        vaultTokens.push(_vault1);
+        vaultTokens.push(_vault2);
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

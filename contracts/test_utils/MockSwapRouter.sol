@@ -37,4 +37,14 @@ contract MockSwapRouter is ISwapRouter {
             sqrtPriceLimitX96, txValue
         );
     }
+
+    function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut) {
+
+    }
+
+    function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 amountIn) {
+
+    }
+
+    function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 amountIn) {}
 }
