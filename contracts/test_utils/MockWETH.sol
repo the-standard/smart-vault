@@ -1,13 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "contracts/test_utils/ERC20Mock.sol";
 import "contracts/interfaces/IWETH.sol";
 
-contract MockWETH is IWETH, ERC20 {
+contract MockWETH is IWETH, ERC20Mock {
 
-    constructor() ERC20("Wrapped Ether", "WETH") {
+    constructor() ERC20Mock("Wrapped Ether", "WETH", 18) {
     }
+
+    receive() external payable {}
 
     function withdraw(uint256 _value) external {
         _burn(msg.sender, _value);

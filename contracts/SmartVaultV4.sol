@@ -13,11 +13,11 @@ import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IWETH.sol";
 
+import "hardhat/console.sol";
+
 contract SmartVaultV4 is ISmartVault {
     using SafeERC20 for IERC20;
 
-    string private constant INVALID_USER = "err-invalid-user";
-    string private constant UNDER_COLL = "err-under-coll";
     uint8 private constant version = 4;
     bytes32 private constant vaultType = bytes32("EUROs");
     bytes32 private immutable NATIVE;
@@ -35,6 +35,10 @@ contract SmartVaultV4 is ISmartVault {
     event EUROsMinted(address to, uint256 amount, uint256 fee);
     event EUROsBurned(uint256 amount, uint256 fee);
 
+    struct YieldPair { address token0; uint256 amount0; address token1; uint256 amount1; }
+    error InvalidUser();
+    error InvalidRequest();
+
     constructor(bytes32 _native, address _manager, address _owner, address _euros, address _priceCalculator) {
         NATIVE = _native;
         owner = _owner;
@@ -44,22 +48,22 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     modifier onlyVaultManager {
-        require(msg.sender == manager, INVALID_USER);
+        if (msg.sender != manager) revert InvalidUser();
         _;
     }
 
     modifier onlyOwner {
-        require(msg.sender == owner, INVALID_USER);
+        if (msg.sender != owner) revert InvalidUser();
         _;
     }
 
     modifier ifMinted(uint256 _amount) {
-        require(minted >= _amount, "err-insuff-minted");
+        if (minted < _amount) revert InvalidRequest();
         _;
     }
 
     modifier ifNotLiquidated {
-        require(!liquidated, "err-liquidated");
+        if (liquidated) revert InvalidRequest();
         _;
     }
 
@@ -85,7 +89,7 @@ contract SmartVaultV4 is ISmartVault {
                 } else {
                     // TODO how do we deal with WETH as underlying token?
                     // add WETH as collateral? or check for it here?
-                    for (uint256 j = 0; i < _acceptedTokens.length; j++) {
+                    for (uint256 j = 0; j < _acceptedTokens.length; j++) {
                         ITokenManager.Token memory _token = _acceptedTokens[j];
                         if (_token.addr == _token0) _euros += calculator.tokenToEur(_token, _underlying0);
                         if (_token.addr == _token1) _euros += calculator.tokenToEur(_token, _underlying1);
@@ -139,7 +143,7 @@ contract SmartVaultV4 is ISmartVault {
     function liquidateNative() private {
         if (address(this).balance != 0) {
             (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: address(this).balance}("");
-            require(sent, "err-native-liquidate");
+            if (!sent) revert InvalidRequest();
         }
     }
 
@@ -148,7 +152,7 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function liquidate() external onlyVaultManager {
-        require(undercollateralised(), "err-not-liquidatable");
+        if (!undercollateralised()) revert InvalidRequest();
         liquidated = true;
         minted = 0;
         liquidateNative();
@@ -168,22 +172,22 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
-        require(canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount), UNDER_COLL);
+        if (!canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount)) revert InvalidRequest();
         (bool sent,) = _to.call{value: _amount}("");
-        require(sent, "err-native-call");
+        if (!sent) revert InvalidRequest();
         emit CollateralRemoved(NATIVE, _amount, _to);
     }
 
     function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
-        require(canRemoveCollateral(token, _amount), UNDER_COLL);
+        if (!canRemoveCollateral(token, _amount)) revert InvalidRequest();
         IERC20(token.addr).safeTransfer(_to, _amount);
         emit CollateralRemoved(_symbol, _amount, _to);
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
-        if (token.addr == _tokenAddr) require(canRemoveCollateral(token, _amount), UNDER_COLL);
+        if (token.addr == _tokenAddr && !canRemoveCollateral(token, _amount)) revert InvalidRequest();
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
         emit AssetRemoved(_tokenAddr, _amount, _to);
     }
@@ -194,7 +198,7 @@ contract SmartVaultV4 is ISmartVault {
 
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
         uint256 fee = _amount * ISmartVaultManagerV3(manager).mintFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
-        require(fullyCollateralised(_amount + fee), UNDER_COLL);
+        if (!fullyCollateralised(_amount + fee)) revert InvalidRequest();
         minted = minted + _amount + fee;
         EUROs.mint(_to, _amount);
         EUROs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
@@ -215,7 +219,7 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol == _symbol) _token = tokens[i];
         }
-        require(_token.symbol != bytes32(0), "err-invalid-swap");
+        if (_token.symbol == bytes32(0)) revert InvalidRequest();
     }
 
     function getSwapAddressFor(bytes32 _symbol) private view returns (address) {
@@ -225,7 +229,7 @@ contract SmartVaultV4 is ISmartVault {
 
     function executeNativeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
         (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: _swapFee}("");
-        require(sent, "err-swap-fee-native");
+        if (!sent) revert InvalidRequest();
         ISwapRouter(ISmartVaultManagerV3(manager).swapRouter2()).exactInputSingle{value: _params.amountIn}(_params);
     }
 
@@ -275,6 +279,19 @@ contract SmartVaultV4 is ISmartVault {
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_token.addr, _euroPercentage);
         vaultTokens.push(_vault1);
         vaultTokens.push(_vault2);
+    }
+
+    function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
+        for (uint256 i = 0; i < vaultTokens.length; i++) {
+            IHypervisor _vaultToken = IHypervisor(vaultTokens[i]);
+            uint256 _balance = _vaultToken.balanceOf(address(this));
+            uint256 _vaultTotal = _vaultToken.totalSupply();
+            (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
+            _yieldPairs[i].token0 = _vaultToken.token0();
+            _yieldPairs[i].token1 = _vaultToken.token1();
+            _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _vaultTotal;
+            _yieldPairs[i].amount1 = _balance * _underlyingTotal1 / _vaultTotal;
+        }
     }
 
     function setOwner(address _newOwner) external onlyVaultManager {

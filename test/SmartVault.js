@@ -1,10 +1,10 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT, WETH_ADDRESS } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager;
+let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, EURA, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager, UniProxyMock, EUROsGammaVaultMock;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
@@ -20,9 +20,9 @@ describe('SmartVault', async () => {
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     MockWeth = await (await ethers.getContractFactory('MockWETH')).deploy();
-    const EURA = await (await ethers.getContractFactory('ERC20Mock')).deploy('EURA', 'EURA', 18);
-    const UniProxyMock = await (await ethers.getContractFactory('UniProxyMock')).deploy();
-    const EUROsGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
+    EURA = await (await ethers.getContractFactory('ERC20Mock')).deploy('EURA', 'EURA', 18);
+    UniProxyMock = await (await ethers.getContractFactory('UniProxyMock')).deploy();
+    EUROsGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
       'EUROs-EURA', 'EUROs-EURA', EUROs.address, EURA.address
     );
     YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
@@ -37,6 +37,7 @@ describe('SmartVault', async () => {
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await EUROs.grantRole(await EUROs.MINTER_ROLE(), admin.address);
     await VaultManager.connect(user).mint();
     const [ vaultID ] = await VaultManager.vaultIDs(user.address);
     const { status } = await VaultManager.vaultData(vaultID);
@@ -47,7 +48,7 @@ describe('SmartVault', async () => {
   describe('ownership', async () => {
     it('will not allow setting of new owner if not manager', async () => {
       const ownerUpdate = Vault.connect(user).setOwner(otherUser.address);
-      await expect(ownerUpdate).to.be.revertedWith('err-invalid-user');
+      await expect(ownerUpdate).to.be.revertedWithCustomError(Vault, 'InvalidUser');
     });
   });
 
@@ -122,7 +123,7 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', collateral).amount).to.equal(value);
 
       let remove = Vault.connect(otherUser).removeCollateralNative(value, user.address);
-      await expect(remove).to.be.revertedWith('err-invalid-user');
+      await expect(remove).to.be.revertedWithCustomError(Vault, 'InvalidUser');
 
       remove = Vault.connect(user).removeCollateralNative(half, user.address);
       await expect(remove).not.to.be.reverted;
@@ -136,7 +137,7 @@ describe('SmartVault', async () => {
 
       // cannot remove any eth
       remove = Vault.connect(user).removeCollateralNative(ethers.utils.parseEther('0.0001'), user.address);
-      await expect(remove).to.be.revertedWith('err-under-coll');
+      await expect(remove).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
     });
 
     it('allows removal of ERC20 if owner and it will not undercollateralise vault', async () => {
@@ -156,7 +157,7 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('USDT', collateral).amount).to.equal(value);
 
       let remove = Vault.connect(otherUser).removeCollateral(USDTBytes, value, user.address);
-      await expect(remove).to.be.revertedWith('err-invalid-user');
+      await expect(remove).to.be.revertedWithCustomError(Vault, 'InvalidUser');
 
       remove = Vault.connect(user).removeCollateral(USDTBytes, half, user.address);
       await expect(remove).not.to.be.reverted;
@@ -170,7 +171,7 @@ describe('SmartVault', async () => {
 
       // cannot remove any eth
       remove = Vault.connect(user).removeCollateral(ethers.utils.formatBytes32String('USDT'), 1000000, user.address);
-      await expect(remove).to.be.revertedWith('err-under-coll');
+      await expect(remove).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
     });
 
     it('allows removal of ERC20s that are or are not valid collateral, if not undercollateralising', async () => {
@@ -193,13 +194,13 @@ describe('SmartVault', async () => {
       
       await Vault.connect(user).mint(user.address, maxMintable.div(2));
 
-      await expect(Vault.removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWith('err-invalid-user');
+      await expect(Vault.removeAsset(SUSD6.address, SUSD6value, user.address)).to.be.revertedWithCustomError(Vault, 'InvalidUser');
       
       await Vault.connect(user).removeAsset(SUSD6.address, SUSD6value, user.address);
       expect(await SUSD6.balanceOf(Vault.address)).to.equal(0);
       expect(await SUSD6.balanceOf(user.address)).to.equal(SUSD6value);
       
-      await expect(Vault.connect(user).removeAsset(SUSD18.address, SUSD18value, user.address)).to.be.revertedWith('err-under-coll');
+      await expect(Vault.connect(user).removeAsset(SUSD18.address, SUSD18value, user.address)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
 
       // partial removal, because some needed as collateral
       const part = SUSD18value.div(3);
@@ -214,13 +215,13 @@ describe('SmartVault', async () => {
   describe('minting', async () => {
     it('only allows the vault owner to mint from smart vault directly', async () => {
       const mintedValue = ethers.utils.parseEther('100');
-      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWith('err-under-coll');
+      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
 
       const collateral = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: collateral});
       
       let mint = Vault.connect(otherUser).mint(user.address, mintedValue);
-      await expect(mint).to.be.revertedWith('err-invalid-user');
+      await expect(mint).to.be.revertedWithCustomError(Vault, 'InvalidUser');
 
       mint = Vault.connect(user).mint(user.address, mintedValue);
       await expect(mint).not.to.be.reverted;
@@ -241,7 +242,7 @@ describe('SmartVault', async () => {
 
       const burnedValue = ethers.utils.parseEther('50');
       let burn = Vault.connect(user).burn(burnedValue);
-      await expect(burn).to.be.revertedWith('err-insuff-minted');
+      await expect(burn).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
 
       // 100 to user
       // 1 to protocol
@@ -292,12 +293,12 @@ describe('SmartVault', async () => {
       const mintedValue = ethers.utils.parseEther('900');
       await Vault.connect(user).mint(user.address, mintedValue);
 
-      await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWith('vault-not-undercollateralised');
+      await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWith('vault-not-undercollateralised')
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
 
-      await expect(Vault.liquidate()).to.be.revertedWith('err-invalid-user');
+      await expect(Vault.liquidate()).to.be.revertedWithCustomError(Vault, 'InvalidUser');
 
       await expect(VaultManager.connect(protocol).liquidateVault(1)).not.to.be.reverted;
       const { minted, maxMintable, totalCollateralValue, collateral, liquidated } = await Vault.status();
@@ -323,7 +324,7 @@ describe('SmartVault', async () => {
       expect(liquidated).to.equal(true);
 
       await user.sendTransaction({to: Vault.address, value: ethValue.mul(2)});
-      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWith('err-liquidated');
+      await expect(Vault.connect(user).mint(user.address, mintedValue)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
     });
   });
 
@@ -344,7 +345,7 @@ describe('SmartVault', async () => {
       const swapValue = ethers.utils.parseEther('0.5');
       const swap = Vault.connect(admin).swap(inToken, outToken, swapValue, 0);
 
-      await expect(swap).to.be.revertedWith('err-invalid-user');
+      await expect(swap).to.be.revertedWithCustomError(Vault, 'InvalidUser');
     });
 
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
@@ -360,6 +361,12 @@ describe('SmartVault', async () => {
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       
       const protocolBalance = await protocol.getBalance();
+      
+      // load up mock swap router
+      await Stablecoin.mint(MockSwapRouter.address, 1_000_000_000_000);
+      // rate of eth / usd is default rate, scaled down from 8 dec (chainlink) to 6 dec (stablecoin decimals)
+      await MockSwapRouter.setRate(MockWeth.address, Stablecoin.address, DEFAULT_ETH_USD_PRICE / 100);
+
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
@@ -399,6 +406,12 @@ describe('SmartVault', async () => {
       // even if swap returned 0 assets, vault would remain above €600 required collateral value
       // minimum swap therefore 0
       const protocolBalance = await protocol.getBalance();
+      
+      // load up mock swap router
+      await Stablecoin.mint(MockSwapRouter.address, 1_000_000_000_000);
+      // rate of eth / usd is default rate, scaled down from 8 dec (chainlink) to 6 dec (stablecoin decimals)
+      await MockSwapRouter.setRate(MockWeth.address, Stablecoin.address, DEFAULT_ETH_USD_PRICE / 100);
+
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, swapMinimum);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
@@ -426,6 +439,14 @@ describe('SmartVault', async () => {
       const swapValue = ethers.utils.parseEther('50');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       const actualSwap = swapValue.sub(swapFee);
+      
+      // load up mock weth
+      await admin.sendTransaction({ to: MockWeth.address, value: ethers.utils.parseEther('1') });
+      // load up mock swap router
+      await MockWeth.mint(MockSwapRouter.address, ethers.utils.parseEther('1'));
+      // rate of usd / eth is 1 / DEFAULT RATE * 10 ^ 20 (to scale from 6 dec to 18, and remove 8 dec scale down from chainlink price)
+      await MockSwapRouter.setRate(Stablecoin.address, MockWeth.address, BigNumber.from(10).pow(20).div(DEFAULT_ETH_USD_PRICE));
+
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
@@ -446,18 +467,41 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('yield', async () => {
+  describe('yield', async () => {
     it('puts all of given collateral asset into yield', async () => {
+      const WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
+      const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
+      await CL_WBTC_USD.setPrice(DEFAULT_ETH_USD_PRICE.mul(20));
+      await TokenManager.addAcceptedToken(WBTC.address, CL_WBTC_USD.address);
+      await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
       
-
+      // fake gamma vault for WETH + WBTC
       const WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
-        'WETH-WBTC', 'WETH-WBTC', WETH_ADDRESS, WBTC.address
+        'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
       );
 
+      // data about how yield manager converts collateral to EURA, vault addresses etc
       await YieldManager.addVaultData(
-        WETH_ADDRESS, , 500,
-        ethers.utils.solidityPack(['address', 'uint24', 'address'], [WETH_ADDRESS, 3000, EURA.address])
+        MockWeth.address, WETHGammaVaultMock.address, 500,
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [MockWeth.address, 3000, EURA.address])
       )
+
+      // ratio of euros vault is 1:1
+      await UniProxyMock.setRatio(EUROsGammaVaultMock.address, ethers.utils.parseEther('1'));
+      // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
+      await UniProxyMock.setRatio(WETHGammaVaultMock.address, 5000000);
+
+      // set fake rate for swap router: this is ETH / EUROs: ~1500
+      await MockSwapRouter.setRate(MockWeth.address, EURA.address, DEFAULT_ETH_USD_PRICE.mul(ethers.utils.parseEther('1')).div(DEFAULT_EUR_USD_PRICE))
+      // set fake rate for EURA / EURO: 1:1
+      await MockSwapRouter.setRate(EURA.address, EUROs.address, ethers.utils.parseEther('1'));
+      // set fake rate for ETH / WBTC: 0.05 WBTC scaled down to 8 dec
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, 5000000);
+
+      // load up mock swap router
+      await EURA.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
+      await EUROs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
+      await WBTC.mint(MockSwapRouter.address, ethers.utils.parseUnits('10', 8));
 
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
@@ -470,6 +514,8 @@ describe('SmartVault', async () => {
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
       expect(totalCollateralValue).to.eq(preYieldCollateral);
+      const yieldAssets = await Vault.yieldAssets();
+      console.log(yieldAssets);
     });
   });
 });

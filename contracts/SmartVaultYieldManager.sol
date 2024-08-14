@@ -7,6 +7,8 @@ import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/IUniProxy.sol";
 import "contracts/interfaces/IWETH.sol";
 
+import "hardhat/console.sol";
+
 contract SmartVaultYieldManager is ISmartVaultYieldManager {
     address private immutable EUROs;
     address private immutable EURA;
@@ -117,8 +119,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
     }
 
     function depositYield(address _collateralToken, uint256 _euroPercentage) external payable returns (address _vault0, address _vault1) {
-        if (_collateralToken == address(0)) _collateralToken = WETH;
-        IWETH(WETH).deposit{value: msg.value}();
+        if (_collateralToken == address(0)) {
+            _collateralToken = WETH;
+            IWETH(WETH).deposit{value: msg.value}();
+        }
         euroDeposit(_collateralToken, _euroPercentage);
         VaultData memory _vaultData = vaultData[_collateralToken];
         otherDeposit(_collateralToken, _vaultData);

@@ -27,7 +27,7 @@ describe('SmartVaultManager', async () => {
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
-      MockSwapRouter.address, TEST_VAULT_LIMIT
+      MockSwapRouter.address, TEST_VAULT_LIMIT, ethers.constants.AddressZero
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
