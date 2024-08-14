@@ -277,16 +277,19 @@ contract SmartVaultV4 is ISmartVault {
         ITokenManager.Token memory _token = getTokenManager().getToken(_symbol);
         uint256 _balance = getAssetBalance(_symbol, _token.addr);
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_token.addr, _euroPercentage);
+        // TODO make sure this is unique added
         vaultTokens.push(_vault1);
         vaultTokens.push(_vault2);
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
+        _yieldPairs = new YieldPair[](vaultTokens.length);
         for (uint256 i = 0; i < vaultTokens.length; i++) {
             IHypervisor _vaultToken = IHypervisor(vaultTokens[i]);
             uint256 _balance = _vaultToken.balanceOf(address(this));
             uint256 _vaultTotal = _vaultToken.totalSupply();
             (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
+
             _yieldPairs[i].token0 = _vaultToken.token0();
             _yieldPairs[i].token1 = _vaultToken.token1();
             _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _vaultTotal;

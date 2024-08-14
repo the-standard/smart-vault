@@ -468,6 +468,10 @@ describe('SmartVault', async () => {
   });
 
   describe('yield', async () => {
+    it('fetches empty yield list', async () => {
+
+    });
+
     it('puts all of given collateral asset into yield', async () => {
       const WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
       const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
@@ -496,7 +500,8 @@ describe('SmartVault', async () => {
       // set fake rate for EURA / EURO: 1:1
       await MockSwapRouter.setRate(EURA.address, EUROs.address, ethers.utils.parseEther('1'));
       // set fake rate for ETH / WBTC: 0.05 WBTC scaled down to 8 dec
-      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, 5000000);
+      const WBTCPerETH = 5000000
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
 
       // load up mock swap router
       await EURA.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
@@ -513,9 +518,20 @@ describe('SmartVault', async () => {
       await Vault.depositYield(ETH, HUNDRED_PC.div(2));
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
-      expect(totalCollateralValue).to.eq(preYieldCollateral);
+      // allow a delta of 2 wei in pre and post yield collateral, due to dividing etc
+      expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 2);
+
       const yieldAssets = await Vault.yieldAssets();
-      console.log(yieldAssets);
+      expect(yieldAssets).to.have.length(2);
+      expect([EUROs.address, EURA.address]).to.include(yieldAssets[0].token0);
+      expect([EUROs.address, EURA.address]).to.include(yieldAssets[0].token1);
+      expect(yieldAssets[0].amount0).to.be.closeTo(preYieldCollateral.div(4), 1);
+      expect(yieldAssets[0].amount1).to.be.closeTo(preYieldCollateral.div(4), 1);
+      expect([WBTC.address, MockWeth.address]).to.include(yieldAssets[1].token0);
+      expect([WBTC.address, MockWeth.address]).to.include(yieldAssets[1].token1);
+      expect(yieldAssets[1].amount0).to.equal(ethCollateral.div(4), 1);
+      // 0.1 ETH, quarter of which should be wbtc
+      expect(yieldAssets[1].amount1).to.be.closeTo(WBTCPerETH / 40, 1);
     });
   });
 });
