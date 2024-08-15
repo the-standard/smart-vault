@@ -4,6 +4,8 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 
+import "hardhat/console.sol";
+
 contract MockSwapRouter is ISwapRouter {
     address private tokenIn;
     address private tokenOut;

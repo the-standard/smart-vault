@@ -5,10 +5,10 @@ import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/IUniProxy.sol";
 
 contract UniProxyMock is IUniProxy {
-    mapping(address => uint256) private ratios;
+    mapping(address => mapping(address => uint256)) private ratios;
 
     function getDepositAmount(address vault, address token, uint256 _deposit) external view returns (uint256 amountStart, uint256 amountEnd) {
-        uint256 _mid = ratios[vault] * _deposit / 1e18;
+        uint256 _mid = ratios[vault][token] * _deposit / 1e18;
         return (_mid * 999 / 1000, _mid * 1001 / 1000);
     }
 
@@ -16,7 +16,7 @@ contract UniProxyMock is IUniProxy {
         IHypervisor(vault).deposit(deposit0, deposit1, to, msg.sender, minIn);
     }
 
-    function setRatio(address _vault, uint256 _ratio) external {
-        ratios[_vault] = _ratio;
+    function setRatio(address _vault, address _inToken, uint256 _ratio) external {
+        ratios[_vault][_inToken] = _ratio;
     }
 }

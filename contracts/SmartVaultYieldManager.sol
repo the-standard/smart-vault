@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
@@ -10,6 +11,8 @@ import "contracts/interfaces/IWETH.sol";
 import "hardhat/console.sol";
 
 contract SmartVaultYieldManager is ISmartVaultYieldManager {
+    using SafeERC20 for IERC20;
+
     address private immutable EUROs;
     address private immutable EURA;
     address private immutable WETH;
@@ -50,7 +53,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
                     _divisor++;
                     _tokenBTooLarge = false;
                 }
-                IERC20(_tokenA).approve(_swapRouter, balance(_tokenA));
+                IERC20(_tokenA).safeApprove(_swapRouter, balance(_tokenA));
                 try ISwapRouter(_swapRouter).exactOutputSingle(ISwapRouter.ExactOutputSingleParams({
                     tokenIn: _tokenA,
                     tokenOut: _tokenB,
@@ -63,12 +66,13 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
                 })) returns (uint256) {} catch {
                     _divisor++;
                 }
+                IERC20(_tokenA).safeApprove(_swapRouter, 0);
             } else {
                 if (!_tokenBTooLarge) {
                     _divisor++;
                     _tokenBTooLarge = true;
                 }
-                IERC20(_tokenB).approve(_swapRouter, (_tokenBBalance - _midRatio) / _divisor);
+                IERC20(_tokenB).safeApprove(_swapRouter, (_tokenBBalance - _midRatio) / _divisor);
                 try ISwapRouter(_swapRouter).exactInputSingle(ISwapRouter.ExactInputSingleParams({
                     tokenIn: _tokenB,
                     tokenOut: _tokenA,
@@ -81,6 +85,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
                 })) returns (uint256) {} catch {
                     _divisor++;
                 }
+                IERC20(_tokenB).safeApprove(_swapRouter, 0);
             }
             _tokenBBalance = balance(_tokenB);
             (amountStart, amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, balance(_tokenA));
@@ -89,7 +94,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
 
     function swapToEURA(address _collateralToken, uint256 _euroPercentage) private {
         uint256 _euroYieldPortion = balance(_collateralToken) * _euroPercentage / HUNDRED_PC;
-        IERC20(_collateralToken).approve(eurosRouter, _euroYieldPortion);
+        IERC20(_collateralToken).safeApprove(eurosRouter, _euroYieldPortion);
         ISwapRouter(eurosRouter).exactInput(ISwapRouter.ExactInputParams({
             path: vaultData[_collateralToken].pathToEURA,
             recipient: address(this),
@@ -97,14 +102,17 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
             amountIn: _euroYieldPortion,
             amountOutMinimum: 1
         }));
+        IERC20(_collateralToken).safeApprove(eurosRouter, 0);
     }
 
     function deposit(address _vault) private {
         address _token0 = IHypervisor(_vault).token0();
         address _token1 = IHypervisor(_vault).token1();
-        IERC20(_token0).approve(_vault, balance(_token0));
-        IERC20(_token1).approve(_vault, balance(_token1));
+        IERC20(_token0).safeApprove(_vault, balance(_token0));
+        IERC20(_token1).safeApprove(_vault, balance(_token1));
         IUniProxy(uniProxy).deposit(balance(_token0), balance(_token1), msg.sender, _vault, [uint256(0),uint256(0),uint256(0),uint256(0)]);
+        IERC20(_token0).safeApprove(_vault, 0);
+        IERC20(_token1).safeApprove(_vault, 0);
     }
 
     function euroDeposit(address _collateralToken, uint256 _euroPercentage) private {
@@ -119,10 +127,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
     }
 
     function depositYield(address _collateralToken, uint256 _euroPercentage) external payable returns (address _vault0, address _vault1) {
-        if (_collateralToken == address(0)) {
-            _collateralToken = WETH;
-            IWETH(WETH).deposit{value: msg.value}();
-        }
+        IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
         euroDeposit(_collateralToken, _euroPercentage);
         VaultData memory _vaultData = vaultData[_collateralToken];
         otherDeposit(_collateralToken, _vaultData);

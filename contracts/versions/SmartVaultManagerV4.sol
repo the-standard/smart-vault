@@ -67,13 +67,13 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         _;
     }
 
-    function vaults() external view returns (SmartVaultData[] memory) {
+    function vaults() external view returns (SmartVaultData[] memory _vaultData) {
         uint256[] memory tokenIds = smartVaultIndex.getTokenIds(msg.sender);
         uint256 idsLength = tokenIds.length;
-        SmartVaultData[] memory vaultData = new SmartVaultData[](idsLength);
+        _vaultData = new SmartVaultData[](idsLength);
         for (uint256 i = 0; i < idsLength; i++) {
             uint256 tokenId = tokenIds[i];
-            vaultData[i] = SmartVaultData({
+            _vaultData[i] = SmartVaultData({
                 tokenId: tokenId,
                 collateralRate: collateralRate,
                 mintFeeRate: mintFeeRate,
@@ -81,7 +81,6 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
                 status: ISmartVault(smartVaultIndex.getVaultAddress(tokenId)).status()
             });
         }
-        return vaultData;
     }
 
     function vaultIDs(address _holder) external view returns (uint256[] memory) {

@@ -104,7 +104,7 @@ contract SmartVaultV4 is ISmartVault {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory _token = acceptedTokens[i];
-            euros += calculator.tokenToEur(_token, getAssetBalance(_token.symbol, _token.addr));
+            euros += calculator.tokenToEur(_token, getAssetBalance(_token.addr));
         }
 
         euros += yieldVaultCollateral(acceptedTokens);
@@ -114,8 +114,8 @@ contract SmartVaultV4 is ISmartVault {
         return _collateral * ISmartVaultManagerV3(manager).HUNDRED_PC() / ISmartVaultManagerV3(manager).collateralRate();
     }
 
-    function getAssetBalance(bytes32 _symbol, address _tokenAddress) private view returns (uint256 amount) {
-        return _symbol == NATIVE ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
+    function getAssetBalance(address _tokenAddress) private view returns (uint256 amount) {
+        return _tokenAddress == address(0) ? address(this).balance : IERC20(_tokenAddress).balanceOf(address(this));
     }
 
     function getAssets() private view returns (Asset[] memory) {
@@ -124,7 +124,7 @@ contract SmartVaultV4 is ISmartVault {
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
-            uint256 assetBalance = getAssetBalance(token.symbol, token.addr);
+            uint256 assetBalance = getAssetBalance(token.addr);
             assets[i] = Asset(token, assetBalance, calculator.tokenToEur(token, assetBalance));
         }
         return assets;
@@ -222,7 +222,7 @@ contract SmartVaultV4 is ISmartVault {
         if (_token.symbol == bytes32(0)) revert InvalidRequest();
     }
 
-    function getSwapAddressFor(bytes32 _symbol) private view returns (address) {
+    function getTokenisedAddr(bytes32 _symbol) private view returns (address) {
         ITokenManager.Token memory _token = getToken(_symbol);
         return _token.addr == address(0) ? ISmartVaultManagerV3(manager).weth() : _token.addr;
     }
@@ -255,12 +255,12 @@ contract SmartVaultV4 is ISmartVault {
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _requestedMinOut) external onlyOwner {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
-        address inToken = getSwapAddressFor(_inToken);
+        address inToken = getTokenisedAddr(_inToken);
         uint256 minimumAmountOut = calculateMinimumAmountOut(_inToken, _outToken, _amount + swapFee);
         if (_requestedMinOut > minimumAmountOut) minimumAmountOut = _requestedMinOut;
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: inToken,
-                tokenOut: getSwapAddressFor(_outToken),
+                tokenOut: getTokenisedAddr(_outToken),
                 fee: 3000,
                 recipient: address(this),
                 deadline: block.timestamp + 60,
@@ -273,13 +273,22 @@ contract SmartVaultV4 is ISmartVault {
             executeERC20SwapAndFee(params, swapFee);
     }
 
+    function addUniqueVaultToken(address _vault) private {
+        for (uint256 i = 0; i < vaultTokens.length; i++) {
+            if (vaultTokens[i] == _vault) return;
+        }
+        vaultTokens.push(_vault);
+    }
+
     function depositYield(bytes32 _symbol, uint256 _euroPercentage) external {
-        ITokenManager.Token memory _token = getTokenManager().getToken(_symbol);
-        uint256 _balance = getAssetBalance(_symbol, _token.addr);
-        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield{value: address(this).balance}(_token.addr, _euroPercentage);
-        // TODO make sure this is unique added
-        vaultTokens.push(_vault1);
-        vaultTokens.push(_vault2);
+        if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
+        address _token = getTokenisedAddr(_symbol);
+        uint256 _balance = getAssetBalance(_token);
+        if (_balance == 0) revert InvalidRequest();
+        IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
+        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield(_token, _euroPercentage);
+        addUniqueVaultToken(_vault1);
+        addUniqueVaultToken(_vault2);
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
