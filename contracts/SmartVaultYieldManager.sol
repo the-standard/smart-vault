@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
@@ -10,7 +11,7 @@ import "contracts/interfaces/IWETH.sol";
 
 import "hardhat/console.sol";
 
-contract SmartVaultYieldManager is ISmartVaultYieldManager {
+contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 
     address private immutable EUROs;
@@ -92,11 +93,11 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
         }
     }
 
-    function swapToEURA(address _collateralToken, uint256 _euroPercentage) private {
+    function swapToEURA(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
         uint256 _euroYieldPortion = balance(_collateralToken) * _euroPercentage / HUNDRED_PC;
         IERC20(_collateralToken).safeApprove(eurosRouter, _euroYieldPortion);
         ISwapRouter(eurosRouter).exactInput(ISwapRouter.ExactInputParams({
-            path: vaultData[_collateralToken].pathToEURA,
+            path: _pathToEURA,
             recipient: address(this),
             deadline: block.timestamp + 60,
             amountIn: _euroYieldPortion,
@@ -115,8 +116,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
         IERC20(_token1).safeApprove(_vault, 0);
     }
 
-    function euroDeposit(address _collateralToken, uint256 _euroPercentage) private {
-        swapToEURA(_collateralToken, _euroPercentage);
+    function euroDeposit(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
+        swapToEURA(_collateralToken, _euroPercentage, _pathToEURA);
         swapToRatio(EURA, euroVault, eurosRouter, 500);
         deposit(euroVault);
     }
@@ -128,13 +129,18 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager {
 
     function depositYield(address _collateralToken, uint256 _euroPercentage) external payable returns (address _vault0, address _vault1) {
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
-        euroDeposit(_collateralToken, _euroPercentage);
         VaultData memory _vaultData = vaultData[_collateralToken];
+        require(_vaultData.vaultAddr != address(0), "err-invalid-request");
+        euroDeposit(_collateralToken, _euroPercentage, _vaultData.pathToEURA);
         otherDeposit(_collateralToken, _vaultData);
         return (euroVault, _vaultData.vaultAddr);
     }
 
     function addVaultData(address _collateralToken, address _vaultAddr, uint24 _poolFee, bytes memory _EURASwapPath) external {
         vaultData[_collateralToken] = VaultData(_vaultAddr, _poolFee, _EURASwapPath);
+    }
+
+    function removeVaultData(address _collateralToken) external onlyOwner {
+        delete vaultData[_collateralToken];
     }
 }
