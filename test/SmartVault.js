@@ -467,13 +467,11 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('yield', async () => {
-    it('fetches empty yield list', async () => {
-      expect(await Vault.yieldAssets()).to.be.empty;
-    });
+  describe.only('yield', async () => {
+    let WBTC, WBTCPerETH;
 
-    it('puts all of given collateral asset into yield', async () => {
-      const WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
+    beforeEach(async () => {
+      WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
       const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
       await CL_WBTC_USD.setPrice(DEFAULT_ETH_USD_PRICE.mul(20));
       await TokenManager.addAcceptedToken(WBTC.address, CL_WBTC_USD.address);
@@ -497,7 +495,7 @@ describe('SmartVault', async () => {
       // ratio of euros vault is 1:1
       await UniProxyMock.setRatio(EUROsGammaVaultMock.address, EURA.address, ethers.utils.parseEther('1'));
       // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
-      const WBTCPerETH = ethers.utils.parseUnits('0.05',8)
+      WBTCPerETH = ethers.utils.parseUnits('0.05',8)
       await UniProxyMock.setRatio(WETHGammaVaultMock.address, MockWeth.address, WBTCPerETH);
       // ratio is inverse of above, 1:20 in unscaled numbers, or 1:20*10^8
       await UniProxyMock.setRatio(WETHGammaVaultMock.address, WBTC.address, ethers.utils.parseUnits('20',28));
@@ -518,7 +516,13 @@ describe('SmartVault', async () => {
       await EUROs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
       await WBTC.mint(MockSwapRouter.address, ethers.utils.parseUnits('10', 8));
       await MockWeth.mint(MockSwapRouter.address, ethers.utils.parseEther('10'));
+    }); 
 
+    it('fetches empty yield list', async () => {
+      expect(await Vault.yieldAssets()).to.be.empty;
+    });
+
+    it('puts all of given collateral asset into yield', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
       
@@ -563,38 +567,6 @@ describe('SmartVault', async () => {
     });
 
     it('allows deleting of yield data for a collateral type (and reverts)', async () => {
-      const WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
-      const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
-      await CL_WBTC_USD.setPrice(DEFAULT_ETH_USD_PRICE.mul(20));
-      await TokenManager.addAcceptedToken(WBTC.address, CL_WBTC_USD.address);
-      await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
-      
-      // fake gamma vault for WETH + WBTC
-      const WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
-        'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
-      );
-
-      // data about how yield manager converts collateral to EURA, vault addresses etc
-      await YieldManager.addVaultData(
-        MockWeth.address, WETHGammaVaultMock.address, 500,
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [MockWeth.address, 3000, EURA.address])
-      )
-
-      // ratio of euros vault is 1:1
-      await UniProxyMock.setRatio(EUROsGammaVaultMock.address, EURA.address, ethers.utils.parseEther('1'));
-      // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
-      const WBTCPerETH = ethers.utils.parseUnits('0.05',8)
-      await UniProxyMock.setRatio(WETHGammaVaultMock.address, MockWeth.address, WBTCPerETH);
-      // ratio is inverse of above, 1:20 in unscaled numbers, or 1:20*10^8
-      await UniProxyMock.setRatio(WETHGammaVaultMock.address, WBTC.address, ethers.utils.parseUnits('20',28));
-
-      // set fake rate for swap router: this is ETH / EUROs: ~1500
-      await MockSwapRouter.setRate(MockWeth.address, EURA.address, DEFAULT_ETH_USD_PRICE.mul(ethers.utils.parseEther('1')).div(DEFAULT_EUR_USD_PRICE))
-      // set fake rate for EURA / EURO: 1:1
-      await MockSwapRouter.setRate(EURA.address, EUROs.address, ethers.utils.parseEther('1'));
-      // set fake rate for ETH / WBTC: 0.05 WBTC scaled down to 8 dec
-      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
-
       // load up mock swap router
       await EURA.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
       await EUROs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
@@ -611,5 +583,12 @@ describe('SmartVault', async () => {
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
       await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWith('err-invalid-request');
     });
+
+    it('withdraw yield deposits by vault', async () => {
+
+    });
+
+    xit('reverts if collateral level falls below required level');
+    xit('reverts if withdrawal asset is not compatible with yield vault');
   });
 });
