@@ -468,7 +468,7 @@ describe('SmartVault', async () => {
   });
 
   describe('yield', async () => {
-    let WBTC, WBTCPerETH, WETHGammaVaultMock;
+    let WBTC, WBTCPerETH, MockWETHWBTCVault;
 
     beforeEach(async () => {
       WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
@@ -478,18 +478,18 @@ describe('SmartVault', async () => {
       await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
       
       // fake gamma vault for WETH + WBTC
-      WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
+      MockWETHWBTCVault = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
         'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
       );
 
       // data about how yield manager converts collateral to EURA, vault addresses etc
       await YieldManager.addVaultData(
-        MockWeth.address, WETHGammaVaultMock.address, 500,
+        MockWeth.address, MockWETHWBTCVault.address, 500,
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [MockWeth.address, 3000, EURA.address]),
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, MockWeth.address])
       )
       await YieldManager.addVaultData(
-        WBTC.address, WETHGammaVaultMock.address, 500,
+        WBTC.address, MockWETHWBTCVault.address, 500,
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [WBTC.address, 3000, EURA.address]),
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, WBTC.address])
       )
@@ -498,9 +498,9 @@ describe('SmartVault', async () => {
       await UniProxyMock.setRatio(EUROsGammaVaultMock.address, EURA.address, ethers.utils.parseEther('1'));
       // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
       WBTCPerETH = ethers.utils.parseUnits('0.05',8)
-      await UniProxyMock.setRatio(WETHGammaVaultMock.address, MockWeth.address, WBTCPerETH);
+      await UniProxyMock.setRatio(MockWETHWBTCVault.address, MockWeth.address, WBTCPerETH);
       // ratio is inverse of above, 1:20 in unscaled numbers, or 1:20*10^8
-      await UniProxyMock.setRatio(WETHGammaVaultMock.address, WBTC.address, ethers.utils.parseUnits('20',28));
+      await UniProxyMock.setRatio(MockWETHWBTCVault.address, WBTC.address, ethers.utils.parseUnits('20',28));
 
       // set fake rate for swap router: this is ETH / EUROs: ~1500
       await MockSwapRouter.setRate(MockWeth.address, EURA.address, DEFAULT_ETH_USD_PRICE.mul(ethers.utils.parseEther('1')).div(DEFAULT_EUR_USD_PRICE));
@@ -581,7 +581,7 @@ describe('SmartVault', async () => {
       await expect(YieldManager.connect(admin).removeVaultData(MockWeth.address)).not.to.be.reverted;
 
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWith('err-invalid-request');
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
     });
 
     it('withdraw yield deposits by vault', async () => {
@@ -597,14 +597,23 @@ describe('SmartVault', async () => {
       const [ EUROsYield ] = await Vault.yieldAssets();
 
       await Vault.connect(user).withdrawYield(EUROsYield.vault, ETH);
-      const { totalCollateralValue, collateral } = await Vault.status();
+      let { totalCollateralValue, collateral } = await Vault.status();
       // fake rate from swap router causing a slight accuracy area
       expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 2000);
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(1);
-      expect(yieldAssets[0].vault).to.equal(WETHGammaVaultMock.address);
+      expect(yieldAssets[0].vault).to.equal(MockWETHWBTCVault.address);
       // should have withdrawn ~quarter of eth collateral, because that much was put in stable pool originally
       expect(getCollateralOf('ETH', collateral).amount).to.be.closeTo(ethCollateral.div(4), 1);
+
+      await Vault.connect(user).withdrawYield(MockWETHWBTCVault.address, ethers.utils.formatBytes32String('WBTC'));
+      ({ totalCollateralValue, collateral } = await Vault.status());
+      // fake rate from swap router causing a slight accuracy area
+      expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 2000);
+      expect(await Vault.yieldAssets()).to.be.empty;
+      // wbtc amount should be roughly equal to 0.075 ETH = 0.075
+      const expectedWBTC = WBTCPerETH.mul(ethCollateral.mul(3).div(4)).div(ethers.utils.parseEther('1'));
+      expect(getCollateralOf('WBTC', collateral).amount).to.equal(expectedWBTC);
     });
 
     xit('reverts if collateral level falls below required level');

@@ -24,7 +24,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     uint256 private constant HUNDRED_PC = 1e5;
     mapping(address => VaultData) private vaultData;
 
-    struct VaultData { address vaultAddr; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
+    struct VaultData { address vault; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
+
+    error InvalidRequest();
 
     constructor(address _EUROs, address _EURA, address _WETH, address _uniProxy, address _eurosRouter, address _euroVault, address _uniswapRouter) {
         EUROs = _EUROs;
@@ -93,6 +95,26 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         }
     }
 
+    function _swapToSingleAsset(address _vault, address _wantedToken, address _swapRouter, uint24 _fee) private {
+        address _token0 = IHypervisor(_vault).token0();
+        address _unwantedToken = IHypervisor(_vault).token0() == _wantedToken ?
+            IHypervisor(_vault).token1() :
+            _token0;
+        uint256 _balance = _thisBalanceOf(_unwantedToken);
+        IERC20(_unwantedToken).safeApprove(_swapRouter, _balance);
+        ISwapRouter(_swapRouter).exactInputSingle(ISwapRouter.ExactInputSingleParams({
+            tokenIn: _unwantedToken,
+            tokenOut: _wantedToken,
+            fee: _fee,
+            recipient: address(this),
+            deadline: block.timestamp + 60,
+            amountIn: _balance,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        }));
+        IERC20(_unwantedToken).safeApprove(_swapRouter, 0);
+    }
+
     function _swapToEURA(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
         uint256 _euroYieldPortion = _thisBalanceOf(_collateralToken) * _euroPercentage / HUNDRED_PC;
         IERC20(_collateralToken).safeApprove(uniswapRouter, _euroYieldPortion);
@@ -123,17 +145,18 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function _otherDeposit(address _collateralToken, VaultData memory _vaultData) private {
-        _swapToRatio(_collateralToken, _vaultData.vaultAddr, uniswapRouter, _vaultData.poolFee);
-        _deposit(_vaultData.vaultAddr);
+        _swapToRatio(_collateralToken, _vaultData.vault, uniswapRouter, _vaultData.poolFee);
+        _deposit(_vaultData.vault);
     }
 
     function deposit(address _collateralToken, uint256 _euroPercentage) external returns (address _vault0, address _vault1) {
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
         VaultData memory _vaultData = vaultData[_collateralToken];
-        require(_vaultData.vaultAddr != address(0), "err-invalid-request");
+        if (_vaultData.vault == address(0)) revert InvalidRequest();
         _euroDeposit(_collateralToken, _euroPercentage, _vaultData.pathToEURA);
         _otherDeposit(_collateralToken, _vaultData);
-        return (euroVault, _vaultData.vaultAddr);
+        return (euroVault, _vaultData.vault);
+        // TODO emit event
     }
 
     function _sellEUROs() private {
@@ -166,21 +189,30 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(EUROs).safeApprove(uniswapRouter, 0);
     }
 
-    function withdrawEUROsDeposit(address _token) private {
-        IHypervisor(euroVault).withdraw(_thisBalanceOf(euroVault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
+    function _withdrawEUROsDeposit(address _vault, address _token) private {
+        IHypervisor(_vault).withdraw(_thisBalanceOf(_vault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
         _sellEUROs();
         _sellEURA(_token);
     }
 
-    function withdraw(address _vault, address _token) external {
-        IERC20(_vault).safeTransferFrom(msg.sender, address(this), IERC20(_vault).balanceOf(msg.sender));
-        if (_vault == euroVault) {
-            withdrawEUROsDeposit(_token);
-        }
+    function _withdrawOtherDeposit(address _vault, address _token) private {
+        VaultData memory _vaultData = vaultData[_token];
+        if (_vaultData.vault != _vault) revert InvalidRequest();
+        IHypervisor(_vault).withdraw(_thisBalanceOf(_vault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
+        _swapToSingleAsset(_vault, _token, uniswapRouter, _vaultData.poolFee);
+        IERC20(_token).safeTransfer(msg.sender, _thisBalanceOf(_token));
     }
 
-    function addVaultData(address _collateralToken, address _vaultAddr, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external {
-        vaultData[_collateralToken] = VaultData(_vaultAddr, _poolFee, _pathToEURA, _pathFromEURA);
+    function withdraw(address _vault, address _token) external {
+        IERC20(_vault).safeTransferFrom(msg.sender, address(this), IERC20(_vault).balanceOf(msg.sender));
+        _vault == euroVault ? 
+            _withdrawEUROsDeposit(_vault, _token) :
+            _withdrawOtherDeposit(_vault, _token);
+        // TODO emit event
+    }
+
+    function addVaultData(address _collateralToken, address _vault, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external {
+        vaultData[_collateralToken] = VaultData(_vault, _poolFee, _pathToEURA, _pathFromEURA);
     }
 
     function removeVaultData(address _collateralToken) external onlyOwner {
