@@ -159,22 +159,6 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         // TODO emit event
     }
 
-    function _sellEUROs() private {
-        uint256 _balance = _thisBalanceOf(EUROs);
-        IERC20(EUROs).safeApprove(eurosRouter, _balance);
-        ISwapRouter(eurosRouter).exactInputSingle(ISwapRouter.ExactInputSingleParams({
-            tokenIn: EUROs,
-            tokenOut: EURA,
-            fee: 500,
-            recipient: address(this),
-            deadline: block.timestamp + 60,
-            amountIn: _balance,
-            amountOutMinimum: 0,
-            sqrtPriceLimitX96: 0
-        }));
-        IERC20(EUROs).safeApprove(eurosRouter, 0);
-    }
-
     function _sellEURA(address _token) private {
         bytes memory _pathFromEURA = vaultData[_token].pathFromEURA;
         uint256 _balance = _thisBalanceOf(EURA);
@@ -191,7 +175,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function _withdrawEUROsDeposit(address _vault, address _token) private {
         IHypervisor(_vault).withdraw(_thisBalanceOf(_vault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
-        _sellEUROs();
+        _swapToSingleAsset(euroVault, EURA, eurosRouter, 500);
         _sellEURA(_token);
     }
 
