@@ -36,15 +36,15 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         uniswapRouter = _uniswapRouter;
     }
 
-    function balance(address _token) private view returns (uint256) {
+    function _thisBalanceOf(address _token) private view returns (uint256) {
         return IERC20(_token).balanceOf(address(this));
     }
 
-    function swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
+    function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         address _tokenB = _tokenA == IHypervisor(_hypervisor).token0() ?
             IHypervisor(_hypervisor).token1() : IHypervisor(_hypervisor).token0();
-        uint256 _tokenBBalance = balance(_tokenB);
-        (uint256 amountStart, uint256 amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, balance(_tokenA));
+        uint256 _tokenBBalance = _thisBalanceOf(_tokenB);
+        (uint256 amountStart, uint256 amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
         uint256 _divisor = 2;
         bool _tokenBTooLarge;
         while(_tokenBBalance < amountStart || _tokenBBalance > amountEnd) {
@@ -54,7 +54,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     _divisor++;
                     _tokenBTooLarge = false;
                 }
-                IERC20(_tokenA).safeApprove(_swapRouter, balance(_tokenA));
+                IERC20(_tokenA).safeApprove(_swapRouter, _thisBalanceOf(_tokenA));
                 try ISwapRouter(_swapRouter).exactOutputSingle(ISwapRouter.ExactOutputSingleParams({
                     tokenIn: _tokenA,
                     tokenOut: _tokenB,
@@ -62,7 +62,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     recipient: address(this),
                     deadline: block.timestamp + 60,
                     amountOut: (_midRatio - _tokenBBalance) / _divisor,
-                    amountInMaximum: balance(_tokenA),
+                    amountInMaximum: _thisBalanceOf(_tokenA),
                     sqrtPriceLimitX96: 0
                 })) returns (uint256) {} catch {
                     _divisor++;
@@ -88,13 +88,13 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 }
                 IERC20(_tokenB).safeApprove(_swapRouter, 0);
             }
-            _tokenBBalance = balance(_tokenB);
-            (amountStart, amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, balance(_tokenA));
+            _tokenBBalance = _thisBalanceOf(_tokenB);
+            (amountStart, amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
         }
     }
 
-    function swapToEURA(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
-        uint256 _euroYieldPortion = balance(_collateralToken) * _euroPercentage / HUNDRED_PC;
+    function _swapToEURA(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
+        uint256 _euroYieldPortion = _thisBalanceOf(_collateralToken) * _euroPercentage / HUNDRED_PC;
         IERC20(_collateralToken).safeApprove(uniswapRouter, _euroYieldPortion);
         ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
             path: _pathToEURA,
@@ -106,38 +106,38 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(_collateralToken).safeApprove(uniswapRouter, 0);
     }
 
-    function deposit(address _vault) private {
+    function _deposit(address _vault) private {
         address _token0 = IHypervisor(_vault).token0();
         address _token1 = IHypervisor(_vault).token1();
-        IERC20(_token0).safeApprove(_vault, balance(_token0));
-        IERC20(_token1).safeApprove(_vault, balance(_token1));
-        IUniProxy(uniProxy).deposit(balance(_token0), balance(_token1), msg.sender, _vault, [uint256(0),uint256(0),uint256(0),uint256(0)]);
+        IERC20(_token0).safeApprove(_vault, _thisBalanceOf(_token0));
+        IERC20(_token1).safeApprove(_vault, _thisBalanceOf(_token1));
+        IUniProxy(uniProxy).deposit(_thisBalanceOf(_token0), _thisBalanceOf(_token1), msg.sender, _vault, [uint256(0),uint256(0),uint256(0),uint256(0)]);
         IERC20(_token0).safeApprove(_vault, 0);
         IERC20(_token1).safeApprove(_vault, 0);
     }
 
-    function euroDeposit(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
-        swapToEURA(_collateralToken, _euroPercentage, _pathToEURA);
-        swapToRatio(EURA, euroVault, eurosRouter, 500);
-        deposit(euroVault);
+    function _euroDeposit(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
+        _swapToEURA(_collateralToken, _euroPercentage, _pathToEURA);
+        _swapToRatio(EURA, euroVault, eurosRouter, 500);
+        _deposit(euroVault);
     }
 
-    function otherDeposit(address _collateralToken, VaultData memory _vaultData) private {
-        swapToRatio(_collateralToken, _vaultData.vaultAddr, uniswapRouter, _vaultData.poolFee);
-        deposit(_vaultData.vaultAddr);
+    function _otherDeposit(address _collateralToken, VaultData memory _vaultData) private {
+        _swapToRatio(_collateralToken, _vaultData.vaultAddr, uniswapRouter, _vaultData.poolFee);
+        _deposit(_vaultData.vaultAddr);
     }
 
     function deposit(address _collateralToken, uint256 _euroPercentage) external returns (address _vault0, address _vault1) {
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
         VaultData memory _vaultData = vaultData[_collateralToken];
         require(_vaultData.vaultAddr != address(0), "err-invalid-request");
-        euroDeposit(_collateralToken, _euroPercentage, _vaultData.pathToEURA);
-        otherDeposit(_collateralToken, _vaultData);
+        _euroDeposit(_collateralToken, _euroPercentage, _vaultData.pathToEURA);
+        _otherDeposit(_collateralToken, _vaultData);
         return (euroVault, _vaultData.vaultAddr);
     }
 
-    function sellEUROs() private {
-        uint256 _balance = balance(EUROs);
+    function _sellEUROs() private {
+        uint256 _balance = _thisBalanceOf(EUROs);
         IERC20(EUROs).safeApprove(eurosRouter, _balance);
         ISwapRouter(eurosRouter).exactInputSingle(ISwapRouter.ExactInputSingleParams({
             tokenIn: EUROs,
@@ -152,9 +152,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(EUROs).safeApprove(eurosRouter, 0);
     }
 
-    function sellEURA(address _token) private {
+    function _sellEURA(address _token) private {
         bytes memory _pathFromEURA = vaultData[_token].pathFromEURA;
-        uint256 _balance = balance(EURA);
+        uint256 _balance = _thisBalanceOf(EURA);
         IERC20(EURA).safeApprove(uniswapRouter, _balance);
         ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
             path: _pathFromEURA,
@@ -167,9 +167,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function withdrawEUROsDeposit(address _token) private {
-        IHypervisor(euroVault).withdraw(balance(euroVault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
-        sellEUROs();
-        sellEURA(_token);
+        IHypervisor(euroVault).withdraw(_thisBalanceOf(euroVault), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
+        _sellEUROs();
+        _sellEURA(_token);
     }
 
     function withdraw(address _vault, address _token) external {
