@@ -127,13 +127,17 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         deposit(_vaultData.vaultAddr);
     }
 
-    function depositYield(address _collateralToken, uint256 _euroPercentage) external payable returns (address _vault0, address _vault1) {
+    function depositYield(address _collateralToken, uint256 _euroPercentage) external returns (address _vault0, address _vault1) {
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
         VaultData memory _vaultData = vaultData[_collateralToken];
         require(_vaultData.vaultAddr != address(0), "err-invalid-request");
         euroDeposit(_collateralToken, _euroPercentage, _vaultData.pathToEURA);
         otherDeposit(_collateralToken, _vaultData);
         return (euroVault, _vaultData.vaultAddr);
+    }
+
+    function withdrawYield(address _vault, address _token) external {
+
     }
 
     function addVaultData(address _collateralToken, address _vaultAddr, uint24 _poolFee, bytes memory _EURASwapPath) external {
