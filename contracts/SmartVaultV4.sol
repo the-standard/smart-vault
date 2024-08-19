@@ -24,7 +24,7 @@ contract SmartVaultV4 is ISmartVault {
     address public immutable manager;
     IEUROs public immutable EUROs;
     IPriceCalculator public immutable calculator;
-    address[] private vaultTokens;
+    address[] private Hypervisors;
 
     address public owner;
     uint256 private minted;
@@ -35,7 +35,7 @@ contract SmartVaultV4 is ISmartVault {
     event EUROsMinted(address to, uint256 amount, uint256 fee);
     event EUROsBurned(uint256 amount, uint256 fee);
 
-    struct YieldPair { address vault; address token0; uint256 amount0; address token1; uint256 amount1; }
+    struct YieldPair { address hypervisor; address token0; uint256 amount0; address token1; uint256 amount1; }
     error InvalidUser();
     error InvalidRequest();
 
@@ -72,14 +72,14 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function yieldVaultCollateral(ITokenManager.Token[] memory _acceptedTokens) private view returns (uint256 _euros) {
-        for (uint256 i = 0; i < vaultTokens.length; i++) {
-            IHypervisor _vaultToken = IHypervisor(vaultTokens[i]);
-            uint256 _balance = _vaultToken.balanceOf(address(this));
+        for (uint256 i = 0; i < Hypervisors.length; i++) {
+            IHypervisor _Hypervisor = IHypervisor(Hypervisors[i]);
+            uint256 _balance = _Hypervisor.balanceOf(address(this));
             if (_balance > 0) {
-                uint256 _totalSupply = _vaultToken.totalSupply();
-                (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
-                address _token0 = _vaultToken.token0();
-                address _token1 = _vaultToken.token1();
+                uint256 _totalSupply = _Hypervisor.totalSupply();
+                (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _Hypervisor.getTotalAmounts();
+                address _token0 = _Hypervisor.token0();
+                address _token1 = _Hypervisor.token1();
                 uint256 _underlying0 = _balance * _underlyingTotal0 / _totalSupply;
                 uint256 _underlying1 = _balance * _underlyingTotal1 / _totalSupply;
                 if (_token0 == address(EUROs) || _token1 == address(EUROs)) {
@@ -273,18 +273,18 @@ contract SmartVaultV4 is ISmartVault {
             executeERC20SwapAndFee(params, swapFee);
     }
 
-    function addUniqueVaultToken(address _vault) private {
-        for (uint256 i = 0; i < vaultTokens.length; i++) {
-            if (vaultTokens[i] == _vault) return;
+    function addUniqueHypervisor(address _vault) private {
+        for (uint256 i = 0; i < Hypervisors.length; i++) {
+            if (Hypervisors[i] == _vault) return;
         }
-        vaultTokens.push(_vault);
+        Hypervisors.push(_vault);
     }
 
-    function removeVaultToken(address _vault) private {
-        for (uint256 i = 0; i < vaultTokens.length; i++) {
-            if (vaultTokens[i] == _vault) {
-                vaultTokens[i] = vaultTokens[vaultTokens.length - 1];
-                vaultTokens.pop();
+    function removeHypervisor(address _vault) private {
+        for (uint256 i = 0; i < Hypervisors.length; i++) {
+            if (Hypervisors[i] == _vault) {
+                Hypervisors[i] = Hypervisors[Hypervisors.length - 1];
+                Hypervisors.pop();
             }
         }
     }
@@ -296,31 +296,31 @@ contract SmartVaultV4 is ISmartVault {
         if (_balance == 0) revert InvalidRequest();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _euroPercentage);
-        addUniqueVaultToken(_vault1);
-        addUniqueVaultToken(_vault2);
+        addUniqueHypervisor(_vault1);
+        addUniqueHypervisor(_vault2);
     }
 
     function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
         address _token = getTokenisedAddr(_symbol);
         IERC20(_vault).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_vault).balanceOf(address(this)));
         ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_vault, _token);
-        removeVaultToken(_vault);
+        removeHypervisor(_vault);
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
-        _yieldPairs = new YieldPair[](vaultTokens.length);
-        for (uint256 i = 0; i < vaultTokens.length; i++) {
-            IHypervisor _vaultToken = IHypervisor(vaultTokens[i]);
-            uint256 _balance = _vaultToken.balanceOf(address(this));
-            uint256 _vaultTotal = _vaultToken.totalSupply();
-            (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
+        _yieldPairs = new YieldPair[](Hypervisors.length);
+        for (uint256 i = 0; i < Hypervisors.length; i++) {
+            IHypervisor _Hypervisor = IHypervisor(Hypervisors[i]);
+            uint256 _balance = _Hypervisor.balanceOf(address(this));
+            uint256 _vaultTotal = _Hypervisor.totalSupply();
+            (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _Hypervisor.getTotalAmounts();
 
-            _yieldPairs[i].vault = vaultTokens[i];
-            _yieldPairs[i].token0 = _vaultToken.token0();
-            _yieldPairs[i].token1 = _vaultToken.token1();
+            _yieldPairs[i].hypervisor = Hypervisors[i];
+            _yieldPairs[i].token0 = _Hypervisor.token0();
+            _yieldPairs[i].token1 = _Hypervisor.token1();
             _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _vaultTotal;
             _yieldPairs[i].amount1 = _balance * _underlyingTotal1 / _vaultTotal;
         }

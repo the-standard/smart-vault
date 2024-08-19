@@ -7,7 +7,7 @@ import "contracts/interfaces/IHypervisor.sol";
 
 import "hardhat/console.sol";
 
-contract GammaVaultMock is IHypervisor, ERC20 {
+contract HypervisorMock is IHypervisor, ERC20 {
     address public immutable token0;
     address public immutable token1;
 
