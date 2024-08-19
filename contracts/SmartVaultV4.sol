@@ -280,20 +280,34 @@ contract SmartVaultV4 is ISmartVault {
         vaultTokens.push(_vault);
     }
 
+    function removeVaultToken(address _vault) private {
+        for (uint256 i = 0; i < vaultTokens.length; i++) {
+            if (vaultTokens[i] == _vault) {
+                vaultTokens[i] = vaultTokens[vaultTokens.length - 1];
+                vaultTokens.pop();
+            }
+        }
+    }
+
     function depositYield(bytes32 _symbol, uint256 _euroPercentage) external onlyOwner {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
         if (_balance == 0) revert InvalidRequest();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
-        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).depositYield(_token, _euroPercentage);
+        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _euroPercentage);
         addUniqueVaultToken(_vault1);
         addUniqueVaultToken(_vault2);
     }
 
     function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
         address _token = getTokenisedAddr(_symbol);
-        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdrawYield(_vault, _token);
+        IERC20(_vault).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_vault).balanceOf(address(this)));
+        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_vault, _token);
+        removeVaultToken(_vault);
+        if (_symbol == NATIVE) {
+            IWETH(_token).withdraw(getAssetBalance(_token));
+        }
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {

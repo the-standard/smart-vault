@@ -2,7 +2,7 @@
 pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-// import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
 
 import "hardhat/console.sol";
@@ -32,5 +32,19 @@ contract GammaVaultMock is IHypervisor, ERC20 {
         IERC20(token1).transferFrom(from, address(this), deposit1);
         // simplified calculation because our mock will not deal with a changing swap rate
         _mint(to, deposit0);
+    }
+
+    function withdraw(
+        uint256 shares,
+        address to,
+        address from,
+        uint256[4] memory minAmounts
+    ) external returns (uint256 amount0, uint256 amount1) {
+        (uint256 _total0, uint256 _total1) = getTotalAmounts();
+        amount0 = shares * _total0 / totalSupply();
+        amount1 = shares * _total1 / totalSupply();
+        _burn(from, shares);
+        IERC20(token0).transfer(to, amount0);
+        IERC20(token1).transfer(to, amount1);
     }
 }

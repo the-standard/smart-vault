@@ -14,4 +14,11 @@ interface IHypervisor is IERC20 {
         address from,
         uint256[4] memory inMin
     ) external returns (uint256 shares);
+
+    function withdraw(
+        uint256 shares,
+        address to,
+        address from,
+        uint256[4] memory minAmounts
+    ) external returns (uint256 amount0, uint256 amount1);
 }
