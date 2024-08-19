@@ -526,7 +526,10 @@ describe('SmartVault', async () => {
       let preYieldCollateral = totalCollateralValue;
       expect(getCollateralOf('ETH', collateral).amount).to.equal(ethCollateral);
 
-      await Vault.depositYield(ETH, HUNDRED_PC.div(2));
+      // only vault owner can deposit collateral as yield
+      await expect(Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidUser');
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
+
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
       // allow a delta of 2 wei in pre and post yield collateral, due to dividing etc
@@ -553,7 +556,7 @@ describe('SmartVault', async () => {
       preYieldCollateral = totalCollateralValue;
 
       // deposit wbtc for yield, 25% to euros pool
-      await Vault.depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
+      await Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(0);
       expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 1);
@@ -600,13 +603,13 @@ describe('SmartVault', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
 
-      await expect(Vault.depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
 
       await expect(YieldManager.connect(user).removeVaultData(MockWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(YieldManager.connect(admin).removeVaultData(MockWeth.address)).not.to.be.reverted;
 
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      await expect(Vault.depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWith('err-invalid-request');
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWith('err-invalid-request');
     });
   });
 });
