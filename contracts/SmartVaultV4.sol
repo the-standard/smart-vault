@@ -35,7 +35,7 @@ contract SmartVaultV4 is ISmartVault {
     event EUROsMinted(address to, uint256 amount, uint256 fee);
     event EUROsBurned(uint256 amount, uint256 fee);
 
-    struct YieldPair { address token0; uint256 amount0; address token1; uint256 amount1; }
+    struct YieldPair { address vault; address token0; uint256 amount0; address token1; uint256 amount1; }
     error InvalidUser();
     error InvalidRequest();
 
@@ -280,7 +280,7 @@ contract SmartVaultV4 is ISmartVault {
         vaultTokens.push(_vault);
     }
 
-    function depositYield(bytes32 _symbol, uint256 _euroPercentage) external {
+    function depositYield(bytes32 _symbol, uint256 _euroPercentage) external onlyOwner {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
@@ -291,6 +291,11 @@ contract SmartVaultV4 is ISmartVault {
         addUniqueVaultToken(_vault2);
     }
 
+    function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
+        address _token = getTokenisedAddr(_symbol);
+        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdrawYield(_vault, _token);
+    }
+
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
         _yieldPairs = new YieldPair[](vaultTokens.length);
         for (uint256 i = 0; i < vaultTokens.length; i++) {
@@ -299,6 +304,7 @@ contract SmartVaultV4 is ISmartVault {
             uint256 _vaultTotal = _vaultToken.totalSupply();
             (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _vaultToken.getTotalAmounts();
 
+            _yieldPairs[i].vault = vaultTokens[i];
             _yieldPairs[i].token0 = _vaultToken.token0();
             _yieldPairs[i].token1 = _vaultToken.token1();
             _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _vaultTotal;
