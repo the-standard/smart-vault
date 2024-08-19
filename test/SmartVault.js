@@ -468,7 +468,7 @@ describe('SmartVault', async () => {
   });
 
   describe('yield', async () => {
-    let WBTC, WBTCPerETH;
+    let WBTC, WBTCPerETH, WETHGammaVaultMock;
 
     beforeEach(async () => {
       WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
@@ -478,7 +478,7 @@ describe('SmartVault', async () => {
       await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
       
       // fake gamma vault for WETH + WBTC
-      const WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
+      WETHGammaVaultMock = await (await ethers.getContractFactory('GammaVaultMock')).deploy(
         'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
       );
 
@@ -564,14 +564,10 @@ describe('SmartVault', async () => {
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(0);
       expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 1);
+      // TODO assertions on the yield assets for wbtc deposit
     });
 
     it('allows deleting of yield data for a collateral type (and reverts)', async () => {
-      // load up mock swap router
-      await EURA.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
-      await EUROs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
-      await WBTC.mint(MockSwapRouter.address, ethers.utils.parseUnits('10', 8));
-
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
 
@@ -584,8 +580,26 @@ describe('SmartVault', async () => {
       await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWith('err-invalid-request');
     });
 
-    it('withdraw yield deposits by vault', async () => {
+    it.only('withdraw yield deposits by vault', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1');
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
 
+      // 25% yield to stable pool
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4));
+      expect(await Vault.yieldAssets()).to.have.length(2);
+      const status = await Vault.status();
+      const preWithdrawCollateralValue = status.totalCollateralValue;
+      expect(getCollateralOf('ETH', status.collateral).amount).to.equal(0);
+      const [ EUROsYield ] = await Vault.yieldAssets();
+
+      await Vault.connect(user).withdrawYield(EUROsYield.vault, ETH);
+      const { totalCollateralValue, collateral } = await Vault.status();
+      expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 1);
+      const yieldAssets = await Vault.yieldAssets();
+      expect(yieldAssets).to.have.length(1);
+      expect(yieldAssets[0].vault).to.equal(WETHGammaVaultMock.address);
+      // should have withdrawn ~quarter of eth collateral, because that much was put in stable pool originally
+      expect(getCollateralOf('ETH', collateral)).to.equal(ethCollateral.div(4));
     });
 
     xit('reverts if collateral level falls below required level');
