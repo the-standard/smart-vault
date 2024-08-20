@@ -467,7 +467,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('yield', async () => {
+  describe('yield', async () => {
     let WBTC, USDC, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
