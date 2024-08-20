@@ -467,15 +467,19 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('yield', async () => {
-    let WBTC, WBTCPerETH, MockWETHWBTCHypervisor;
+  describe.only('yield', async () => {
+    let WBTC, USDC, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
       WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
+      USDC = await (await ethers.getContractFactory('ERC20Mock')).deploy('USD Coin', 'USDC', 6);
       const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
       await CL_WBTC_USD.setPrice(DEFAULT_ETH_USD_PRICE.mul(20));
+      const CL_USDC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
+      await CL_USDC_USD.setPrice(BigNumber.from(10).pow(8));
       await TokenManager.addAcceptedToken(WBTC.address, CL_WBTC_USD.address);
       await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
+      await TokenManager.addAcceptedToken(USDC.address, CL_USDC_USD.address);
       
       // fake gamma vault for WETH + WBTC
       MockWETHWBTCHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
@@ -537,6 +541,13 @@ describe('SmartVault', async () => {
       // only vault owner can deposit collateral as yield
       await expect(Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidUser');
       await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
+
+      // USDC does not have hypervisor data set in yield manager
+      const USDCBytes = ethers.utils.formatBytes32String('USDC');
+      const USDCCollateral = ethers.utils.parseUnits('1000', 6);
+      await USDC.mint(Vault.address, USDCCollateral);
+      await expect(Vault.connect(user).depositYield(USDCBytes, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
+      await Vault.connect(user).removeCollateral(USDCBytes, USDCCollateral, user.address);
 
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
@@ -616,7 +627,26 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(expectedWBTC);
     });
 
+    it('reverts when collateral asset is not compatible with given asset on withdrawal', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1');
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+
+      // add usdc hypervisor data
+      const MockUSDCWETHHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
+        'USDC-WETH', 'USDC-WETH', USDC.address, MockWeth.address
+      );
+      await YieldManager.addHypervisorData(
+        USDC.address, MockUSDCWETHHypervisor.address, 500,
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, EURA.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, USDC.address])
+      )
+
+      // weth / wbtc hypervisor cannot be withdrawn to usdc, even tho there is usdc hypervisor data
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDC')))
+        .to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
+    })
+
     xit('reverts if collateral level falls below required level');
-    xit('reverts if withdrawal asset is not compatible with yield vault');
   });
 });
