@@ -26,6 +26,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     struct HypervisorData { address hypervisor; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
 
+    event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 euroPercentage);
+    event Withdraw(address indexed smartVault, address indexed token, address hypervisor, uint256 amount);
     error InvalidRequest();
 
     constructor(address _EUROs, address _EURA, address _WETH, address _uniProxy, address _eurosRouter, address _euroHypervisor, address _uniswapRouter) {
@@ -151,13 +153,14 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function deposit(address _collateralToken, uint256 _euroPercentage) external returns (address _hypervisor0, address _hypervisor1) {
         // TODO min _euroPercentage of 10%
-        IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), IERC20(_collateralToken).balanceOf(address(msg.sender)));
+        uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
+        IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
         if (_hypervisorData.hypervisor == address(0)) revert InvalidRequest();
         _euroDeposit(_collateralToken, _euroPercentage, _hypervisorData.pathToEURA);
         _otherDeposit(_collateralToken, _hypervisorData);
+        emit Deposit(msg.sender, _collateralToken, _balance, _euroPercentage);
         return (euroHypervisor, _hypervisorData.hypervisor);
-        // TODO emit event
     }
 
     function _sellEURA(address _token) private {
@@ -166,7 +169,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(EURA).safeApprove(uniswapRouter, _balance);
         ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
             path: _pathFromEURA,
-            recipient: msg.sender,
+            recipient: address(this),
             deadline: block.timestamp + 60,
             amountIn: _balance,
             amountOutMinimum: 0
@@ -185,7 +188,6 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         if (_hypervisorData.hypervisor != _hypervisor) revert InvalidRequest();
         IHypervisor(_hypervisor).withdraw(_thisBalanceOf(_hypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
         _swapToSingleAsset(_hypervisor, _token, uniswapRouter, _hypervisorData.poolFee);
-        IERC20(_token).safeTransfer(msg.sender, _thisBalanceOf(_token));
     }
 
     function withdraw(address _hypervisor, address _token) external {
@@ -193,7 +195,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         _hypervisor == euroHypervisor ? 
             _withdrawEUROsDeposit(_hypervisor, _token) :
             _withdrawOtherDeposit(_hypervisor, _token);
-        // TODO emit event
+        uint256 _withdrawn = _thisBalanceOf(_token);
+        IERC20(_token).safeTransfer(msg.sender, _withdrawn);
+        emit Withdraw(msg.sender, _token, _hypervisor, _withdrawn);
     }
 
     function addHypervisorData(address _collateralToken, address _hypervisor, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external {

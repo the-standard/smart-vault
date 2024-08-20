@@ -539,8 +539,11 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', collateral).amount).to.equal(ethCollateral);
 
       // only vault owner can deposit collateral as yield
-      await expect(Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidUser');
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
+      let depositYield = Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2));
+      await expect(depositYield).to.be.revertedWithCustomError(Vault, 'InvalidUser');
+      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      await expect(depositYield).not.to.be.reverted;
+      await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, MockWeth.address, ethCollateral, HUNDRED_PC.div(2));
 
       // USDC does not have hypervisor data set in yield manager
       const USDCBytes = ethers.utils.formatBytes32String('USDC');
@@ -575,7 +578,8 @@ describe('SmartVault', async () => {
       preYieldCollateral = totalCollateralValue;
 
       // deposit wbtc for yield, 25% to euros pool
-      await Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
+      depositYield = Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
+      await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, WBTC.address, wbtcCollateral, HUNDRED_PC.div(4)); // bit of accuracy issue
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(0);
       expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 1);
@@ -607,7 +611,8 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', status.collateral).amount).to.equal(0);
       const [ EUROsYield ] = await Vault.yieldAssets();
 
-      await Vault.connect(user).withdrawYield(EUROsYield.hypervisor, ETH);
+      let withdrawYield = Vault.connect(user).withdrawYield(EUROsYield.hypervisor, ETH);
+      await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockEUROsHypervisor.address, ethCollateral.div(4).sub(1)) // bit of an accuracy issue
       let { totalCollateralValue, collateral } = await Vault.status();
       // fake rate from swap router causing a slight accuracy area
       expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 2000);
