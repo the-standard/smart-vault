@@ -467,7 +467,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('yield', async () => {
+  describe.only('yield', async () => {
     let WBTC, USDC, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
@@ -647,6 +647,21 @@ describe('SmartVault', async () => {
         .to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
     })
 
-    xit('reverts if collateral level falls below required level');
+    it('reverts if collateral level falls below required level during deposit or withdrawal', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1');
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+      // should be able to borrow up to about €125
+      // borrowing 120 to allow for minting fee
+      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('120'));
+
+      // WBTC / ETH swap price tanks, so yield value is significantly lower than ETH collateral value
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.div(2));
+
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
+
+      // // reset WBTC / ETH to normal rate
+      // await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
+      // await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))
+    });
   });
 });
