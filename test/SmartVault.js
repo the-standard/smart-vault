@@ -541,6 +541,9 @@ describe('SmartVault', async () => {
       // only vault owner can deposit collateral as yield
       let depositYield = Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2));
       await expect(depositYield).to.be.revertedWithCustomError(Vault, 'InvalidUser');
+      // 5% to stables pool is below minimum
+      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(20));
+      await expect(depositYield).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
       depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
       await expect(depositYield).not.to.be.reverted;
       await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, MockWeth.address, ethCollateral, HUNDRED_PC.div(2));

@@ -22,6 +22,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     address private immutable euroHypervisor;
     address private immutable uniswapRouter;
     uint256 private constant HUNDRED_PC = 1e5;
+    // min 10% to euros pool
+    uint256 private constant MIN_EURO_PERCENTAGE = 1e4;
     mapping(address => HypervisorData) private hypervisorData;
 
     struct HypervisorData { address hypervisor; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
@@ -152,7 +154,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function deposit(address _collateralToken, uint256 _euroPercentage) external returns (address _hypervisor0, address _hypervisor1) {
-        // TODO min _euroPercentage of 10%
+        if (_euroPercentage < MIN_EURO_PERCENTAGE) revert InvalidRequest();
         uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
