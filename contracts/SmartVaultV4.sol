@@ -87,8 +87,6 @@ contract SmartVaultV4 is ISmartVault {
                     _euros += _underlying0;
                     _euros += _underlying1;
                 } else {
-                    // TODO how do we deal with WETH as underlying token?
-                    // add WETH as collateral? or check for it here?
                     for (uint256 j = 0; j < _acceptedTokens.length; j++) {
                         ITokenManager.Token memory _token = _acceptedTokens[j];
                         if (_token.addr == _token0) _euros += calculator.tokenToEur(_token, _underlying0);
