@@ -296,9 +296,9 @@ contract SmartVaultV4 is ISmartVault {
         if (_balance == 0) revert InvalidRequest();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _euroPercentage);
-        if (undercollateralised()) revert InvalidRequest();
         addUniqueHypervisor(_vault1);
         addUniqueHypervisor(_vault2);
+        if (undercollateralised()) revert InvalidRequest();
     }
 
     function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
@@ -309,6 +309,7 @@ contract SmartVaultV4 is ISmartVault {
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
+        if (undercollateralised()) revert InvalidRequest();
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
