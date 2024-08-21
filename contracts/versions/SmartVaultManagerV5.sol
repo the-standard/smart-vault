@@ -14,10 +14,11 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
 //
-// switches to liquidating one vault at a time
-// upgraded 13/11/23
+// allows use of different swap router address (post 7/11 attack)
+// allows setting of protocol wallet address + liquidator address
+// upgraded 22/02/24
 //
-contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     uint256 public constant HUNDRED_PC = 1e5;
@@ -36,6 +37,8 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     uint256 public swapFeeRate;
     address public weth;
     address public swapRouter;
+    address public swapRouter2;
+    uint16 public userVaultLimit;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
@@ -46,44 +49,14 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         uint256 burnFeeRate; ISmartVault.Status status;
     }
 
-    function initialize(uint256 _collateralRate, uint256 _feeRate, address _euros, address _protocol, address _liquidator, address _tokenManager, address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator) initializer public {
-        __ERC721_init("The Standard Smart Vault Manager", "TSVAULTMAN");
-        __Ownable_init();
-        collateralRate = _collateralRate;
-        euros = _euros;
-        mintFeeRate = _feeRate;
-        burnFeeRate = _feeRate;
-        swapFeeRate = _feeRate;
-        protocol = _protocol;
-        liquidator = _liquidator;
-        tokenManager = _tokenManager;
-        smartVaultDeployer = _smartVaultDeployer;
-        smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
-        nftMetadataGenerator = _nftMetadataGenerator;
-    }
+    function initialize() initializer public {}
 
     modifier onlyLiquidator {
         require(msg.sender == liquidator, "err-invalid-liquidator");
         _;
     }
 
-    function vaults() external view returns (SmartVaultData[] memory _vaultData) {
-        uint256[] memory tokenIds = smartVaultIndex.getTokenIds(msg.sender);
-        uint256 idsLength = tokenIds.length;
-        _vaultData = new SmartVaultData[](idsLength);
-        for (uint256 i = 0; i < idsLength; i++) {
-            uint256 tokenId = tokenIds[i];
-            _vaultData[i] = SmartVaultData({
-                tokenId: tokenId,
-                collateralRate: collateralRate,
-                mintFeeRate: mintFeeRate,
-                burnFeeRate: burnFeeRate,
-                status: ISmartVault(smartVaultIndex.getVaultAddress(tokenId)).status()
-            });
-        }
-    }
-
-    function vaultIDs(address _holder) external view returns (uint256[] memory) {
+    function vaultIDs(address _holder) public view returns (uint256[] memory) {
         return smartVaultIndex.getTokenIds(_holder);
     }
 
@@ -146,8 +119,8 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         weth = _weth;
     }
 
-    function setSwapRouterAddress(address _swapRouter) external onlyOwner() {
-        swapRouter = _swapRouter;
+    function setSwapRouter2(address _swapRouter) external onlyOwner() {
+        swapRouter2 = _swapRouter;
     }
 
     function setNFTMetadataGenerator(address _nftMetadataGenerator) external onlyOwner() {
@@ -158,8 +131,21 @@ contract SmartVaultManagerV4 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         smartVaultDeployer = _smartVaultDeployer;
     }
 
+    function setProtocolAddress(address _protocol) external onlyOwner() {
+        protocol = _protocol;
+    }
+
+    function setLiquidatorAddress(address _liquidator) external onlyOwner() {
+        liquidator = _liquidator;
+    }
+
+    function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner() {
+        userVaultLimit = _userVaultLimit;
+    }
+
     // TODO test transfer
     function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
+        require(vaultIDs(_to).length < userVaultLimit, "err-vault-limit");
         smartVaultIndex.transferTokenId(_from, _to, _tokenId);
         if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).setOwner(_to);
         emit VaultTransferred(_tokenId, _from, _to);

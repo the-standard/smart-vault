@@ -13,7 +13,16 @@ const {
 const testAccounts = TEST_ACCOUNT_PRIVATE_KEY ? [TEST_ACCOUNT_PRIVATE_KEY] : [];
 
 module.exports = {
-  solidity: "0.8.17",
+  solidity: {
+    version: "0.8.17",
+    settings: {
+      viaIR: true,
+      optimizer: {
+        enabled: true,
+        runs: 1,
+      },
+    },
+  },
   defaultNetwork: 'hardhat',
   networks: {
     mainnet: {

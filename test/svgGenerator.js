@@ -16,7 +16,7 @@ const getSvgMintConfig = (minted, maxMintable, totalCollateralValue) => {
 
 describe('SVG Generator', async () => {
     // uncomment to show svg
-    let printViewableSvgInTest = true;
+    let printViewableSvgInTest = false;
     let svgGenerator;
 
     beforeEach(async () => {

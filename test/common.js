@@ -27,7 +27,7 @@ const fullyUpgradedSmartVaultManager = async (
   collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
   liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
   smartVaultIndexAddress, nFTMetadataGeneratorAddress, wethAddress, 
-  swapRouterAddress, vaultLimit
+  swapRouterAddress, vaultLimit, yieldManagerAddress
 ) => {
   const v1 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
     collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
@@ -39,13 +39,15 @@ const fullyUpgradedSmartVaultManager = async (
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV2'));
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV3'));
   await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV4'));
-  const V5 = await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV5'));
+  await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV5'));
+  const V6 = await upgrades.upgradeProxy(v1.address, await ethers.getContractFactory('SmartVaultManagerV6'));
 
-  await V5.setSwapFeeRate(protocolFeeRate);
-  await V5.setWethAddress(wethAddress);
-  await V5.setSwapRouter2(swapRouterAddress);
-  await V5.setUserVaultLimit(vaultLimit);
-  return V5;
+  await V6.setSwapFeeRate(protocolFeeRate);
+  await V6.setWethAddress(wethAddress);
+  await V6.setSwapRouter2(swapRouterAddress);
+  await V6.setYieldManager(yieldManagerAddress);
+  await V6.setUserVaultLimit(vaultLimit);
+  return V6;
 }
 
 module.exports = {
