@@ -651,11 +651,18 @@ describe('SmartVault', async () => {
       const MockUSDCWETHHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
         'USDC-WETH', 'USDC-WETH', USDC.address, MockWeth.address
       );
-      await YieldManager.addHypervisorData(
+      // only allows own to set hypervisor data
+      await expect(YieldManager.connect(user).addHypervisorData(
         USDC.address, MockUSDCWETHHypervisor.address, 500,
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, EURA.address]),
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, USDC.address])
-      )
+      )).to.be.revertedWith('Ownable: caller is not the owner');
+
+      await expect(YieldManager.addHypervisorData(
+        USDC.address, MockUSDCWETHHypervisor.address, 500,
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, EURA.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, USDC.address])
+      )).not.to.be.reverted;
 
       // weth / wbtc hypervisor cannot be withdrawn to usdc, even tho there is usdc hypervisor data
       await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDC')))

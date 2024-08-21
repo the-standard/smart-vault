@@ -208,7 +208,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         emit Withdraw(msg.sender, _token, _hypervisor, _withdrawn);
     }
 
-    function addHypervisorData(address _collateralToken, address _hypervisor, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external {
+    function addHypervisorData(address _collateralToken, address _hypervisor, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external onlyOwner {
         hypervisorData[_collateralToken] = HypervisorData(_hypervisor, _poolFee, _pathToEURA, _pathFromEURA);
     }
 
