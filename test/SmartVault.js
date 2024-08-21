@@ -35,6 +35,7 @@ describe('SmartVault', async () => {
       SmartVaultIndex.address, NFTMetadataGenerator.address, MockWeth.address,
       MockSwapRouter.address, TEST_VAULT_LIMIT, YieldManager.address
     );
+    await YieldManager.setFeeData(PROTOCOL_FEE_RATE, VaultManager.address);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
     await EUROs.grantRole(await EUROs.MINTER_ROLE(), admin.address);
@@ -615,24 +616,30 @@ describe('SmartVault', async () => {
       const [ EUROsYield ] = await Vault.yieldAssets();
 
       let withdrawYield = Vault.connect(user).withdrawYield(EUROsYield.hypervisor, ETH);
-      await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockEUROsHypervisor.address, ethCollateral.div(4).sub(1)) // bit of an accuracy issue
+      let protocolFee = ethCollateral.div(4).mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockEUROsHypervisor.address, ethCollateral.div(4).sub(protocolFee)) // bit of an accuracy issue
       let { totalCollateralValue, collateral } = await Vault.status();
-      // fake rate from swap router causing a slight accuracy area
-      expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 2000);
+      // ~99.875% of collateral expected because of protocol fee on quarter of yield withdrawal
+      let expectedCollateral = preWithdrawCollateralValue.mul(99875).div(100000);
+      expect(totalCollateralValue).to.be.closeTo(expectedCollateral, 2000);
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(1);
       expect(yieldAssets[0].hypervisor).to.equal(MockWETHWBTCHypervisor.address);
-      // should have withdrawn ~quarter of eth collateral, because that much was put in stable pool originally
-      expect(getCollateralOf('ETH', collateral).amount).to.be.closeTo(ethCollateral.div(4), 1);
-
+      // should have withdrawn ~quarter of eth collateral, because that much was put in stable pool originally, minus protocol fee
+      expect(getCollateralOf('ETH', collateral).amount).to.be.closeTo(ethCollateral.div(4).sub(protocolFee), 1);
+      expect(await MockWeth.balanceOf(protocol.address)).to.be.closeTo(protocolFee, 1);
       await Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('WBTC'));
       ({ totalCollateralValue, collateral } = await Vault.status());
-      // fake rate from swap router causing a slight accuracy area
-      expect(totalCollateralValue).to.be.closeTo(preWithdrawCollateralValue, 2000);
+      // ~99.5% of original collateral because all collateral withdrawn with .5% protocol fee rate
+      expectedCollateral = preWithdrawCollateralValue.mul(HUNDRED_PC.sub(PROTOCOL_FEE_RATE)).div(HUNDRED_PC);
+      expect(totalCollateralValue).to.be.closeTo(expectedCollateral, 2000);
       expect(await Vault.yieldAssets()).to.be.empty;
       // wbtc amount should be roughly equal to 0.075 ETH = 0.075
-      const expectedWBTC = WBTCPerETH.mul(ethCollateral.mul(3).div(4)).div(ethers.utils.parseEther('1'));
+      const WBTCWithdrawal = WBTCPerETH.mul(ethCollateral.mul(3).div(4)).div(ethers.utils.parseEther('1'));
+      protocolFee = WBTCWithdrawal.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
+      const expectedWBTC = WBTCWithdrawal.sub(protocolFee);
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(expectedWBTC);
+      expect(await WBTC.balanceOf(protocol.address)).to.equal(protocolFee);
     });
 
     it('reverts when collateral asset is not compatible with given asset on withdrawal', async () => {
@@ -676,6 +683,11 @@ describe('SmartVault', async () => {
 
       await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
 
+    });
+
+    it.only('only allows owner to set fee data', async() => {
+      await expect(YieldManager.connect(user).setFeeData(1000, ethers.constants.AddressZero)).to.be.revertedWithCustomError(YieldManager, 'InvalidUser');
+      await expect(YieldManager.connect(admin).setFeeData(1000, ethers.constants.AddressZero)).not.to.be.reverted;
     });
   });
 });

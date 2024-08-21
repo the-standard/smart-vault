@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
+import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/IUniProxy.sol";
 import "contracts/interfaces/IWETH.sol";
@@ -24,6 +25,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     uint256 private constant HUNDRED_PC = 1e5;
     // min 10% to euros pool
     uint256 private constant MIN_EURO_PERCENTAGE = 1e4;
+    address private smartVaultManager;
+    uint256 public feeRate;
     mapping(address => HypervisorData) private hypervisorData;
 
     struct HypervisorData { address hypervisor; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
@@ -198,6 +201,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             _withdrawEUROsDeposit(_hypervisor, _token) :
             _withdrawOtherDeposit(_hypervisor, _token);
         uint256 _withdrawn = _thisBalanceOf(_token);
+        uint256 _fee = _withdrawn * feeRate / HUNDRED_PC;
+        _withdrawn = _withdrawn - _fee;
+        IERC20(_token).safeTransfer(ISmartVaultManager(smartVaultManager).protocol(), _fee);
         IERC20(_token).safeTransfer(msg.sender, _withdrawn);
         emit Withdraw(msg.sender, _token, _hypervisor, _withdrawn);
     }
@@ -208,5 +214,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function removeHypervisorData(address _collateralToken) external onlyOwner {
         delete hypervisorData[_collateralToken];
+    }
+    
+    function setFeeData(uint256 _feeRate, address _smartVaultManager) external {
+        feeRate = _feeRate;
+        smartVaultManager = _smartVaultManager;
     }
 }
