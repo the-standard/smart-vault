@@ -2,7 +2,7 @@ const { ethers, upgrades } = require('hardhat');
 const { BigNumber } = ethers;
 
 const HUNDRED_PC = BigNumber.from(100000);
-const DEFAULT_COLLATERAL_RATE = BigNumber.from(120000); // 120%
+const DEFAULT_COLLATERAL_RATE = BigNumber.from(110000); // 110%
 const DEFAULT_ETH_USD_PRICE = BigNumber.from(160000000000); // $1600
 const PROTOCOL_FEE_RATE = BigNumber.from(500); // 0.5%
 const TEST_VAULT_LIMIT = 10;

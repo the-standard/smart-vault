@@ -6,6 +6,10 @@ const { HUNDRED_PC } = require('./common');
 
 let VaultManager, Vault, TokenManager, ClEthUsd, USDs, USDC, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager, UniProxyMock, MockUSDsHypervisor;
 
+const scaleDownChainlinkAccuracy = amount => {
+  return amount.div(BigNumber.from(10).pow(8));
+}
+
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
@@ -59,7 +63,7 @@ describe('SmartVault', async () => {
       const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       const collateralETH = getCollateralOf('ETH', collateral)
       expect(collateralETH.amount).to.equal(value);
-      const usdCollateral = value.mul(DEFAULT_ETH_USD_PRICE);
+      const usdCollateral = scaleDownChainlinkAccuracy(value.mul(DEFAULT_ETH_USD_PRICE));
       expect(collateralETH.collateralValue).to.equal(usdCollateral);
       expect(totalCollateralValue).to.equal(usdCollateral);
       expect(totalCollateralValue).to.equal(usdCollateral);
@@ -83,7 +87,7 @@ describe('SmartVault', async () => {
       const collateralETH = getCollateralOf('USDT', collateral)
       expect(collateralETH.amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
-      const usdCollateral = value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice);
+      const usdCollateral = scaleDownChainlinkAccuracy(value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice));
       expect(collateralETH.collateralValue).to.equal(usdCollateral);
       expect(totalCollateralValue).to.equal(usdCollateral);
       const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
@@ -105,7 +109,7 @@ describe('SmartVault', async () => {
       const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       expect(getCollateralOf('DAI', collateral).amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
-      const usdCollateral = value.mul(clUsdUsdPrice);
+      const usdCollateral = scaleDownChainlinkAccuracy(value.mul(clUsdUsdPrice));
       expect(totalCollateralValue).to.equal(usdCollateral);
       const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
@@ -276,7 +280,7 @@ describe('SmartVault', async () => {
       await user.sendTransaction({to: Vault.address, value: collateral});
       expect(await Vault.undercollateralised()).to.equal(false);
 
-      const mintedValue = ethers.utils.parseEther('900');
+      const mintedValue = ethers.utils.parseEther('1000');
       await Vault.connect(user).mint(user.address, mintedValue);
       expect(await Vault.undercollateralised()).to.equal(false);
 
@@ -289,7 +293,7 @@ describe('SmartVault', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
-      const mintedValue = ethers.utils.parseEther('900');
+      const mintedValue = ethers.utils.parseEther('1000');
       await Vault.connect(user).mint(user.address, mintedValue);
 
       await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWith('vault-not-undercollateralised')
@@ -312,7 +316,7 @@ describe('SmartVault', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
-      const mintedValue = ethers.utils.parseEther('900');
+      const mintedValue = ethers.utils.parseEther('1000');
       await Vault.connect(user).mint(user.address, mintedValue);
       
       // drop price, now vault is liquidatable
@@ -369,6 +373,13 @@ describe('SmartVault', async () => {
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
+      // expected minimum out
+      // collateral value is $1600
+      // minted is $1200 + .5% mint fee = $1206
+      // min collateral is $1326.6
+      // collateral value to swap is $800
+      // $526.6 should be minimum from swap
+
       const {
         tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
         sqrtPriceLimitX96, txValue
@@ -380,7 +391,7 @@ describe('SmartVault', async () => {
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts + 60);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
-      expect(amountOutMinimum).to.be.greaterThan(738030000); // something slightly wrong with the rounding calculation here
+      expect(amountOutMinimum).to.be.greaterThan(ethers.utils.parseUnits('526.6', 6)); // something slightly wrong with the rounding calculation here
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
@@ -484,7 +495,7 @@ describe('SmartVault', async () => {
       MockWETHWBTCHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
         'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
       );
-
+      
       // data about how yield manager converts collateral to USDC, vault addresses etc
       await YieldManager.addHypervisorData(
         MockWeth.address, MockWETHWBTCHypervisor.address, 500,
@@ -496,28 +507,28 @@ describe('SmartVault', async () => {
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [WBTC.address, 3000, USDC.address]),
         new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, WBTC.address])
       )
-
+      
       // ratio of USDs vault is 1:1, scaled up because USDs 18 dec and USDC 6 dec
-      await UniProxyMock.setRatio(MockUSDsHypervisor.address, USDs.address, ethers.utils.parseUnits('1', 30));
+      await UniProxyMock.setRatio(MockUSDsHypervisor.address, USDC.address, ethers.utils.parseUnits('1', 30));
       // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
       WBTCPerETH = ethers.utils.parseUnits('0.05',8)
       await UniProxyMock.setRatio(MockWETHWBTCHypervisor.address, MockWeth.address, WBTCPerETH);
       // ratio is inverse of above, 1:20 in unscaled numbers, or 1:20*10^8
       await UniProxyMock.setRatio(MockWETHWBTCHypervisor.address, WBTC.address, ethers.utils.parseUnits('20',28));
-
+      
       // set fake rate for swap router: this is ETH / USDC: 1600 scaled down to 6 dec (or scaled down 2 dec from chainlink price)
       await MockSwapRouter.setRate(MockWeth.address, USDC.address, DEFAULT_ETH_USD_PRICE.div(100));
-      await MockSwapRouter.setRate(USDC.address, MockWeth.address, ethers.utils.parseEther('1').div(DEFAULT_ETH_USD_PRICE).mul(100));
+      await MockSwapRouter.setRate(USDC.address, MockWeth.address, ethers.utils.parseEther('1').div(DEFAULT_ETH_USD_PRICE).mul(ethers.utils.parseUnits('1', 20)));
       // set fake rate for USDC / USDs: 1:1, scaled up / down for 6 / 18 dec
       await MockSwapRouter.setRate(USDC.address, USDs.address, ethers.utils.parseUnits('1', 30));
       await MockSwapRouter.setRate(USDs.address, USDC.address, ethers.utils.parseUnits('1', 6));
       // set fake rate for ETH / WBTC: 0.05 WBTC scaled down to 8 dec
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
       // set fake rate for WBTC / USDs: ~32k, with scaling down 2 dec
-      await MockSwapRouter.setRate(WBTC.address, USDC.address, ethers.utils.parseUnits(DEFAULT_ETH_USD_PRICE.mul(20), 8));
+      await MockSwapRouter.setRate(WBTC.address, USDC.address, DEFAULT_ETH_USD_PRICE.mul(20).mul(ethers.utils.parseUnits('1', 8)));
       // set fake rate for WBTC / ETH: 20 ETH scaled up by 10 dec
       await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('20',28))
-
+      
       // load up mock swap router
       await USDC.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
       await USDs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
@@ -556,15 +567,15 @@ describe('SmartVault', async () => {
 
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
-      // allow a delta of 2 wei in pre and post yield collateral, due to dividing etc
-      expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 2);
+      expect(totalCollateralValue).to.equal(preYieldCollateral);
 
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(2);
       expect([USDs.address, USDC.address]).to.include(yieldAssets[0].token0);
       expect([USDs.address, USDC.address]).to.include(yieldAssets[0].token1);
       expect(yieldAssets[0].amount0).to.be.closeTo(preYieldCollateral.div(4), 1);
-      expect(yieldAssets[0].amount1).to.be.closeTo(preYieldCollateral.div(4), 1);
+      // scaled down because usdc is 6 dec
+      expect(yieldAssets[0].amount1).to.equal(preYieldCollateral.div(4).div(ethers.utils.parseUnits('1', 12)));
       expect([WBTC.address, MockWeth.address]).to.include(yieldAssets[1].token0);
       expect([WBTC.address, MockWeth.address]).to.include(yieldAssets[1].token1);
       expect(yieldAssets[1].amount0).to.equal(ethCollateral.div(4), 1);
@@ -670,9 +681,9 @@ describe('SmartVault', async () => {
     it('reverts if collateral level falls below required level during deposit or withdrawal', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1');
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      // should be able to borrow up to about €125
-      // borrowing 120 to allow for minting fee
-      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('120'));
+      // should be able to borrow up to $160
+      // borrowing $150 to allow for minting fee
+      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('140'));
 
       // ETH / WBTC swap price halves, so yield value is significantly lower than ETH collateral value
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.div(2));

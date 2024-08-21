@@ -24,7 +24,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     address public protocol;
     address public liquidator;
-    address public euros;
+    address public usds;
     uint256 public collateralRate;
     address public tokenManager;
     address public smartVaultDeployer;
@@ -49,14 +49,14 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     }
 
     function initialize(
-        uint256 _collateralRate, uint256 _feeRate, address _euros, address _protocol, address _liquidator, address _tokenManager,
+        uint256 _collateralRate, uint256 _feeRate, address _usds, address _protocol, address _liquidator, address _tokenManager,
         address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator, address _yieldManager, uint16 _userVaultLimit,
         address _swapRouter, address _weth
     ) initializer public {
         __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
         __Ownable_init();
         collateralRate = _collateralRate;
-        euros = _euros;
+        usds = _usds;
         mintFeeRate = _feeRate;
         burnFeeRate = _feeRate;
         swapFeeRate = _feeRate;
@@ -95,11 +95,11 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         tokenId = lastToken + 1;
         _safeMint(msg.sender, tokenId);
         lastToken = tokenId;
-        vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, euros);
+        vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, usds);
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
-        IUSDs(euros).grantRole(IUSDs(euros).MINTER_ROLE(), vault);
-        IUSDs(euros).grantRole(IUSDs(euros).BURNER_ROLE(), vault);
-        emit VaultDeployed(vault, msg.sender, euros, tokenId);
+        IUSDs(usds).grantRole(IUSDs(usds).MINTER_ROLE(), vault);
+        IUSDs(usds).grantRole(IUSDs(usds).BURNER_ROLE(), vault);
+        emit VaultDeployed(vault, msg.sender, usds, tokenId);
     }
 
     function liquidateVault(uint256 _tokenId) external onlyLiquidator {
@@ -107,8 +107,8 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         try vault.undercollateralised() returns (bool _undercollateralised) {
             require(_undercollateralised, "vault-not-undercollateralised");
             vault.liquidate();
-            IUSDs(euros).revokeRole(IUSDs(euros).MINTER_ROLE(), address(vault));
-            IUSDs(euros).revokeRole(IUSDs(euros).BURNER_ROLE(), address(vault));
+            IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
+            IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
             emit VaultLiquidated(address(vault));
         } catch {
             revert("other-liquidation-error");
