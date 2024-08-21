@@ -3,7 +3,6 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
@@ -11,6 +10,7 @@ import "contracts/interfaces/ISmartVaultManagerV3.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
+import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
 
 import "hardhat/console.sol";
@@ -19,10 +19,10 @@ contract SmartVaultV4 is ISmartVault {
     using SafeERC20 for IERC20;
 
     uint8 private constant version = 4;
-    bytes32 private constant vaultType = bytes32("EUROs");
+    bytes32 private constant vaultType = bytes32("USDs");
     bytes32 private immutable NATIVE;
     address public immutable manager;
-    IEUROs public immutable EUROs;
+    IUSDs public immutable EUROs;
     IPriceCalculator public immutable calculator;
     address[] private Hypervisors;
 
@@ -43,7 +43,7 @@ contract SmartVaultV4 is ISmartVault {
         NATIVE = _native;
         owner = _owner;
         manager = _manager;
-        EUROs = IEUROs(_euros);
+        EUROs = IUSDs(_euros);
         calculator = IPriceCalculator(_priceCalculator);
     }
 
@@ -89,8 +89,8 @@ contract SmartVaultV4 is ISmartVault {
                 } else {
                     for (uint256 j = 0; j < _acceptedTokens.length; j++) {
                         ITokenManager.Token memory _token = _acceptedTokens[j];
-                        if (_token.addr == _token0) _euros += calculator.tokenToEur(_token, _underlying0);
-                        if (_token.addr == _token1) _euros += calculator.tokenToEur(_token, _underlying1);
+                        if (_token.addr == _token0) _euros += calculator.tokenToUSD(_token, _underlying0);
+                        if (_token.addr == _token1) _euros += calculator.tokenToUSD(_token, _underlying1);
                     }
                 }
             }
@@ -102,7 +102,7 @@ contract SmartVaultV4 is ISmartVault {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory _token = acceptedTokens[i];
-            euros += calculator.tokenToEur(_token, getAssetBalance(_token.addr));
+            euros += calculator.tokenToUSD(_token, getAssetBalance(_token.addr));
         }
 
         euros += yieldVaultCollateral(acceptedTokens);
@@ -123,7 +123,7 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory token = acceptedTokens[i];
             uint256 assetBalance = getAssetBalance(token.addr);
-            assets[i] = Asset(token, assetBalance, calculator.tokenToEur(token, assetBalance));
+            assets[i] = Asset(token, assetBalance, calculator.tokenToUSD(token, assetBalance));
         }
         return assets;
     }
@@ -164,7 +164,7 @@ contract SmartVaultV4 is ISmartVault {
 
     function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
         if (minted == 0) return true;
-        uint256 eurValueToRemove = calculator.tokenToEur(_token, _amount);
+        uint256 eurValueToRemove = calculator.tokenToUSD(_token, _amount);
         uint256 _newCollateral = euroCollateral() - eurValueToRemove;
         return maxMintable(_newCollateral) >= minted;
     }
@@ -246,9 +246,9 @@ contract SmartVaultV4 is ISmartVault {
         ISmartVaultManagerV3 _manager = ISmartVaultManagerV3(manager);
         uint256 requiredCollateralValue = minted * _manager.collateralRate() / _manager.HUNDRED_PC();
         // add 1% min collateral buffer
-        uint256 collateralValueMinusSwapValue = euroCollateral() - calculator.tokenToEur(getToken(_inTokenSymbol), _amount * 101 / 100);
+        uint256 collateralValueMinusSwapValue = euroCollateral() - calculator.tokenToUSD(getToken(_inTokenSymbol), _amount * 101 / 100);
         return collateralValueMinusSwapValue >= requiredCollateralValue ?
-            0 : calculator.eurToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
+            0 : calculator.USDToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _requestedMinOut) external onlyOwner {

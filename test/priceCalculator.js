@@ -1,28 +1,16 @@
 const { expect } = require('chai');
 const { ethers } = require("hardhat");
-const { ETH, DEFAULT_EUR_USD_PRICE } = require('./common');
-const { BigNumber } = ethers;
+const { ETH, DEFAULT_ETH_USD_PRICE } = require('./common');
 
 let PriceCalculator, Ethereum, WBTC;
 
 describe('PriceCalculator', async () => {
   beforeEach(async () => {
-    const now = Math.floor(new Date / 1000);
-    const hour = 60 * 60;
-    const ethPrices = [[now - 6 * hour, 200000000000], [now - 4 * hour, 150000000000], [now - 2 * hour, 140000000000], [now, 100000000000]];
     const clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
-    for (const round of ethPrices) {
-      await clEthUsd.addPriceRound(round[0], round[1]);
-    }
-
-    const wbtcPrices = [[now - 6 * hour, 3700000000000], [now - 4 * hour, 3400000000000], [now - 2 * hour, 3700000000000], [now, 3400000000000]];
+    await clEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)
     const clWBTCUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
-    for (const round of wbtcPrices) {
-      await clWBTCUsd.addPriceRound(round[0], round[1]);
-    }
-    const clEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
-    await clEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
-    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, clEurUsd.address);
+    await clWBTCUsd.setPrice(DEFAULT_ETH_USD_PRICE.mul(20))
+    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH);
     Ethereum = {
       symbol: ETH,
       addr: ethers.constants.AddressZero,
@@ -40,39 +28,34 @@ describe('PriceCalculator', async () => {
     };
   });
 
-  describe('tokenToEur', async () => {
-    it('returns the value of token in EUR based on the latest chainlink price', async () => {
-      // latest ETH price is $1000
-      // EUR / USD is 1.06
+  describe('tokenToUSD', async () => {
+    it('returns the value of token in USD based on the latest chainlink price', async () => {
+      // latest ETH price is $1600
       const etherValue = ethers.utils.parseEther('1');
-      let expectedEurValue = etherValue.mul(100000000000).div(106000000);
-      let eurValue = await PriceCalculator.tokenToEur(Ethereum, etherValue);
-      expect(eurValue).to.equal(expectedEurValue);
+      let expectedUsdValue = ethers.utils.parseEther('1600');
+      let usdValue = await PriceCalculator.tokenToUSD(Ethereum, etherValue);
+      expect(usdValue).to.equal(expectedUsdValue);
 
-      // latest WBTC price is $34000
-      // EUR / USD is 1.06
-      const wbtcValue = BigNumber.from(50000000);
-      expectedEurValue = wbtcValue.mul(BigNumber.from(10).pow(10)) // scale up for WBTC 8 dec
-                                .mul(3400000000000).div(106000000);
-      eurValue = await PriceCalculator.tokenToEur(WBTC, wbtcValue);
-      expect(eurValue).to.equal(expectedEurValue);
+      // latest WBTC price is $32000
+      const wbtcValue = ethers.utils.parseUnits('0.5', 8);
+      expectedUsdValue = ethers.utils.parseEther('16000');
+      usdValue = await PriceCalculator.tokenToUSD(WBTC, wbtcValue);
+      expect(usdValue).to.equal(expectedUsdValue);
     })
   });
 
-  describe('eurToToken', async () => {
-    it('returns the value of EUR in token based on the latest chainlink price', async () => {
-      // latest ETH price is $1000
-      // EUR / USD is 1.06
-      const eurValue = ethers.utils.parseEther('1000');
-      const expectedEthValue = eurValue.mul(106000000).div(100000000000);
-      const ethValue = await PriceCalculator.eurToToken(Ethereum, eurValue);
+  describe('USDToToken', async () => {
+    it('returns the value of USD in token based on the latest chainlink price', async () => {
+      // latest ETH price is $1600
+      const usdValue = ethers.utils.parseEther('1600');
+      const expectedEthValue = ethers.utils.parseEther('1');
+      const ethValue = await PriceCalculator.USDToToken(Ethereum, usdValue);
       expect(ethValue).to.equal(expectedEthValue);
 
-      // latest WBTC price is $34000
-      // EUR / USD is 1.06
-      const expectedWBTCValue = eurValue.div(BigNumber.from(10).pow(10)) // scale down for WBTC 8 dec
-                                  .mul(106000000).div(3400000000000);
-      const wbtcValue = await PriceCalculator.eurToToken(WBTC, eurValue);
+      // latest WBTC price is $32000
+      // 1 eth is 1/20 wbtc
+      const expectedWBTCValue = ethers.utils.parseUnits('0.05', 8);
+      const wbtcValue = await PriceCalculator.USDToToken(WBTC, usdValue);
       expect(wbtcValue).to.equal(expectedWBTCValue);
     })
   });

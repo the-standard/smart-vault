@@ -3,13 +3,13 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
-import "contracts/interfaces/IEUROs.sol";
+import "contracts/interfaces/IUSDs.sol";
 
-contract EUROsMock is IEUROs, ERC20, AccessControl {
+contract USDsMock is IUSDs, ERC20, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant BURNER_ROLE = keccak256("BURNER_ROLE");
 
-    constructor() ERC20("The Standard EURO", "EUROs") {
+    constructor() ERC20("The Standard USD", "USDs") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 

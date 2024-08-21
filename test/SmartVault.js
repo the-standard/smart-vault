@@ -1,44 +1,42 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
-let VaultManager, Vault, TokenManager, ClEthUsd, EUROs, EURA, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager, UniProxyMock, MockEUROsHypervisor;
+let VaultManager, Vault, TokenManager, ClEthUsd, USDs, USDC, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager, UniProxyMock, MockUSDsHypervisor;
 
 describe('SmartVault', async () => {
   beforeEach(async () => {
     [ admin, user, otherUser, protocol ] = await ethers.getSigners();
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
-    const ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
-    await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
-    EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
+    USDs = await (await ethers.getContractFactory('USDsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     MockWeth = await (await ethers.getContractFactory('MockWETH')).deploy();
-    EURA = await (await ethers.getContractFactory('ERC20Mock')).deploy('EURA', 'EURA', 18);
+    USDC = await (await ethers.getContractFactory('ERC20Mock')).deploy('USD Coin', 'USDC', 6);
     UniProxyMock = await (await ethers.getContractFactory('UniProxyMock')).deploy();
-    MockEUROsHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
-      'EUROs-EURA', 'EUROs-EURA', EUROs.address, EURA.address
+    MockUSDsHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
+      'USDs-USDC', 'USDs-USDC', USDs.address, USDC.address
     );
     YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
-      EUROs.address, EURA.address, MockWeth.address, UniProxyMock.address, MockSwapRouter.address, MockEUROsHypervisor.address,
+      USDs.address, USDC.address, MockWeth.address, UniProxyMock.address, MockSwapRouter.address, MockUSDsHypervisor.address,
       MockSwapRouter.address
     );
     VaultManager = await fullyUpgradedSmartVaultManager(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address, 
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocol.address, 
       protocol.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, MockWeth.address,
       MockSwapRouter.address, TEST_VAULT_LIMIT, YieldManager.address
     );
     await YieldManager.setFeeData(PROTOCOL_FEE_RATE, VaultManager.address);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
-    await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
-    await EUROs.grantRole(await EUROs.MINTER_ROLE(), admin.address);
+    await USDs.grantRole(await USDs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await USDs.grantRole(await USDs.MINTER_ROLE(), admin.address);
     await VaultManager.connect(user).mint();
     const [ vaultID ] = await VaultManager.vaultIDs(user.address);
     const { status } = await VaultManager.vaultData(vaultID);
@@ -61,11 +59,11 @@ describe('SmartVault', async () => {
       const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       const collateralETH = getCollateralOf('ETH', collateral)
       expect(collateralETH.amount).to.equal(value);
-      const euroCollateral = value.mul(DEFAULT_ETH_USD_PRICE).div(DEFAULT_EUR_USD_PRICE);
-      expect(collateralETH.collateralValue).to.equal(euroCollateral);
-      expect(totalCollateralValue).to.equal(euroCollateral);
-      expect(totalCollateralValue).to.equal(euroCollateral);
-      const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
+      const usdCollateral = value.mul(DEFAULT_ETH_USD_PRICE);
+      expect(collateralETH.collateralValue).to.equal(usdCollateral);
+      expect(totalCollateralValue).to.equal(usdCollateral);
+      expect(totalCollateralValue).to.equal(usdCollateral);
+      const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
 
@@ -85,10 +83,10 @@ describe('SmartVault', async () => {
       const collateralETH = getCollateralOf('USDT', collateral)
       expect(collateralETH.amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
-      const euroCollateral = value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
-      expect(collateralETH.collateralValue).to.equal(euroCollateral);
-      expect(totalCollateralValue).to.equal(euroCollateral);
-      const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
+      const usdCollateral = value.mul(BigNumber.from(10).pow(12)).mul(clUsdUsdPrice);
+      expect(collateralETH.collateralValue).to.equal(usdCollateral);
+      expect(totalCollateralValue).to.equal(usdCollateral);
+      const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
 
@@ -107,9 +105,9 @@ describe('SmartVault', async () => {
       const { collateral, maxMintable, totalCollateralValue } = await Vault.status();
       expect(getCollateralOf('DAI', collateral).amount).to.equal(value);
       // scale up power of twelve because usdt is 6 dec
-      const euroCollateral = value.mul(clUsdUsdPrice).div(DEFAULT_EUR_USD_PRICE);
-      expect(totalCollateralValue).to.equal(euroCollateral);
-      const maximumMint = euroCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
+      const usdCollateral = value.mul(clUsdUsdPrice);
+      expect(totalCollateralValue).to.equal(usdCollateral);
+      const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
   });
@@ -132,7 +130,7 @@ describe('SmartVault', async () => {
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(half);
 
-      // mint max euros
+      // mint max usds
       const mintingFee = maxMintable.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
@@ -166,7 +164,7 @@ describe('SmartVault', async () => {
       ({ collateral, maxMintable } = await Vault.status());
       expect(getCollateralOf('USDT', collateral).amount).to.equal(half);
 
-      // mint max euros
+      // mint max usds
       const mintingFee = maxMintable.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       await Vault.connect(user).mint(user.address, maxMintable.sub(mintingFee));
 
@@ -228,16 +226,16 @@ describe('SmartVault', async () => {
       await expect(mint).not.to.be.reverted;
       const { minted } = await Vault.status();
       const fee = mintedValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC)
-      await expect(mint).emit(Vault, 'EUROsMinted').withArgs(user.address, mintedValue, fee);
+      await expect(mint).emit(Vault, 'USDsMinted').withArgs(user.address, mintedValue, fee);
 
       expect(minted).to.equal(mintedValue.add(fee));
-      expect(await EUROs.balanceOf(user.address)).to.equal(mintedValue);
-      expect(await EUROs.balanceOf(protocol.address)).to.equal(fee);
+      expect(await USDs.balanceOf(user.address)).to.equal(mintedValue);
+      expect(await USDs.balanceOf(protocol.address)).to.equal(fee);
     });
   });
 
   describe('burning', async () => {
-    it('allows burning of EUROs if there is a minted amount, charges a fee', async () => {
+    it('allows burning of USDs if there is a minted amount, charges a fee', async () => {
       const collateral = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: collateral});
 
@@ -259,14 +257,14 @@ describe('SmartVault', async () => {
       // 51 minted in vault
       burn = Vault.connect(user).burn(burnedValue);
       await expect(burn).not.to.be.reverted;
-      await expect(burn).to.emit(Vault, 'EUROsBurned').withArgs(burnedValue, burningFee);
+      await expect(burn).to.emit(Vault, 'USDsBurned').withArgs(burnedValue, burningFee);
 
       minted = (await Vault.status()).minted;
       expect(minted).to.equal(mintedValue.add(mintingFee).sub(burnedValue));
 
       const fees = mintingFee.add(burningFee);
-      expect(await EUROs.balanceOf(user.address)).to.equal(minted.sub(fees));
-      expect(await EUROs.balanceOf(protocol.address)).to.equal(fees);
+      expect(await USDs.balanceOf(user.address)).to.equal(minted.sub(fees));
+      expect(await USDs.balanceOf(protocol.address)).to.equal(fees);
     });
   });
 
@@ -310,7 +308,7 @@ describe('SmartVault', async () => {
       expect(liquidated).to.equal(true);
     });
 
-    it('will not allow minting of EUROs if liquidated', async () => {
+    it('will not allow minting of USDs if liquidated', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
@@ -352,7 +350,7 @@ describe('SmartVault', async () => {
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
       // user vault has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
-      // user borrows 1200 EUROs
+      // user borrows 1200 USDs
       const borrowValue = ethers.utils.parseEther('1200');
       await Vault.connect(user).mint(user.address, borrowValue);
       const inToken = ethers.utils.formatBytes32String('ETH');
@@ -391,7 +389,7 @@ describe('SmartVault', async () => {
     it('amount out minimum is given by user if larger than minimum collateral value', async () => {
       // user vault has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
-      // user borrows 500 EUROs
+      // user borrows 500 USDs
       const borrowValue = ethers.utils.parseEther('500');
       await Vault.connect(user).mint(user.address, borrowValue);
       const inToken = ethers.utils.formatBytes32String('ETH');
@@ -400,11 +398,11 @@ describe('SmartVault', async () => {
       const swapValue = ethers.utils.parseEther('0.5');
       const swapFee = swapValue.mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       const swapMinimum = 500_000_000; // user expect 500 sUSD out of swap
-      // 1 ETH collateral = $1600 / 1.06 (eur / usd) = €1509.43
-      // borrowed = 500 EUROs
-      // required collateral = 120% of 500 = €600
-      // .5 swap = 50% of 1509.43 = €754.72
-      // even if swap returned 0 assets, vault would remain above €600 required collateral value
+      // 1 ETH collateral = $1600
+      // borrowed = 500 USDs
+      // required collateral = 120% of 500 = $600
+      // .5 swap = 50% of 1600 = $800
+      // even if swap returned 0 assets, vault would remain above $600 required collateral value
       // minimum swap therefore 0
       const protocolBalance = await protocol.getBalance();
       
@@ -469,60 +467,60 @@ describe('SmartVault', async () => {
   });
 
   describe('yield', async () => {
-    let WBTC, USDC, WBTCPerETH, MockWETHWBTCHypervisor;
+    let WBTC, USDT, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
       WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
-      USDC = await (await ethers.getContractFactory('ERC20Mock')).deploy('USD Coin', 'USDC', 6);
+      USDT = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
       const CL_WBTC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
       await CL_WBTC_USD.setPrice(DEFAULT_ETH_USD_PRICE.mul(20));
-      const CL_USDC_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
-      await CL_USDC_USD.setPrice(BigNumber.from(10).pow(8));
+      const CL_USDT_USD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDT / USD');
+      await CL_USDT_USD.setPrice(BigNumber.from(10).pow(8));
       await TokenManager.addAcceptedToken(WBTC.address, CL_WBTC_USD.address);
       await TokenManager.addAcceptedToken(MockWeth.address, ClEthUsd.address);
-      await TokenManager.addAcceptedToken(USDC.address, CL_USDC_USD.address);
+      await TokenManager.addAcceptedToken(USDT.address, CL_USDT_USD.address);
       
       // fake gamma vault for WETH + WBTC
       MockWETHWBTCHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
         'WETH-WBTC', 'WETH-WBTC', MockWeth.address, WBTC.address
       );
 
-      // data about how yield manager converts collateral to EURA, vault addresses etc
+      // data about how yield manager converts collateral to USDC, vault addresses etc
       await YieldManager.addHypervisorData(
         MockWeth.address, MockWETHWBTCHypervisor.address, 500,
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [MockWeth.address, 3000, EURA.address]),
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, MockWeth.address])
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [MockWeth.address, 3000, USDC.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, MockWeth.address])
       )
       await YieldManager.addHypervisorData(
         WBTC.address, MockWETHWBTCHypervisor.address, 500,
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [WBTC.address, 3000, EURA.address]),
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, WBTC.address])
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [WBTC.address, 3000, USDC.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, WBTC.address])
       )
 
-      // ratio of euros vault is 1:1
-      await UniProxyMock.setRatio(MockEUROsHypervisor.address, EURA.address, ethers.utils.parseEther('1'));
+      // ratio of USDs vault is 1:1, scaled up because USDs 18 dec and USDC 6 dec
+      await UniProxyMock.setRatio(MockUSDsHypervisor.address, USDs.address, ethers.utils.parseUnits('1', 30));
       // ratio of weth / wbtc vault is 1:1 in value, or 20:1 in unscaled numbers (20*10**10:1) in scaled
       WBTCPerETH = ethers.utils.parseUnits('0.05',8)
       await UniProxyMock.setRatio(MockWETHWBTCHypervisor.address, MockWeth.address, WBTCPerETH);
       // ratio is inverse of above, 1:20 in unscaled numbers, or 1:20*10^8
       await UniProxyMock.setRatio(MockWETHWBTCHypervisor.address, WBTC.address, ethers.utils.parseUnits('20',28));
 
-      // set fake rate for swap router: this is ETH / EUROs: ~1500
-      await MockSwapRouter.setRate(MockWeth.address, EURA.address, DEFAULT_ETH_USD_PRICE.mul(ethers.utils.parseEther('1')).div(DEFAULT_EUR_USD_PRICE));
-      await MockSwapRouter.setRate(EURA.address, MockWeth.address, ethers.utils.parseEther('1').mul(DEFAULT_EUR_USD_PRICE).div(DEFAULT_ETH_USD_PRICE));
-      // set fake rate for EURA / EURO: 1:1
-      await MockSwapRouter.setRate(EURA.address, EUROs.address, ethers.utils.parseEther('1'));
-      await MockSwapRouter.setRate(EUROs.address, EURA.address, ethers.utils.parseEther('1'));
+      // set fake rate for swap router: this is ETH / USDC: 1600 scaled down to 6 dec (or scaled down 2 dec from chainlink price)
+      await MockSwapRouter.setRate(MockWeth.address, USDC.address, DEFAULT_ETH_USD_PRICE.div(100));
+      await MockSwapRouter.setRate(USDC.address, MockWeth.address, ethers.utils.parseEther('1').div(DEFAULT_ETH_USD_PRICE).mul(100));
+      // set fake rate for USDC / USDs: 1:1, scaled up / down for 6 / 18 dec
+      await MockSwapRouter.setRate(USDC.address, USDs.address, ethers.utils.parseUnits('1', 30));
+      await MockSwapRouter.setRate(USDs.address, USDC.address, ethers.utils.parseUnits('1', 6));
       // set fake rate for ETH / WBTC: 0.05 WBTC scaled down to 8 dec
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
-      // set fake rate for WBTC / EUROS: ~30.1k, with scaling up by 10 dec
-      await MockSwapRouter.setRate(WBTC.address, EURA.address, DEFAULT_ETH_USD_PRICE.mul(20).mul(ethers.utils.parseUnits('1', 28)).div(DEFAULT_EUR_USD_PRICE))
+      // set fake rate for WBTC / USDs: ~32k, with scaling down 2 dec
+      await MockSwapRouter.setRate(WBTC.address, USDC.address, ethers.utils.parseUnits(DEFAULT_ETH_USD_PRICE.mul(20), 8));
       // set fake rate for WBTC / ETH: 20 ETH scaled up by 10 dec
       await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('20',28))
 
       // load up mock swap router
-      await EURA.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
-      await EUROs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
+      await USDC.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
+      await USDs.mint(MockSwapRouter.address, ethers.utils.parseEther('1000000'));
       await WBTC.mint(MockSwapRouter.address, ethers.utils.parseUnits('10', 8));
       await MockWeth.mint(MockSwapRouter.address, ethers.utils.parseEther('10'));
     }); 
@@ -549,12 +547,12 @@ describe('SmartVault', async () => {
       await expect(depositYield).not.to.be.reverted;
       await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, MockWeth.address, ethCollateral, HUNDRED_PC.div(2));
 
-      // USDC does not have hypervisor data set in yield manager
-      const USDCBytes = ethers.utils.formatBytes32String('USDC');
-      const USDCCollateral = ethers.utils.parseUnits('1000', 6);
-      await USDC.mint(Vault.address, USDCCollateral);
-      await expect(Vault.connect(user).depositYield(USDCBytes, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
-      await Vault.connect(user).removeCollateral(USDCBytes, USDCCollateral, user.address);
+      // USDT does not have hypervisor data set in yield manager
+      const USDTBytes = ethers.utils.formatBytes32String('USDT');
+      const USDTCollateral = ethers.utils.parseUnits('1000', 6);
+      await USDT.mint(Vault.address, USDTCollateral);
+      await expect(Vault.connect(user).depositYield(USDTBytes, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
+      await Vault.connect(user).removeCollateral(USDTBytes, USDTCollateral, user.address);
 
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
@@ -563,8 +561,8 @@ describe('SmartVault', async () => {
 
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(2);
-      expect([EUROs.address, EURA.address]).to.include(yieldAssets[0].token0);
-      expect([EUROs.address, EURA.address]).to.include(yieldAssets[0].token1);
+      expect([USDs.address, USDC.address]).to.include(yieldAssets[0].token0);
+      expect([USDs.address, USDC.address]).to.include(yieldAssets[0].token1);
       expect(yieldAssets[0].amount0).to.be.closeTo(preYieldCollateral.div(4), 1);
       expect(yieldAssets[0].amount1).to.be.closeTo(preYieldCollateral.div(4), 1);
       expect([WBTC.address, MockWeth.address]).to.include(yieldAssets[1].token0);
@@ -581,7 +579,7 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(wbtcCollateral);
       preYieldCollateral = totalCollateralValue;
 
-      // deposit wbtc for yield, 25% to euros pool
+      // deposit wbtc for yield, 25% to USDs pool
       depositYield = Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
       await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, WBTC.address, wbtcCollateral, HUNDRED_PC.div(4)); // bit of accuracy issue
       ({ collateral, totalCollateralValue } = await Vault.status());
@@ -613,11 +611,11 @@ describe('SmartVault', async () => {
       const status = await Vault.status();
       const preWithdrawCollateralValue = status.totalCollateralValue;
       expect(getCollateralOf('ETH', status.collateral).amount).to.equal(0);
-      const [ EUROsYield ] = await Vault.yieldAssets();
+      const [ USDsYield ] = await Vault.yieldAssets();
 
-      let withdrawYield = Vault.connect(user).withdrawYield(EUROsYield.hypervisor, ETH);
+      let withdrawYield = Vault.connect(user).withdrawYield(USDsYield.hypervisor, ETH);
       let protocolFee = ethCollateral.div(4).mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
-      await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockEUROsHypervisor.address, ethCollateral.div(4).sub(protocolFee)) // bit of an accuracy issue
+      await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockUSDsHypervisor.address, ethCollateral.div(4).sub(protocolFee)) // bit of an accuracy issue
       let { totalCollateralValue, collateral } = await Vault.status();
       // ~99.875% of collateral expected because of protocol fee on quarter of yield withdrawal
       let expectedCollateral = preWithdrawCollateralValue.mul(99875).div(100000);
@@ -648,24 +646,24 @@ describe('SmartVault', async () => {
       await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
 
       // add usdc hypervisor data
-      const MockUSDCWETHHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
-        'USDC-WETH', 'USDC-WETH', USDC.address, MockWeth.address
+      const MockUSDTWETHHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
+        'USDT-WETH', 'USDT-WETH', USDT.address, MockWeth.address
       );
       // only allows own to set hypervisor data
       await expect(YieldManager.connect(user).addHypervisorData(
-        USDC.address, MockUSDCWETHHypervisor.address, 500,
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, EURA.address]),
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, USDC.address])
+        USDT.address, MockUSDTWETHHypervisor.address, 500,
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDT.address, 3000, USDC.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, USDT.address])
       )).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(YieldManager.addHypervisorData(
-        USDC.address, MockUSDCWETHHypervisor.address, 500,
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, EURA.address]),
-        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [EURA.address, 3000, USDC.address])
+        USDT.address, MockUSDTWETHHypervisor.address, 500,
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDT.address, 3000, USDC.address]),
+        new ethers.utils.AbiCoder().encode(['address', 'uint24', 'address'], [USDC.address, 3000, USDT.address])
       )).not.to.be.reverted;
 
-      // weth / wbtc hypervisor cannot be withdrawn to usdc, even tho there is usdc hypervisor data
-      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDC')))
+      // weth / wbtc hypervisor cannot be withdrawn to USDT, even tho there is USDT hypervisor data
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDT')))
         .to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
     })
 

@@ -4,7 +4,6 @@ const { BigNumber } = ethers;
 const HUNDRED_PC = BigNumber.from(100000);
 const DEFAULT_COLLATERAL_RATE = BigNumber.from(120000); // 120%
 const DEFAULT_ETH_USD_PRICE = BigNumber.from(160000000000); // $1600
-const DEFAULT_EUR_USD_PRICE = BigNumber.from(106000000); // $1.06
 const PROTOCOL_FEE_RATE = BigNumber.from(500); // 0.5%
 const TEST_VAULT_LIMIT = 10;
 const ETH = ethers.utils.formatBytes32String('ETH');
@@ -24,13 +23,13 @@ const getNFTMetadataContract = async () => {
 }
 
 const fullyUpgradedSmartVaultManager = async (
-  collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
+  collateralRate, protocolFeeRate, usdsAddress, protocolAddress, 
   liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
   smartVaultIndexAddress, nFTMetadataGeneratorAddress, wethAddress, 
   swapRouterAddress, vaultLimit, yieldManagerAddress
 ) => {
   const V6 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManagerV6'), [
-    collateralRate, protocolFeeRate, eurosAddress, protocolAddress, 
+    collateralRate, protocolFeeRate, usdsAddress, protocolAddress, 
     liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
     smartVaultIndexAddress, nFTMetadataGeneratorAddress, yieldManagerAddress,
     vaultLimit, swapRouterAddress, wethAddress
@@ -43,7 +42,6 @@ module.exports = {
   HUNDRED_PC,
   DEFAULT_COLLATERAL_RATE,
   DEFAULT_ETH_USD_PRICE,
-  DEFAULT_EUR_USD_PRICE,
   PROTOCOL_FEE_RATE,
   ETH,
   TEST_VAULT_LIMIT,

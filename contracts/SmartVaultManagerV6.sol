@@ -6,12 +6,12 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
-import "contracts/interfaces/IEUROs.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
+import "contracts/interfaces/IUSDs.sol";
 
 //
 // TODO describe changes
@@ -97,8 +97,8 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         lastToken = tokenId;
         vault = ISmartVaultDeployer(smartVaultDeployer).deploy(address(this), msg.sender, euros);
         smartVaultIndex.addVaultAddress(tokenId, payable(vault));
-        IEUROs(euros).grantRole(IEUROs(euros).MINTER_ROLE(), vault);
-        IEUROs(euros).grantRole(IEUROs(euros).BURNER_ROLE(), vault);
+        IUSDs(euros).grantRole(IUSDs(euros).MINTER_ROLE(), vault);
+        IUSDs(euros).grantRole(IUSDs(euros).BURNER_ROLE(), vault);
         emit VaultDeployed(vault, msg.sender, euros, tokenId);
     }
 
@@ -107,8 +107,8 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         try vault.undercollateralised() returns (bool _undercollateralised) {
             require(_undercollateralised, "vault-not-undercollateralised");
             vault.liquidate();
-            IEUROs(euros).revokeRole(IEUROs(euros).MINTER_ROLE(), address(vault));
-            IEUROs(euros).revokeRole(IEUROs(euros).BURNER_ROLE(), address(vault));
+            IUSDs(euros).revokeRole(IUSDs(euros).MINTER_ROLE(), address(vault));
+            IUSDs(euros).revokeRole(IUSDs(euros).BURNER_ROLE(), address(vault));
             emit VaultLiquidated(address(vault));
         } catch {
             revert("other-liquidation-error");

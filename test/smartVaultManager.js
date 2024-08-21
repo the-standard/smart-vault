@@ -2,9 +2,9 @@ const { expect } = require('chai');
 const { ethers } = require('hardhat');
 const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { BigNumber } = ethers;
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS, TEST_VAULT_LIMIT } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, WETH_ADDRESS, TEST_VAULT_LIMIT } = require('./common');
 
-let VaultManager, TokenManager, EUROs, Tether, ClEthUsd, ClEurUsd, ClUsdUsd, NFTMetadataGenerator,
+let VaultManager, TokenManager, USDs, Tether, ClEthUsd, ClUsdUsd, NFTMetadataGenerator,
 MockSwapRouter, SmartVaultDeployer, admin, user, protocol, liquidator, otherUser, LiquidationPoolManager;
 
 describe('SmartVaultManager', async () => {
@@ -12,25 +12,23 @@ describe('SmartVaultManager', async () => {
     [ admin, user, protocol, liquidator, otherUser, LiquidationPoolManager ] = await ethers.getSigners();
     ClEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
-    ClEurUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('EUR / USD');
-    await ClEurUsd.setPrice(DEFAULT_EUR_USD_PRICE);
     ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
     await ClUsdUsd.setPrice(100000000);
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
+    USDs = await (await ethers.getContractFactory('USDsMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
+    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
-      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
+      DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
       MockSwapRouter.address, TEST_VAULT_LIMIT, ethers.constants.AddressZero
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
-    await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await USDs.grantRole(await USDs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
   });
 
   describe('setting admin data', async () => {
@@ -49,7 +47,7 @@ describe('SmartVaultManager', async () => {
       const newGenerator = await (await getNFTMetadataContract()).deploy();
       const newSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
       const newWeth = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Ether', 'WETH', 18);
-      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
+      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
       await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSwapFeeRate(newSwapFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
@@ -85,7 +83,7 @@ describe('SmartVaultManager', async () => {
   describe('opening', async () => {
     it('opens a vault with no collateral deposited, no tokens minted, given collateral %', async () => {
       const mint = VaultManager.connect(user).mint();
-      await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, EUROs.address, 1);
+      await expect(mint).to.emit(VaultManager, 'VaultDeployed').withArgs(anyValue, user.address, USDs.address, 1);
       expect(await VaultManager.totalSupply()).to.equal(1);
       
       const vaultIDs = await VaultManager.vaultIDs(user.address);
