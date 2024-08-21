@@ -38,7 +38,7 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
                             '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
                             '{"trait_type": "Debt",  "display_type": "number", "value": ', NFTUtils.toDecimalString(_vaultStatus.minted, 18),'},',
                             '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',NFTUtils.toDecimalString(_vaultStatus.maxMintable, 18),'"},',
-                            '{"trait_type": "Collateral Value in EUROs", "display_type": "number", "value": ',NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18),'},',
+                            '{"trait_type": "Collateral Value in USDs", "display_type": "number", "value": ',NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18),'},',
                             '{"trait_type": "Value minus debt", "display_type": "number", "value": ',NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),'},',
                             mapCollateralForJSON(_vaultStatus.collateral),
                             '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',

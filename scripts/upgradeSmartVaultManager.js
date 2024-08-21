@@ -1,5 +1,5 @@
 const { ethers, upgrades } = require("hardhat");
-const { PROTOCOL_FEE_RATE, DEFAULT_EUR_USD_PRICE, ETH } = require("../test/common");
+const { ETH } = require("../test/common");
 
 async function main() {
   const managerAddress = '0xBbB704f184E716410a9c00435530eA055CfAD187';

@@ -15,33 +15,33 @@ import "hardhat/console.sol";
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 
-    address private immutable EUROs;
-    address private immutable EURA;
+    address private immutable USDs;
+    address private immutable USDC;
     address private immutable WETH;
     address private immutable uniProxy;
-    address private immutable eurosRouter;
-    address private immutable euroHypervisor;
+    address private immutable ramsesRouter;
+    address private immutable usdsHypervisor;
     address private immutable uniswapRouter;
     uint256 private constant HUNDRED_PC = 1e5;
-    // min 10% to euros pool
-    uint256 private constant MIN_EURO_PERCENTAGE = 1e4;
+    // min 10% to usds pool
+    uint256 private constant MIN_USDS_PERCENTAGE = 1e4;
     address private smartVaultManager;
     uint256 public feeRate;
     mapping(address => HypervisorData) private hypervisorData;
 
-    struct HypervisorData { address hypervisor; uint24 poolFee; bytes pathToEURA; bytes pathFromEURA; }
+    struct HypervisorData { address hypervisor; uint24 poolFee; bytes pathToUSDC; bytes pathFromUSDC; }
 
-    event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 euroPercentage);
+    event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 usdPercentage);
     event Withdraw(address indexed smartVault, address indexed token, address hypervisor, uint256 amount);
     error InvalidRequest();
 
-    constructor(address _EUROs, address _EURA, address _WETH, address _uniProxy, address _eurosRouter, address _euroHypervisor, address _uniswapRouter) {
-        EUROs = _EUROs;
-        EURA = _EURA;
+    constructor(address _USDs, address _USDC, address _WETH, address _uniProxy, address _ramsesRouter, address _usdsHypervisor, address _uniswapRouter) {
+        USDs = _USDs;
+        USDC = _USDC;
         WETH = _WETH;
         uniProxy = _uniProxy;
-        eurosRouter = _eurosRouter;
-        euroHypervisor = _euroHypervisor;
+        ramsesRouter = _ramsesRouter;
+        usdsHypervisor = _usdsHypervisor;
         uniswapRouter = _uniswapRouter;
     }
 
@@ -122,14 +122,14 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(_unwantedToken).safeApprove(_swapRouter, 0);
     }
 
-    function _swapToEURA(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
-        uint256 _euroYieldPortion = _thisBalanceOf(_collateralToken) * _euroPercentage / HUNDRED_PC;
-        IERC20(_collateralToken).safeApprove(uniswapRouter, _euroYieldPortion);
+    function _swapToUSDC(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
+        uint256 _usdYieldPortion = _thisBalanceOf(_collateralToken) * _usdPercentage / HUNDRED_PC;
+        IERC20(_collateralToken).safeApprove(uniswapRouter, _usdYieldPortion);
         ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
-            path: _pathToEURA,
+            path: _pathToUSDC,
             recipient: address(this),
             deadline: block.timestamp + 60,
-            amountIn: _euroYieldPortion,
+            amountIn: _usdYieldPortion,
             amountOutMinimum: 1
         }));
         IERC20(_collateralToken).safeApprove(uniswapRouter, 0);
@@ -145,10 +145,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(_token1).safeApprove(_hypervisor, 0);
     }
 
-    function _euroDeposit(address _collateralToken, uint256 _euroPercentage, bytes memory _pathToEURA) private {
-        _swapToEURA(_collateralToken, _euroPercentage, _pathToEURA);
-        _swapToRatio(EURA, euroHypervisor, eurosRouter, 500);
-        _deposit(euroHypervisor);
+    function _usdDeposit(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
+        _swapToUSDC(_collateralToken, _usdPercentage, _pathToUSDC);
+        _swapToRatio(USDC, usdsHypervisor, ramsesRouter, 500);
+        _deposit(usdsHypervisor);
     }
 
     function _otherDeposit(address _collateralToken, HypervisorData memory _hypervisorData) private {
@@ -156,36 +156,36 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         _deposit(_hypervisorData.hypervisor);
     }
 
-    function deposit(address _collateralToken, uint256 _euroPercentage) external returns (address _hypervisor0, address _hypervisor1) {
-        if (_euroPercentage < MIN_EURO_PERCENTAGE) revert InvalidRequest();
+    function deposit(address _collateralToken, uint256 _usdPercentage) external returns (address _hypervisor0, address _hypervisor1) {
+        if (_usdPercentage < MIN_USDS_PERCENTAGE) revert InvalidRequest();
         uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
         if (_hypervisorData.hypervisor == address(0)) revert InvalidRequest();
-        _euroDeposit(_collateralToken, _euroPercentage, _hypervisorData.pathToEURA);
+        _usdDeposit(_collateralToken, _usdPercentage, _hypervisorData.pathToUSDC);
         _otherDeposit(_collateralToken, _hypervisorData);
-        emit Deposit(msg.sender, _collateralToken, _balance, _euroPercentage);
-        return (euroHypervisor, _hypervisorData.hypervisor);
+        emit Deposit(msg.sender, _collateralToken, _balance, _usdPercentage);
+        return (usdsHypervisor, _hypervisorData.hypervisor);
     }
 
-    function _sellEURA(address _token) private {
-        bytes memory _pathFromEURA = hypervisorData[_token].pathFromEURA;
-        uint256 _balance = _thisBalanceOf(EURA);
-        IERC20(EURA).safeApprove(uniswapRouter, _balance);
+    function _sellUSDC(address _token) private {
+        bytes memory _pathFromUSDC = hypervisorData[_token].pathFromUSDC;
+        uint256 _balance = _thisBalanceOf(USDC);
+        IERC20(USDC).safeApprove(uniswapRouter, _balance);
         ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
-            path: _pathFromEURA,
+            path: _pathFromUSDC,
             recipient: address(this),
             deadline: block.timestamp + 60,
             amountIn: _balance,
             amountOutMinimum: 0
         }));
-        IERC20(EUROs).safeApprove(uniswapRouter, 0);
+        IERC20(USDs).safeApprove(uniswapRouter, 0);
     }
 
-    function _withdrawEUROsDeposit(address _hypervisor, address _token) private {
+    function _withdrawUSDsDeposit(address _hypervisor, address _token) private {
         IHypervisor(_hypervisor).withdraw(_thisBalanceOf(_hypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
-        _swapToSingleAsset(euroHypervisor, EURA, eurosRouter, 500);
-        _sellEURA(_token);
+        _swapToSingleAsset(usdsHypervisor, USDC, ramsesRouter, 500);
+        _sellUSDC(_token);
     }
 
     function _withdrawOtherDeposit(address _hypervisor, address _token) private {
@@ -197,8 +197,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function withdraw(address _hypervisor, address _token) external {
         IERC20(_hypervisor).safeTransferFrom(msg.sender, address(this), IERC20(_hypervisor).balanceOf(msg.sender));
-        _hypervisor == euroHypervisor ? 
-            _withdrawEUROsDeposit(_hypervisor, _token) :
+        _hypervisor == usdsHypervisor ? 
+            _withdrawUSDsDeposit(_hypervisor, _token) :
             _withdrawOtherDeposit(_hypervisor, _token);
         uint256 _withdrawn = _thisBalanceOf(_token);
         uint256 _fee = _withdrawn * feeRate / HUNDRED_PC;
@@ -208,8 +208,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         emit Withdraw(msg.sender, _token, _hypervisor, _withdrawn);
     }
 
-    function addHypervisorData(address _collateralToken, address _hypervisor, uint24 _poolFee, bytes memory _pathToEURA, bytes memory _pathFromEURA) external onlyOwner {
-        hypervisorData[_collateralToken] = HypervisorData(_hypervisor, _poolFee, _pathToEURA, _pathFromEURA);
+    function addHypervisorData(address _collateralToken, address _hypervisor, uint24 _poolFee, bytes memory _pathToUSDC, bytes memory _pathFromUSDC) external onlyOwner {
+        hypervisorData[_collateralToken] = HypervisorData(_hypervisor, _poolFee, _pathToUSDC, _pathFromUSDC);
     }
 
     function removeHypervisorData(address _collateralToken) external onlyOwner {
