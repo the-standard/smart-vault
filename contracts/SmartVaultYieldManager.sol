@@ -216,7 +216,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         delete hypervisorData[_collateralToken];
     }
     
-    function setFeeData(uint256 _feeRate, address _smartVaultManager) external {
+    function setFeeData(uint256 _feeRate, address _smartVaultManager) external onlyOwner {
         feeRate = _feeRate;
         smartVaultManager = _smartVaultManager;
     }

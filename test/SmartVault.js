@@ -685,8 +685,8 @@ describe('SmartVault', async () => {
 
     });
 
-    it.only('only allows owner to set fee data', async() => {
-      await expect(YieldManager.connect(user).setFeeData(1000, ethers.constants.AddressZero)).to.be.revertedWithCustomError(YieldManager, 'InvalidUser');
+    it('only allows owner to set fee data', async() => {
+      await expect(YieldManager.connect(user).setFeeData(1000, ethers.constants.AddressZero)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(YieldManager.connect(admin).setFeeData(1000, ethers.constants.AddressZero)).not.to.be.reverted;
     });
   });
