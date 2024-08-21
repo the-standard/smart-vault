@@ -228,14 +228,14 @@ contract SmartVaultV4 is ISmartVault {
     function executeNativeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
         (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: _swapFee}("");
         if (!sent) revert InvalidRequest();
-        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter2()).exactInputSingle{value: _params.amountIn}(_params);
+        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle{value: _params.amountIn}(_params);
     }
 
     function executeERC20SwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
-        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter2(), _params.amountIn);
-        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter2()).exactInputSingle(_params);
-        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter2(), 0);
+        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
+        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
+        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
         IWETH weth = IWETH(ISmartVaultManagerV3(manager).weth());
         // convert potentially received weth to eth
         uint256 wethBalance = weth.balanceOf(address(this));

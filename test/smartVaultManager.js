@@ -39,7 +39,7 @@ describe('SmartVaultManager', async () => {
       expect(await VaultManager.burnFeeRate()).to.equal(PROTOCOL_FEE_RATE);
       expect(await VaultManager.swapFeeRate()).to.equal(PROTOCOL_FEE_RATE);
       expect(await VaultManager.nftMetadataGenerator()).to.equal(NFTMetadataGenerator.address);
-      expect(await VaultManager.swapRouter2()).to.equal(MockSwapRouter.address);
+      expect(await VaultManager.swapRouter()).to.equal(MockSwapRouter.address);
       expect(await VaultManager.weth()).to.equal(WETH_ADDRESS);
       expect(await VaultManager.smartVaultDeployer()).to.equal(SmartVaultDeployer.address);
 
@@ -49,12 +49,12 @@ describe('SmartVaultManager', async () => {
       const newGenerator = await (await getNFTMetadataContract()).deploy();
       const newSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
       const newWeth = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Ether', 'WETH', 18);
-      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV2')).deploy(ETH, ClEurUsd.address);
+      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
       await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSwapFeeRate(newSwapFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setNFTMetadataGenerator(newGenerator.address)).to.be.revertedWith('Ownable: caller is not the owner');
-      await expect(VaultManager.connect(user).setSwapRouter2(newSwapRouter.address)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(VaultManager.connect(user).setSwapRouter(newSwapRouter.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setWethAddress(newWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSmartVaultDeployer(deployerV2.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setProtocolAddress(LiquidationPoolManager.address)).to.be.revertedWith('Ownable: caller is not the owner');
@@ -64,7 +64,7 @@ describe('SmartVaultManager', async () => {
       await expect(VaultManager.setBurnFeeRate(newBurnFeeRate)).not.to.be.reverted;
       await expect(VaultManager.setSwapFeeRate(newSwapFeeRate)).not.to.be.reverted;
       await expect(VaultManager.setNFTMetadataGenerator(newGenerator.address)).not.to.be.reverted;
-      await expect(VaultManager.setSwapRouter2(newSwapRouter.address)).not.to.be.reverted;
+      await expect(VaultManager.setSwapRouter(newSwapRouter.address)).not.to.be.reverted;
       await expect(VaultManager.setWethAddress(newWeth.address)).not.to.be.reverted;
       await expect(VaultManager.setSmartVaultDeployer(deployerV2.address)).not.to.be.reverted;
       await expect(VaultManager.setProtocolAddress(LiquidationPoolManager.address)).not.to.be.reverted;
@@ -74,8 +74,7 @@ describe('SmartVaultManager', async () => {
       expect(await VaultManager.burnFeeRate()).to.equal(newBurnFeeRate);
       expect(await VaultManager.swapFeeRate()).to.equal(newSwapFeeRate);
       expect(await VaultManager.nftMetadataGenerator()).to.equal(newGenerator.address);
-      expect(await VaultManager.swapRouter()).to.equal(ethers.constants.AddressZero);
-      expect(await VaultManager.swapRouter2()).to.equal(newSwapRouter.address);
+      expect(await VaultManager.swapRouter()).to.equal(newSwapRouter.address);
       expect(await VaultManager.weth()).to.equal(newWeth.address);
       expect(await VaultManager.smartVaultDeployer()).to.equal(deployerV2.address);
       expect(await VaultManager.protocol()).to.equal(LiquidationPoolManager.address);
@@ -143,7 +142,7 @@ describe('SmartVaultManager', async () => {
         const { status } = await VaultManager.vaultData(vaultID);
         const mintValue = status.maxMintable.mul(99).div(100);
         
-        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        const vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
 
         let liquidate = VaultManager.connect(admin).liquidateVault(1);
@@ -188,7 +187,7 @@ describe('SmartVaultManager', async () => {
         expect(userVaultIDs).to.have.length(2);
         let otherUserVaultIDs = await VaultManager.vaultIDs(otherUser.address);
         expect(otherUserVaultIDs).to.have.length(1);
-        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        const vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
         expect(await vault.owner()).to.equal(user.address);
 
         const transfer = VaultManager.connect(user).transferFrom(user.address, otherUser.address, tokenId);
@@ -218,7 +217,7 @@ describe('SmartVaultManager', async () => {
 
     describe('vault version', async () => {
       it('deploys v4 vaults', async () => {
-        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        const vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
         expect((await vault.status()).version).to.equal(4);
       });
     });

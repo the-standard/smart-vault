@@ -36,7 +36,6 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     uint256 public swapFeeRate;
     address public weth;
     address public swapRouter;
-    address public swapRouter2;
     uint16 public userVaultLimit;
     address public yieldManager;
 
@@ -49,7 +48,29 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         uint256 burnFeeRate; ISmartVault.Status status;
     }
 
-    function initialize() initializer public {}
+    function initialize(
+        uint256 _collateralRate, uint256 _feeRate, address _euros, address _protocol, address _liquidator, address _tokenManager,
+        address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator, address _yieldManager, uint16 _userVaultLimit,
+        address _swapRouter, address _weth
+    ) initializer public {
+        __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
+        __Ownable_init();
+        collateralRate = _collateralRate;
+        euros = _euros;
+        mintFeeRate = _feeRate;
+        burnFeeRate = _feeRate;
+        swapFeeRate = _feeRate;
+        protocol = _protocol;
+        liquidator = _liquidator;
+        tokenManager = _tokenManager;
+        smartVaultDeployer = _smartVaultDeployer;
+        smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
+        nftMetadataGenerator = _nftMetadataGenerator;
+        yieldManager = _yieldManager;
+        userVaultLimit = _userVaultLimit;
+        swapRouter = _swapRouter;
+        weth = _weth;
+    }
 
     modifier onlyLiquidator {
         require(msg.sender == liquidator, "err-invalid-liquidator");
@@ -119,8 +140,8 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         weth = _weth;
     }
 
-    function setSwapRouter2(address _swapRouter) external onlyOwner() {
-        swapRouter2 = _swapRouter;
+    function setSwapRouter(address _swapRouter) external onlyOwner() {
+        swapRouter = _swapRouter;
     }
 
     function setNFTMetadataGenerator(address _nftMetadataGenerator) external onlyOwner() {

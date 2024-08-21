@@ -5,7 +5,7 @@ import "contracts/test_utils/TestSmartVaultV2.sol";
 import "contracts/PriceCalculator.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 
-contract TestSmartVaultDeployerV2 is ISmartVaultDeployer {    
+contract TestSmartVaultDeployerV4 is ISmartVaultDeployer {    
     bytes32 private immutable NATIVE;
     address private immutable priceCalculator;
 
