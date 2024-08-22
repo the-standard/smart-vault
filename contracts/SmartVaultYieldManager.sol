@@ -10,8 +10,6 @@ import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/IUniProxy.sol";
 import "contracts/interfaces/IWETH.sol";
 
-import "hardhat/console.sol";
-
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 

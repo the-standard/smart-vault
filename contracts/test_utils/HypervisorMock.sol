@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
 
-import "hardhat/console.sol";
-
 contract HypervisorMock is IHypervisor, ERC20 {
     address public immutable token0;
     address public immutable token1;

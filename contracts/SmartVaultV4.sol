@@ -14,8 +14,6 @@ import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
 
-import "hardhat/console.sol";
-
 contract SmartVaultV4 is ISmartVault {
     using SafeERC20 for IERC20;
 
