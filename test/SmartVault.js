@@ -477,7 +477,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe.only('yield', async () => {
+  describe('yield', async () => {
     let WBTC, USDT, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
@@ -685,8 +685,8 @@ describe('SmartVault', async () => {
       // borrowing $150 to allow for minting fee
       await Vault.connect(user).mint(user.address, ethers.utils.parseEther('140'));
 
-      // ETH / WBTC swap price halves, so yield value is significantly lower than ETH collateral value
-      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.div(2));
+      // ETH / WBTC swap rate drops enough to drop collateral value below required (but not quite 90% drop)
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.mul(3).div(4));
 
       await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
 
@@ -694,9 +694,27 @@ describe('SmartVault', async () => {
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
       await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
 
+      // WBTC / ETH swap rate drops enough to drop collateral value below required (but not quite 90% drop)
+      await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('17',28))
+
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
+    });
+
+    it('reverts if collateral level drops by more than 10% during deposit or withdrawal', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1');
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+
+      // ETH / WBTC swap price halves, so yield value is significantly lower than ETH collateral value
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.div(2));
+      
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
+
+      // reset ETH / WBTC to normal rate
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+
       // WBTC / ETH swap price halves, so yield value is significantly lower than ETH collateral value
       await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('10',28))
-
       await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
     });
 

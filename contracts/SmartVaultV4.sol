@@ -288,27 +288,33 @@ contract SmartVaultV4 is ISmartVault {
         }
     }
 
+    function significantCollateralDrop(uint256 _preCollateralValue, uint256 _postCollateralValue) private view returns (bool) {
+        return _postCollateralValue < 9 * _preCollateralValue / 10;
+    }
+
     function depositYield(bytes32 _symbol, uint256 _stablePercentage) external onlyOwner {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
         if (_balance == 0) revert InvalidRequest();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
+        uint256 _preDepositCollateral = usdCollateral();
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
         addUniqueHypervisor(_vault1);
         addUniqueHypervisor(_vault2);
-        if (undercollateralised()) revert InvalidRequest();
+        if (undercollateralised() || significantCollateralDrop(_preDepositCollateral, usdCollateral())) revert InvalidRequest();
     }
 
     function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
         address _token = getTokenisedAddr(_symbol);
         IERC20(_vault).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_vault).balanceOf(address(this)));
+        uint256 _preWithdrawCollateral = usdCollateral();
         ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_vault, _token);
         removeHypervisor(_vault);
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
-        if (undercollateralised()) revert InvalidRequest();
+        if (undercollateralised() || significantCollateralDrop(_preWithdrawCollateral, usdCollateral())) revert InvalidRequest();
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
