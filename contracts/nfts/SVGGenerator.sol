@@ -82,7 +82,6 @@ contract SVGGenerator {
     }
 
     function generateSvg(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
-        CollateralForSVG memory collateral = mapCollateralForSVG(_vaultStatus.collateral);
         uint256 colWidth = NFTUtils.calculateCollateralLockedWidth(_vaultStatus.totalCollateralValue, _vaultStatus.minted, WIDTH_OF_COL_BAR);
         return string(
             abi.encodePacked(
