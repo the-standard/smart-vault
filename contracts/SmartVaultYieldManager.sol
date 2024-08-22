@@ -49,15 +49,20 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         return IERC20(_token).balanceOf(address(this));
     }
 
+    function _withinRatio(uint256 _tokenBBalance, uint256 _requiredStart, uint256 _requiredEnd) private returns (bool) {
+        return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
+    }
+
     function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         address _tokenB = _tokenA == IHypervisor(_hypervisor).token0() ?
             IHypervisor(_hypervisor).token1() : IHypervisor(_hypervisor).token0();
         uint256 _tokenBBalance = _thisBalanceOf(_tokenB);
-        (uint256 amountStart, uint256 amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
+        (uint256 _amountStart, uint256 _amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
         uint256 _divisor = 2;
         bool _tokenBTooLarge;
-        while(_tokenBBalance < amountStart || _tokenBBalance > amountEnd) {
-            uint256 _midRatio = (amountStart + amountEnd) / 2;
+        for (uint256 index = 0; index < 20; index++) {
+            if (_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) break;
+            uint256 _midRatio = (_amountStart + _amountEnd) / 2;
             if (_tokenBBalance < _midRatio) {
                 if (_tokenBTooLarge) {
                     _divisor++;
@@ -98,8 +103,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 IERC20(_tokenB).safeApprove(_swapRouter, 0);
             }
             _tokenBBalance = _thisBalanceOf(_tokenB);
-            (amountStart, amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
+            (_amountStart, _amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
         }
+
+        if (!_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) revert InvalidRequest();
     }
 
     function _swapToSingleAsset(address _hypervisor, address _wantedToken, address _swapRouter, uint24 _fee) private {

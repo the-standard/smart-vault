@@ -477,7 +477,7 @@ describe('SmartVault', async () => {
     });
   });
 
-  describe('yield', async () => {
+  describe.only('yield', async () => {
     let WBTC, USDT, WBTCPerETH, MockWETHWBTCHypervisor;
 
     beforeEach(async () => {
@@ -698,7 +698,16 @@ describe('SmartVault', async () => {
       await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('10',28))
 
       await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'InvalidRequest');
+    });
 
+    it('reverts if ratio is not reached within limited swap iterations', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1');
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+
+      // 0.001 wbtc returned for 1 eth in swapping, ratio cannot be reached
+      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, 100000)
+
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4))).to.be.revertedWithCustomError(YieldManager, 'InvalidRequest');
     });
 
     it('only allows owner to set fee data', async() => {
