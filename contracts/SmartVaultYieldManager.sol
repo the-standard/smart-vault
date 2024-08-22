@@ -33,7 +33,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 usdPercentage);
     event Withdraw(address indexed smartVault, address indexed token, address hypervisor, uint256 amount);
-    error InvalidRequest();
+    error RatioError();
+    error StablePoolPercentageError();
+    error HypervisorDataError();
+    error IncompatibleHypervisor();
 
     constructor(address _USDs, address _USDC, address _WETH, address _uniProxy, address _ramsesRouter, address _usdsHypervisor, address _uniswapRouter) {
         USDs = _USDs;
@@ -106,7 +109,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             (_amountStart, _amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
         }
 
-        if (!_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) revert InvalidRequest();
+        if (!_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) revert RatioError();
     }
 
     function _swapToSingleAsset(address _hypervisor, address _wantedToken, address _swapRouter, uint24 _fee) private {
@@ -164,11 +167,11 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function deposit(address _collateralToken, uint256 _usdPercentage) external returns (address _hypervisor0, address _hypervisor1) {
-        if (_usdPercentage < MIN_USDS_PERCENTAGE) revert InvalidRequest();
+        if (_usdPercentage < MIN_USDS_PERCENTAGE) revert StablePoolPercentageError();
         uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
-        if (_hypervisorData.hypervisor == address(0)) revert InvalidRequest();
+        if (_hypervisorData.hypervisor == address(0)) revert HypervisorDataError();
         _usdDeposit(_collateralToken, _usdPercentage, _hypervisorData.pathToUSDC);
         _otherDeposit(_collateralToken, _hypervisorData);
         emit Deposit(msg.sender, _collateralToken, _balance, _usdPercentage);
@@ -197,7 +200,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function _withdrawOtherDeposit(address _hypervisor, address _token) private {
         HypervisorData memory _hypervisorData = hypervisorData[_token];
-        if (_hypervisorData.hypervisor != _hypervisor) revert InvalidRequest();
+        if (_hypervisorData.hypervisor != _hypervisor) revert IncompatibleHypervisor();
         IHypervisor(_hypervisor).withdraw(_thisBalanceOf(_hypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
         _swapToSingleAsset(_hypervisor, _token, uniswapRouter, _hypervisorData.poolFee);
     }

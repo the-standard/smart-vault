@@ -31,14 +31,20 @@ contract SmartVaultV4 is ISmartVault {
     uint256 private minted;
     bool private liquidated;
 
+    struct YieldPair { address hypervisor; address token0; uint256 amount0; address token1; uint256 amount1; }
+
     event CollateralRemoved(bytes32 symbol, uint256 amount, address to);
     event AssetRemoved(address token, uint256 amount, address to);
     event USDsMinted(address to, uint256 amount, uint256 fee);
     event USDsBurned(uint256 amount, uint256 fee);
 
-    struct YieldPair { address hypervisor; address token0; uint256 amount0; address token1; uint256 amount1; }
     error InvalidUser();
-    error InvalidRequest();
+    error VaultLiquidated();
+    error Overrepay();
+    error TransferError();
+    error NotUndercollateralised();
+    error Undercollateralised();
+    error InvalidToken();
 
     constructor(bytes32 _native, address _manager, address _owner, address _usds, address _priceCalculator) {
         NATIVE = _native;
@@ -59,12 +65,12 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     modifier ifMinted(uint256 _amount) {
-        if (minted < _amount) revert InvalidRequest();
+        if (minted < _amount) revert Overrepay();
         _;
     }
 
     modifier ifNotLiquidated {
-        if (liquidated) revert InvalidRequest();
+        if (liquidated) revert VaultLiquidated();
         _;
     }
 
@@ -142,7 +148,7 @@ contract SmartVaultV4 is ISmartVault {
     function liquidateNative() private {
         if (address(this).balance != 0) {
             (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: address(this).balance}("");
-            if (!sent) revert InvalidRequest();
+            if (!sent) revert TransferError();
         }
     }
 
@@ -151,7 +157,7 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function liquidate() external onlyVaultManager {
-        if (!undercollateralised()) revert InvalidRequest();
+        if (!undercollateralised()) revert NotUndercollateralised();
         liquidated = true;
         minted = 0;
         liquidateNative();
@@ -171,22 +177,22 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
-        if (!canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount)) revert InvalidRequest();
+        if (!canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount)) revert Undercollateralised();
         (bool sent,) = _to.call{value: _amount}("");
-        if (!sent) revert InvalidRequest();
+        if (!sent) revert TransferError();
         emit CollateralRemoved(NATIVE, _amount, _to);
     }
 
     function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
-        if (!canRemoveCollateral(token, _amount)) revert InvalidRequest();
+        if (!canRemoveCollateral(token, _amount)) revert Undercollateralised();
         IERC20(token.addr).safeTransfer(_to, _amount);
         emit CollateralRemoved(_symbol, _amount, _to);
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
         ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
-        if (token.addr == _tokenAddr && !canRemoveCollateral(token, _amount)) revert InvalidRequest();
+        if (token.addr == _tokenAddr && !canRemoveCollateral(token, _amount)) revert Undercollateralised();
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
         emit AssetRemoved(_tokenAddr, _amount, _to);
     }
@@ -197,7 +203,7 @@ contract SmartVaultV4 is ISmartVault {
 
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
         uint256 fee = _amount * ISmartVaultManagerV3(manager).mintFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
-        if (!fullyCollateralised(_amount + fee)) revert InvalidRequest();
+        if (!fullyCollateralised(_amount + fee)) revert Undercollateralised();
         minted = minted + _amount + fee;
         USDs.mint(_to, _amount);
         USDs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
@@ -218,7 +224,7 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol == _symbol) _token = tokens[i];
         }
-        if (_token.symbol == bytes32(0)) revert InvalidRequest();
+        if (_token.symbol == bytes32(0)) revert InvalidToken();
     }
 
     function getTokenisedAddr(bytes32 _symbol) private view returns (address) {
@@ -228,7 +234,7 @@ contract SmartVaultV4 is ISmartVault {
 
     function executeNativeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
         (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: _swapFee}("");
-        if (!sent) revert InvalidRequest();
+        if (!sent) revert TransferError();
         ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle{value: _params.amountIn}(_params);
     }
 
@@ -296,13 +302,13 @@ contract SmartVaultV4 is ISmartVault {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
-        if (_balance == 0) revert InvalidRequest();
+        if (_balance == 0) revert InvalidToken();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         uint256 _preDepositCollateral = usdCollateral();
         (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
         addUniqueHypervisor(_vault1);
         addUniqueHypervisor(_vault2);
-        if (undercollateralised() || significantCollateralDrop(_preDepositCollateral, usdCollateral())) revert InvalidRequest();
+        if (undercollateralised() || significantCollateralDrop(_preDepositCollateral, usdCollateral())) revert Undercollateralised();
     }
 
     function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
@@ -314,7 +320,7 @@ contract SmartVaultV4 is ISmartVault {
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
-        if (undercollateralised() || significantCollateralDrop(_preWithdrawCollateral, usdCollateral())) revert InvalidRequest();
+        if (undercollateralised() || significantCollateralDrop(_preWithdrawCollateral, usdCollateral())) revert Undercollateralised();
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
