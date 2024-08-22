@@ -294,7 +294,7 @@ contract SmartVaultV4 is ISmartVault {
         }
     }
 
-    function significantCollateralDrop(uint256 _preCollateralValue, uint256 _postCollateralValue) private view returns (bool) {
+    function significantCollateralDrop(uint256 _preCollateralValue, uint256 _postCollateralValue) private pure returns (bool) {
         return _postCollateralValue < 9 * _preCollateralValue / 10;
     }
 

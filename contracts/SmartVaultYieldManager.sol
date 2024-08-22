@@ -52,7 +52,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         return IERC20(_token).balanceOf(address(this));
     }
 
-    function _withinRatio(uint256 _tokenBBalance, uint256 _requiredStart, uint256 _requiredEnd) private returns (bool) {
+    function _withinRatio(uint256 _tokenBBalance, uint256 _requiredStart, uint256 _requiredEnd) private pure returns (bool) {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
 
