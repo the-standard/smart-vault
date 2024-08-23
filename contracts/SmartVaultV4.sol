@@ -276,16 +276,16 @@ contract SmartVaultV4 is ISmartVault {
             executeERC20SwapAndFee(params, swapFee);
     }
 
-    function addUniqueHypervisor(address _vault) private {
+    function addUniqueHypervisor(address _hypervisor) private {
         for (uint256 i = 0; i < hypervisors.length; i++) {
-            if (hypervisors[i] == _vault) return;
+            if (hypervisors[i] == _hypervisor) return;
         }
-        hypervisors.push(_vault);
+        hypervisors.push(_hypervisor);
     }
 
-    function removeHypervisor(address _vault) private {
+    function removeHypervisor(address _hypervisor) private {
         for (uint256 i = 0; i < hypervisors.length; i++) {
-            if (hypervisors[i] == _vault) {
+            if (hypervisors[i] == _hypervisor) {
                 hypervisors[i] = hypervisors[hypervisors.length - 1];
                 hypervisors.pop();
             }
@@ -303,18 +303,18 @@ contract SmartVaultV4 is ISmartVault {
         if (_balance == 0) revert InvalidToken();
         IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         uint256 _preDepositCollateral = usdCollateral();
-        (address _vault1, address _vault2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
-        addUniqueHypervisor(_vault1);
-        addUniqueHypervisor(_vault2);
+        (address _hypervisor1, address _hypervisor2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
+        addUniqueHypervisor(_hypervisor1);
+        if (_hypervisor2 != address(0)) addUniqueHypervisor(_hypervisor2);
         if (undercollateralised() || significantCollateralDrop(_preDepositCollateral, usdCollateral())) revert Undercollateralised();
     }
 
-    function withdrawYield(address _vault, bytes32 _symbol) external onlyOwner {
+    function withdrawYield(address _hypervisor, bytes32 _symbol) external onlyOwner {
         address _token = getTokenisedAddr(_symbol);
-        IERC20(_vault).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_vault).balanceOf(address(this)));
+        IERC20(_hypervisor).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this)));
         uint256 _preWithdrawCollateral = usdCollateral();
-        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_vault, _token);
-        removeHypervisor(_vault);
+        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_hypervisor, _token);
+        removeHypervisor(_hypervisor);
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
@@ -326,14 +326,14 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < hypervisors.length; i++) {
             IHypervisor _hypervisor = IHypervisor(hypervisors[i]);
             uint256 _balance = _hypervisor.balanceOf(address(this));
-            uint256 _vaultTotal = _hypervisor.totalSupply();
+            uint256 _hypervisorTotal = _hypervisor.totalSupply();
             (uint256 _underlyingTotal0, uint256 _underlyingTotal1) = _hypervisor.getTotalAmounts();
 
             _yieldPairs[i].hypervisor = hypervisors[i];
             _yieldPairs[i].token0 = _hypervisor.token0();
             _yieldPairs[i].token1 = _hypervisor.token1();
-            _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _vaultTotal;
-            _yieldPairs[i].amount1 = _balance * _underlyingTotal1 / _vaultTotal;
+            _yieldPairs[i].amount0 = _balance * _underlyingTotal0 / _hypervisorTotal;
+            _yieldPairs[i].amount1 = _balance * _underlyingTotal1 / _hypervisorTotal;
         }
     }
 

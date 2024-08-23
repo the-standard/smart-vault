@@ -171,9 +171,12 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
         if (_hypervisorData.hypervisor == address(0)) revert HypervisorDataError();
         _usdDeposit(_collateralToken, _usdPercentage, _hypervisorData.pathToUSDC);
-        _otherDeposit(_collateralToken, _hypervisorData);
+        _hypervisor0 = usdsHypervisor;
+        if (_usdPercentage < HUNDRED_PC) {
+            _otherDeposit(_collateralToken, _hypervisorData);
+            _hypervisor1 = _hypervisorData.hypervisor;
+        }
         emit Deposit(msg.sender, _collateralToken, _balance, _usdPercentage);
-        return (usdsHypervisor, _hypervisorData.hypervisor);
     }
 
     function _sellUSDC(address _token) private {
