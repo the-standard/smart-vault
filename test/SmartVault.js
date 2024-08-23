@@ -599,6 +599,10 @@ describe('SmartVault', async () => {
       // TODO assertions on the yield assets for wbtc deposit
     });
 
+    xit('can put 100% of yield deposit in stable pair', async () => {
+
+    });
+
     it('allows deleting of yield data for a collateral type (and reverts)', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
