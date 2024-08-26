@@ -18,8 +18,15 @@ contract MockSwapRouter is ISwapRouter {
     mapping(address => mapping(address => uint256)) private rates;
 
     struct MockSwapData {
-        address tokenIn; address tokenOut; uint24 fee; address recipient; uint256 deadline;
-        uint256 amountIn; uint256 amountOutMinimum; uint160 sqrtPriceLimitX96; uint256 txValue;
+        address tokenIn;
+        address tokenOut;
+        uint24 fee;
+        address recipient;
+        uint256 deadline;
+        uint256 amountIn;
+        uint256 amountOutMinimum;
+        uint160 sqrtPriceLimitX96;
+        uint256 txValue;
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 _amountOut) {
@@ -43,8 +50,7 @@ contract MockSwapRouter is ISwapRouter {
 
     function receivedSwap() external view returns (MockSwapData memory) {
         return MockSwapData(
-            tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
-            sqrtPriceLimitX96, txValue
+            tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96, txValue
         );
     }
 
@@ -59,7 +65,7 @@ contract MockSwapRouter is ISwapRouter {
     }
 
     function exactOutput(ExactOutputParams calldata params) external payable returns (uint256 _amountIn) {
-        (address _tokenOut, , address _tokenIn) = abi.decode(params.path, (address, uint24, address));
+        (address _tokenOut,, address _tokenIn) = abi.decode(params.path, (address, uint24, address));
         _amountIn = params.amountOut * 1e18 / rates[_tokenIn][_tokenOut];
         require(_amountIn < params.amountInMaximum);
         if (msg.value == 0) {

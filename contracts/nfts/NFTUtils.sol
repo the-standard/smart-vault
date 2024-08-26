@@ -10,9 +10,9 @@ library NFTUtils {
     using Strings for uint256;
     using Strings for uint16;
 
-    function toShortString(bytes32 _data) pure external returns (string memory) {
+    function toShortString(bytes32 _data) external pure returns (string memory) {
         bytes memory bytesString = new bytes(32);
-        uint charCount = 0;
+        uint256 charCount = 0;
         for (uint8 i = 0; i < 32; i++) {
             bytes1 char = _data[i];
             if (char != 0) {
@@ -32,7 +32,7 @@ library NFTUtils {
         uint256 i = fractionalPartPadded.length;
         uint256 j = _input.length;
         bool smallestCharacterAppended;
-        while(i > 0) {
+        while (i > 0) {
             i--;
             if (j > 0) {
                 j--;
@@ -62,13 +62,19 @@ library NFTUtils {
         if (fraction == 0) return wholePart;
         bytes memory fractionalPart = bytes(fraction.toString());
         bytes memory fractionalPartPadded = padFraction(fractionalPart, _inputDec);
-        if (fractionalPartPadded.length > maxDecPlaces) fractionalPartPadded = truncateFraction(fractionalPartPadded, maxDecPlaces);
+        if (fractionalPartPadded.length > maxDecPlaces) {
+            fractionalPartPadded = truncateFraction(fractionalPartPadded, maxDecPlaces);
+        }
         return string(abi.encodePacked(wholePart, ".", fractionalPartPadded));
     }
 
-    function calculateCollateralLockedWidth(uint256 totalCollateral, uint256 mintedAmount, uint256 widthOfBar) public pure returns (uint256) {
+    function calculateCollateralLockedWidth(uint256 totalCollateral, uint256 mintedAmount, uint256 widthOfBar)
+        public
+        pure
+        returns (uint256)
+    {
         if (totalCollateral == 0) return 0;
         uint256 result = (((mintedAmount * 100) / totalCollateral * widthOfBar) / 100);
-         return result;
+        return result;
     }
 }

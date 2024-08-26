@@ -17,9 +17,15 @@ import "contracts/interfaces/IUSDs.sol";
 // TODO describe changes
 // TODO upgraded zz/zz/zz
 //
-contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV6 is
+    ISmartVaultManager,
+    ISmartVaultManagerV2,
+    Initializable,
+    ERC721Upgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20 for IERC20;
-    
+
     uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
@@ -43,16 +49,29 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     event VaultLiquidated(address indexed vaultAddress);
     event VaultTransferred(uint256 indexed tokenId, address from, address to);
 
-    struct SmartVaultData { 
-        uint256 tokenId; uint256 collateralRate; uint256 mintFeeRate;
-        uint256 burnFeeRate; ISmartVault.Status status;
+    struct SmartVaultData {
+        uint256 tokenId;
+        uint256 collateralRate;
+        uint256 mintFeeRate;
+        uint256 burnFeeRate;
+        ISmartVault.Status status;
     }
 
     function initialize(
-        uint256 _collateralRate, uint256 _feeRate, address _usds, address _protocol, address _liquidator, address _tokenManager,
-        address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator, address _yieldManager, uint16 _userVaultLimit,
-        address _swapRouter, address _weth
-    ) initializer public {
+        uint256 _collateralRate,
+        uint256 _feeRate,
+        address _usds,
+        address _protocol,
+        address _liquidator,
+        address _tokenManager,
+        address _smartVaultDeployer,
+        address _smartVaultIndex,
+        address _nftMetadataGenerator,
+        address _yieldManager,
+        uint16 _userVaultLimit,
+        address _swapRouter,
+        address _weth
+    ) public initializer {
         __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
         __Ownable_init();
         collateralRate = _collateralRate;
@@ -72,7 +91,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         weth = _weth;
     }
 
-    modifier onlyLiquidator {
+    modifier onlyLiquidator() {
         require(msg.sender == liquidator, "err-invalid-liquidator");
         _;
     }
@@ -129,42 +148,42 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     }
 
     function setBurnFeeRate(uint256 _rate) external onlyOwner {
-        burnFeeRate = _rate;   
+        burnFeeRate = _rate;
     }
 
     function setSwapFeeRate(uint256 _rate) external onlyOwner {
         swapFeeRate = _rate;
     }
 
-    function setWethAddress(address _weth) external onlyOwner() {
+    function setWethAddress(address _weth) external onlyOwner {
         weth = _weth;
     }
 
-    function setSwapRouter(address _swapRouter) external onlyOwner() {
+    function setSwapRouter(address _swapRouter) external onlyOwner {
         swapRouter = _swapRouter;
     }
 
-    function setNFTMetadataGenerator(address _nftMetadataGenerator) external onlyOwner() {
+    function setNFTMetadataGenerator(address _nftMetadataGenerator) external onlyOwner {
         nftMetadataGenerator = _nftMetadataGenerator;
     }
 
-    function setSmartVaultDeployer(address _smartVaultDeployer) external onlyOwner() {
+    function setSmartVaultDeployer(address _smartVaultDeployer) external onlyOwner {
         smartVaultDeployer = _smartVaultDeployer;
     }
 
-    function setProtocolAddress(address _protocol) external onlyOwner() {
+    function setProtocolAddress(address _protocol) external onlyOwner {
         protocol = _protocol;
     }
 
-    function setLiquidatorAddress(address _liquidator) external onlyOwner() {
+    function setLiquidatorAddress(address _liquidator) external onlyOwner {
         liquidator = _liquidator;
     }
 
-    function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner() {
+    function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner {
         userVaultLimit = _userVaultLimit;
     }
 
-    function setYieldManager(address _yieldManager) external onlyOwner() {
+    function setYieldManager(address _yieldManager) external onlyOwner {
         yieldManager = _yieldManager;
     }
 

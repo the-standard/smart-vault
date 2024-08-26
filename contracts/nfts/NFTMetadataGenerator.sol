@@ -18,35 +18,76 @@ contract NFTMetadataGenerator is INFTMetadataGenerator {
         svgGenerator = new SVGGenerator();
     }
 
-    function mapCollateralForJSON(ISmartVault.Asset[] memory _collateral) private pure returns (string memory collateralTraits) {
+    function mapCollateralForJSON(ISmartVault.Asset[] memory _collateral)
+        private
+        pure
+        returns (string memory collateralTraits)
+    {
         collateralTraits = "";
         for (uint256 i = 0; i < _collateral.length; i++) {
             ISmartVault.Asset memory asset = _collateral[i];
-            collateralTraits = string(abi.encodePacked(collateralTraits, '{"trait_type":"', NFTUtils.toShortString(asset.token.symbol), '", ','"display_type": "number",','"value": ',NFTUtils.toDecimalString(asset.amount, asset.token.dec),'},'));
+            collateralTraits = string(
+                abi.encodePacked(
+                    collateralTraits,
+                    '{"trait_type":"',
+                    NFTUtils.toShortString(asset.token.symbol),
+                    '", ',
+                    '"display_type": "number",',
+                    '"value": ',
+                    NFTUtils.toDecimalString(asset.amount, asset.token.dec),
+                    "},"
+                )
+            );
         }
     }
 
-    function generateNFTMetadata(uint256 _tokenId, ISmartVault.Status memory _vaultStatus) external view returns (string memory) {
+    function generateNFTMetadata(uint256 _tokenId, ISmartVault.Status memory _vaultStatus)
+        external
+        view
+        returns (string memory)
+    {
         return string(
             abi.encodePacked(
                 "data:application/json;base64,",
-                Base64.encode(abi.encodePacked(
-                    "{",
-                        '"name": "The Standard Smart Vault #',_tokenId.toString(),'",',
-                        '"description": "The Standard Smart Vault (',NFTUtils.toShortString(_vaultStatus.vaultType),')",',
+                Base64.encode(
+                    abi.encodePacked(
+                        "{",
+                        '"name": "The Standard Smart Vault #',
+                        _tokenId.toString(),
+                        '",',
+                        '"description": "The Standard Smart Vault (',
+                        NFTUtils.toShortString(_vaultStatus.vaultType),
+                        ')",',
                         '"attributes": [',
-                            '{"trait_type": "Status", "value": "',_vaultStatus.liquidated ?"liquidated":"active",'"},',
-                            '{"trait_type": "Debt",  "display_type": "number", "value": ', NFTUtils.toDecimalString(_vaultStatus.minted, 18),'},',
-                            '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',NFTUtils.toDecimalString(_vaultStatus.maxMintable, 18),'"},',
-                            '{"trait_type": "Collateral Value in USDs", "display_type": "number", "value": ',NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18),'},',
-                            '{"trait_type": "Value minus debt", "display_type": "number", "value": ',NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),'},',
-                            mapCollateralForJSON(_vaultStatus.collateral),
-                            '{"trait_type": "Version", "value": "',uint256(_vaultStatus.version).toString(),'"},',
-                            '{"trait_type": "Vault Type", "value": "',NFTUtils.toShortString(_vaultStatus.vaultType),'"}',
-                        '],',
-                        '"image_data": "',svgGenerator.generateSvg(_tokenId, _vaultStatus),'"',
-                    "}"
-                ))
+                        '{"trait_type": "Status", "value": "',
+                        _vaultStatus.liquidated ? "liquidated" : "active",
+                        '"},',
+                        '{"trait_type": "Debt",  "display_type": "number", "value": ',
+                        NFTUtils.toDecimalString(_vaultStatus.minted, 18),
+                        "},",
+                        '{"trait_type": "Max Borrowable Amount", "display_type": "number", "value": "',
+                        NFTUtils.toDecimalString(_vaultStatus.maxMintable, 18),
+                        '"},',
+                        '{"trait_type": "Collateral Value in USDs", "display_type": "number", "value": ',
+                        NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue, 18),
+                        "},",
+                        '{"trait_type": "Value minus debt", "display_type": "number", "value": ',
+                        NFTUtils.toDecimalString(_vaultStatus.totalCollateralValue - _vaultStatus.minted, 18),
+                        "},",
+                        mapCollateralForJSON(_vaultStatus.collateral),
+                        '{"trait_type": "Version", "value": "',
+                        uint256(_vaultStatus.version).toString(),
+                        '"},',
+                        '{"trait_type": "Vault Type", "value": "',
+                        NFTUtils.toShortString(_vaultStatus.vaultType),
+                        '"}',
+                        "],",
+                        '"image_data": "',
+                        svgGenerator.generateSvg(_tokenId, _vaultStatus),
+                        '"',
+                        "}"
+                    )
+                )
             )
         );
     }

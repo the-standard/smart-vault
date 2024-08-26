@@ -8,7 +8,7 @@ import "contracts/interfaces/IPriceCalculator.sol";
 contract PriceCalculator is IPriceCalculator {
     bytes32 private immutable NATIVE;
 
-    constructor (bytes32 _native) {
+    constructor(bytes32 _native) {
         NATIVE = _native;
     }
 
@@ -19,13 +19,14 @@ contract PriceCalculator is IPriceCalculator {
     function tokenToUSD(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
         uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-        (,int256 _tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
+        (, int256 _tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
         return scaledCollateral * uint256(_tokenUsdPrice) / 10 ** _token.clDec;
     }
 
     function USDToToken(ITokenManager.Token memory _token, uint256 _usdValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
         (, int256 tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
-        return _usdValue * 10 ** _token.clDec / uint256(tokenUsdPrice) / 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
+        return _usdValue * 10 ** _token.clDec / uint256(tokenUsdPrice)
+            / 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
     }
 }

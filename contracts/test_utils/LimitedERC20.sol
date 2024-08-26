@@ -15,7 +15,7 @@ contract LimitedERC20 is ERC20 {
         AMOUNT = 1000 * 10 ** dec;
     }
 
-    modifier limit {
+    modifier limit() {
         require(requests[msg.sender] < block.timestamp - 1 days, "err-limited");
         _;
     }

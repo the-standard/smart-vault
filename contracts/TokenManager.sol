@@ -12,12 +12,15 @@ contract TokenManager is ITokenManager, Ownable {
     Token[] private acceptedTokens;
 
     error TokenExists(bytes32 symbol, address token);
+
     event TokenAdded(bytes32 symbol, address token);
     event TokenRemoved(bytes32 symbol);
 
     constructor(bytes32 _native, address _clNativeUsd) {
         NATIVE = _native;
-        acceptedTokens.push(Token(NATIVE, address(0), 18, _clNativeUsd, Chainlink.AggregatorV3Interface(_clNativeUsd).decimals()));
+        acceptedTokens.push(
+            Token(NATIVE, address(0), 18, _clNativeUsd, Chainlink.AggregatorV3Interface(_clNativeUsd).decimals())
+        );
     }
 
     function getAcceptedTokens() external view returns (Token[] memory) {
@@ -25,18 +28,24 @@ contract TokenManager is ITokenManager, Ownable {
     }
 
     function getToken(bytes32 _symbol) external view returns (Token memory token) {
-        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == _symbol) token = acceptedTokens[i];
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
+            if (acceptedTokens[i].symbol == _symbol) token = acceptedTokens[i];
+        }
         require(token.symbol == _symbol, "err-invalid-token");
     }
 
     function getTokenIfExists(address _tokenAddr) external view returns (Token memory token) {
-        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].addr == _tokenAddr) token = acceptedTokens[i];
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
+            if (acceptedTokens[i].addr == _tokenAddr) token = acceptedTokens[i];
+        }
     }
 
     function addAcceptedToken(address _token, address _chainlinkFeed) external onlyOwner {
         ERC20 token = ERC20(_token);
         bytes32 symbol = bytes32(bytes(token.symbol()));
-        for (uint256 i = 0; i < acceptedTokens.length; i++) if (acceptedTokens[i].symbol == symbol) revert TokenExists(symbol, _token);
+        for (uint256 i = 0; i < acceptedTokens.length; i++) {
+            if (acceptedTokens[i].symbol == symbol) revert TokenExists(symbol, _token);
+        }
         Chainlink.AggregatorV3Interface dataFeed = Chainlink.AggregatorV3Interface(_chainlinkFeed);
         acceptedTokens.push(Token(symbol, _token, token.decimals(), _chainlinkFeed, dataFeed.decimals()));
         emit TokenAdded(symbol, _token);
