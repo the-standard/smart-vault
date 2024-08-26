@@ -1,0 +1,14 @@
+[profile.default]
+src = "contracts"
+out = "artifacts"
+libs = ["node_modules", "lib"]
+script = "scripts"
+remappings = [
+    "@chainlink/=node_modules/@chainlink/",
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "forge-std/=lib/forge-std/src/",
+    "src/=contracts/",
+]
+via_ir = true
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
