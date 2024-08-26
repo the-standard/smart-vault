@@ -88,7 +88,7 @@ contract SmartVaultV4 is ISmartVault {
                 uint256 _underlying0 = _balance * _underlyingTotal0 / _totalSupply;
                 uint256 _underlying1 = _balance * _underlyingTotal1 / _totalSupply;
                 if (_token0 == address(USDs) || _token1 == address(USDs)) {
-                    // both USDs and its vault pair are € stablecoins, but can be equivalent to €1 in collateral
+                    // both USDs and its vault pair are $ stablecoins, but can be equivalent to $ in collateral
                     _usds += _underlying0 * 10 ** (18 - ERC20(_token0).decimals());
                     _usds += _underlying1 * 10 ** (18 - ERC20(_token1).decimals());
                 } else {
