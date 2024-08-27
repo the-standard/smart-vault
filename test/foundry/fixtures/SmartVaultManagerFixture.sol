@@ -2,23 +2,20 @@
 pragma solidity 0.8.17;
 
 import {SmartVaultYieldManagerFixture} from "./SmartVaultYieldManagerFixture.sol";
-
-import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
+import {TokenManagerFixture} from "./TokenManagerFixture.sol";
 
 import {SmartVaultDeployerV4} from "src/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 import {SmartVaultManagerV6} from "src/SmartVaultManagerV6.sol";
-import {TokenManager} from "src/TokenManager.sol";
 import {NFTMetadataGenerator} from "src/nfts/NFTMetadataGenerator.sol";
 
-contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture {
+contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManagerFixture {
     SmartVaultManagerV6 internal smartVaultManager;
 
-    function setUp() public virtual override {
-        super.setUp();
+    function setUp() public virtual override(SmartVaultYieldManagerFixture, TokenManagerFixture) {
+        SmartVaultYieldManagerFixture.setUp();
+        TokenManagerFixture.setUp();
 
-        ChainlinkMock clNativeUsd = new ChainlinkMock("ETH/USD");
-        TokenManager tokenManager = new TokenManager(NATIVE, address(clNativeUsd));
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE);
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
         NFTMetadataGenerator nftMetadataGenerator = new NFTMetadataGenerator();
@@ -37,7 +34,7 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture {
             address(smartVaultIndex),
             address(nftMetadataGenerator),
             address(yieldManager),
-            USER_VAULT_LIMIT,
+            VAULT_LIMIT,
             address(uniswapRouter),
             address(weth)
         );
