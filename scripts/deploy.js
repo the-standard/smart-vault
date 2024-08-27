@@ -14,10 +14,10 @@ async function main() {
   const tokenManager = '0x33c5A816382760b6E5fb50d8854a61b3383a32a0';
 
 
-  const yieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
+  const YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
     USDs.address, USDC, WETH, uniproxy, ramsesRouter, usdHypervisor, uniswapRouter
   );
-  await yieldManager.deployed();
+  await YieldManager.deployed();
 
   const Deployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
   await Deployer.deployed();
@@ -39,16 +39,21 @@ async function main() {
   const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManagerV6', admin), [
     DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocolGateway,
     protocolGateway, tokenManager, Deployer.address, SmartVaultIndex.address,
-    NFTMetadataGenerator.address, yieldManager.address, 1000, uniswapRouter, WETH
+    NFTMetadataGenerator.address, 1000
   ]);
 
-  await SmartVaultIndex.setVaultManager(SmartVaultManager.address);
+  await (await SmartVaultIndex.setVaultManager(SmartVaultManager.address)).wait();
+  await (await SmartVaultManager.setYieldManager(YieldManager.address)).wait();
+  await (await SmartVaultManager.setSwapRouter(uniswapRouter)).wait();
+  await (await SmartVaultManager.setWethAddress(WETH)).wait();
+
 
   console.log({
     Deployer: Deployer.address,
     SmartVaultIndex: SmartVaultIndex.address,
     NFTMetadataGenerator: NFTMetadataGenerator.address,
     SmartVaultManager: SmartVaultManager.address,
+    YieldManager: YieldManager.address
   });
 
   await new Promise(resolve => setTimeout(resolve, 60000));
