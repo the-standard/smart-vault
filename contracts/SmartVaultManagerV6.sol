@@ -50,8 +50,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function initialize(
         uint256 _collateralRate, uint256 _feeRate, address _usds, address _protocol, address _liquidator, address _tokenManager,
-        address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator, address _yieldManager, uint16 _userVaultLimit,
-        address _swapRouter, address _weth
+        address _smartVaultDeployer, address _smartVaultIndex, address _nftMetadataGenerator, uint16 _userVaultLimit
     ) initializer public {
         __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
         __Ownable_init();
@@ -66,10 +65,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         smartVaultDeployer = _smartVaultDeployer;
         smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
         nftMetadataGenerator = _nftMetadataGenerator;
-        yieldManager = _yieldManager;
         userVaultLimit = _userVaultLimit;
-        swapRouter = _swapRouter;
-        weth = _weth;
     }
 
     modifier onlyLiquidator {
