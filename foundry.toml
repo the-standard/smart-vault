@@ -7,6 +7,8 @@ remappings = [
     "@chainlink/=node_modules/@chainlink/",
     "@openzeppelin/=node_modules/@openzeppelin/",
     "forge-std/=lib/forge-std/src/",
+    "@chimera/=lib/chimera/src/",
+    "@crytic/=lib/properties/contracts/",
     "src/=contracts/",
 ]
 via_ir = true

@@ -1,22 +1,25 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import {SmartVaultFixture} from "./fixtures/SmartVaultFixture.sol";
+import {Test} from "forge-std/Test.sol";
 
-contract SmartVaultTest is SmartVaultFixture {
+import {SmartVaultFixture, SmartVaultV4} from "./fixtures/SmartVaultFixture.sol";
+
+contract SmartVaultTest is SmartVaultFixture, Test {
     function setUp() public override {
         super.setUp();
     }
 
     function test_ownership() public {
         address newOwner = makeAddr("New owner");
+        SmartVaultV4 smartVault = smartVaults[VAULT_OWNER][0].vault;
 
         vm.expectRevert("InvalidUser");
-        vault.setOwner(newOwner);
+        smartVault.setOwner(newOwner);
         
         vm.prank(VAULT_OWNER);
-        vault.setOwner(newOwner);
-        assertEq(vault.owner(), newOwner);
+        smartVault.setOwner(newOwner);
+        assertEq(smartVault.owner(), newOwner);
     }
 
     function test_addCollateral() public {

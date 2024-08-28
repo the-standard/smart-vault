@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
+
 import {SmartVaultManagerFixture, SmartVaultManagerV6} from "./fixtures/SmartVaultManagerFixture.sol";
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {ISmartVault} from "src/interfaces/ISmartVault.sol";
-import {console} from "forge-std/console.sol";
 
-contract SmartVaultManagerTest is SmartVaultManagerFixture {
+contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
     event VaultTransferred(uint256 indexed tokenId, address from, address to);
@@ -70,7 +72,10 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture {
         weth.mint(vault, wethAmount);
 
         uint256 nativeAmount = 1 ether;
-        vault.call{value: nativeAmount}("");
+        (bool success, ) = vault.call{value: nativeAmount}("");
+        if (!success) {
+            console.log("Failed to mint native collateral");
+        }
 
         // Mint 99% of the max mintable amount
         ISmartVault.Status memory statusBefore = smartVaultManager.vaultData(tokenId).status;

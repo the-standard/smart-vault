@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import {Test} from "forge-std/Test.sol";
+import "@chimera/Hevm.sol";
 
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 import {MockWETH} from "src/test_utils/MockWETH.sol";
@@ -9,12 +9,12 @@ import {USDsMock} from "src/test_utils/USDsMock.sol";
 import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
 import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
 
-contract Common is Test {
+contract Common {
     // Actors
-    address VAULT_OWNER = makeAddr("Vault owner");
-    address VAULT_MANAGER_OWNER = makeAddr("Vault manager owner");
-    address PROTOCOL = makeAddr("Protocol");
-    address LIQUIDATOR = makeAddr("Liquidator");
+    address VAULT_OWNER = _makeAddr("Vault owner");
+    address VAULT_MANAGER_OWNER = _makeAddr("Vault manager owner");
+    address PROTOCOL = _makeAddr("Protocol");
+    address LIQUIDATOR = _makeAddr("Liquidator");
 
     // Constants
     bytes32 constant NATIVE = "ETH";
@@ -38,5 +38,11 @@ contract Common is Test {
         
         clNativeUsd = new ChainlinkMock("ETH/USD");
         clNativeUsd.setPrice(2000_0000_0000);
+    }
+
+    // create our own version of this forge-std cheat to avoid linearization issues
+    function _makeAddr(string memory name) internal virtual returns (address addr) {
+        addr = vm.addr(uint256(keccak256(abi.encodePacked(name))));
+        vm.label(addr, name);
     }
 }

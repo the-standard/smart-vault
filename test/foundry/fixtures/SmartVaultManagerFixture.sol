@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import "@chimera/Hevm.sol";
+
 import {SmartVaultYieldManagerFixture} from "./SmartVaultYieldManagerFixture.sol";
 import {TokenManagerFixture} from "./TokenManagerFixture.sol";
 

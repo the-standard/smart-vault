@@ -1,10 +1,12 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
+import {Test} from "forge-std/Test.sol";
+
 import {TokenManagerFixture, TokenManager} from "./fixtures/TokenManagerFixture.sol";
 import {ITokenManager} from "src/interfaces/ITokenManager.sol";
 
-contract TokenManagerTest is TokenManagerFixture {
+contract TokenManagerTest is TokenManagerFixture, Test {
     event TokenAdded(bytes32 symbol, address token);
     event TokenRemoved(bytes32 symbol);
 
