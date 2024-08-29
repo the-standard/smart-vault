@@ -9,7 +9,7 @@ import {TokenManagerFixture} from "./TokenManagerFixture.sol";
 import {SmartVaultDeployerV4} from "src/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 import {SmartVaultManagerV6} from "src/SmartVaultManagerV6.sol";
-import {NFTMetadataGenerator} from "src/nfts/NFTMetadataGenerator.sol";
+import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 
 contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManagerFixture {
     SmartVaultManagerV6 internal smartVaultManager;
@@ -20,7 +20,7 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
 
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE);
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
-        NFTMetadataGenerator nftMetadataGenerator = new NFTMetadataGenerator();
+        MockNFTMetadataGenerator nftMetadataGenerator = new MockNFTMetadataGenerator();
 
         smartVaultManager = new SmartVaultManagerV6();
 
