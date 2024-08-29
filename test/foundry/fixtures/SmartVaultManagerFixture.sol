@@ -40,6 +40,13 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
             address(uniswapRouter),
             address(weth)
         );
+        // vm.startPrank(sender) is not yet fully supported, so we have to duplicate vm.prank
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setYieldManager(address(yieldManager));
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setSwapRouter(address(uniswapRouter));
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setWethAddress(address(weth));
 
         // the foundry deployment address is the owner of the smartVaultIndex
         smartVaultIndex.setVaultManager(address(smartVaultManager));

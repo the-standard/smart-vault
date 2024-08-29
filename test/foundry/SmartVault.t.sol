@@ -14,10 +14,10 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         address newOwner = makeAddr("New owner");
         SmartVaultV4 smartVault = smartVaults[VAULT_OWNER][0].vault;
 
-        vm.expectRevert("InvalidUser");
+        vm.expectRevert(SmartVaultV4.InvalidUser.selector);
         smartVault.setOwner(newOwner);
         
-        vm.prank(VAULT_OWNER);
+        vm.prank(address(smartVaultManager));
         smartVault.setOwner(newOwner);
         assertEq(smartVault.owner(), newOwner);
     }
