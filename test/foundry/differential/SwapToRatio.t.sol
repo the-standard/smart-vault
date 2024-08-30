@@ -56,16 +56,14 @@ contract SwapToRatioTest is Test {
         uniProxy.setRatio(address(hypervisor), address(_tokenA), _ratio);
         swapRouter.setRate(address(_tokenA), address(_tokenB), _ratio);
 
-        // Adjust token B balances according to the derived ratio
-        uint256 swapRouterBalanceB = FullMath.mulDiv(swapRouterBalanceA, _ratio, 10 ** _tokenA.decimals());
-
         // Mint balances for both tokens to swapRouter to facilitate swaps
         _tokenA.mint(address(swapRouter), swapRouterBalanceA);
-        _tokenB.mint(address(swapRouter), swapRouterBalanceB);
+        // Adjust token B balances according to the derived ratio
+        _tokenB.mint(address(swapRouter), FullMath.mulDiv(swapRouterBalanceA, _ratio, 10 ** _tokenA.decimals()));
 
         // Bound token balances to avoid swapping more than the swap router has available
         _tokenABalance = bound(_tokenABalance, 10 ** _tokenA.decimals(), type(uint88).max);
-        _tokenBBalance = bound(_tokenBBalance, 10 ** _tokenA.decimals(), type(uint88).max);
+        _tokenBBalance = bound(_tokenBBalance, 10 ** _tokenB.decimals(), type(uint88).max);
 
         // Mint balances for both tokens to the old and new implementations
         _tokenA.mint(address(oldImpl), _tokenABalance);
@@ -85,8 +83,9 @@ contract SwapToRatioTest is Test {
         
         // If successful, cache the resulting balances
         if (successOld) {
-            uint256 oldTokenABalance = _tokenA.balanceOf(address(oldImpl));
-            uint256 oldTokenBBalance = _tokenB.balanceOf(address(oldImpl));
+            // TODO: write to JSON instead
+            vm.store(address(this), keccak256(abi.encodePacked("oldTokenABalance")), bytes32(_tokenA.balanceOf(address(oldImpl))));
+            vm.store(address(this), keccak256(abi.encodePacked("oldTokenBBalance")), bytes32(_tokenB.balanceOf(address(oldImpl))));
         }
 
         // Revert the state of the VM to the snapshot taken before the previous call
@@ -98,8 +97,9 @@ contract SwapToRatioTest is Test {
 
         // If successful, cache the resulting balances
         if (successNew) {
-            uint256 newTokenABalance = _tokenA.balanceOf(address(newImpl));
-            uint256 newTokenBBalance = _tokenB.balanceOf(address(newImpl));
+            // TODO: write to JSON instead
+            vm.store(address(this), keccak256(abi.encodePacked("newTokenABalance")), bytes32(_tokenA.balanceOf(address(newImpl))));
+            vm.store(address(this), keccak256(abi.encodePacked("newTokenBBalance")), bytes32(_tokenB.balanceOf(address(newImpl))));
         }
 
         // Revert the state of the VM to the snapshot taken before both calls (this isn't strictly necessary)
@@ -108,6 +108,15 @@ contract SwapToRatioTest is Test {
         // Assert that the old and new implementations have the same success status
         if (successOld && successNew) {
             console.log("here");
+            // TODO: load from JSON instead
+            // uint256 oldTokenABalance = uint256(vm.load(address(this), keccak256(abi.encodePacked("oldTokenABalance"))));
+            // uint256 oldTokenBBalance = uint256(vm.load(address(this), keccak256(abi.encodePacked("oldTokenBBalance"))));
+            // uint256 newTokenABalance = uint256(vm.load(address(this), keccak256(abi.encodePacked("newTokenABalance"))));
+            // uint256 newTokenBBalance = uint256(vm.load(address(this), keccak256(abi.encodePacked("newTokenBBalance"))));
+            console.log("oldTokenABalance", oldTokenABalance);
+            console.log("oldTokenBBalance", oldTokenBBalance);
+            console.log("newTokenABalance", newTokenABalance);
+            console.log("newTokenBBalance", newTokenBBalance);
             // TODO: assert cached balances are within some threshold
         }
         else if (!successOld && successNew) {
