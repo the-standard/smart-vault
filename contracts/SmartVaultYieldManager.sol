@@ -3,11 +3,16 @@ pragma solidity 0.8.17;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "contracts/uniswap/FullMath.sol";
+import "contracts/uniswap/PoolAddress.sol";
 import "contracts/interfaces/IHypervisor.sol";
+import "contracts/interfaces/IPeripheryImmutableState.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/IUniProxy.sol";
+import "contracts/interfaces/IUniswapV3Pool.sol";
 import "contracts/interfaces/IWETH.sol";
 
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
@@ -72,7 +77,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
 
-    function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
+    // function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         // address _tokenB = _tokenA == IHypervisor(_hypervisor).token0()
         //     ? IHypervisor(_hypervisor).token1()
         //     : IHypervisor(_hypervisor).token0();
@@ -133,6 +138,101 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         // }
 
         // if (!_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) revert RatioError();
+    // }
+
+    function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
+        address _token0 = IHypervisor(_hypervisor).token0();
+        address _token1 = IHypervisor(_hypervisor).token1();
+
+        address _tokenB = _tokenA == _token0 ? _token1 : _token0;
+
+        uint160 _sqrtPriceX96;
+        {
+            PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
+                address factory = IPeripheryImmutableState(_swapRouter).factory();
+                (_sqrtPriceX96, , , , , , ) = IUniswapV3Pool(
+                        PoolAddress.computeAddress(factory, poolKey)
+                    ).slot0();
+        }
+
+        uint256 _midRatio;
+        {
+        (uint256 _amountStart, uint256 _amountEnd) = IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
+        if (_withinRatio(_thisBalanceOf(_tokenB), _amountStart, _amountEnd)) return;
+
+        _midRatio = (_amountStart + _amountEnd) / 2;
+        }
+
+        bool _tokenAIs0 = _tokenA == _token0;
+        uint256 _tokenBBalance = _thisBalanceOf(_tokenB);
+        uint256 _tokenABalance = _thisBalanceOf(_tokenA);
+
+        uint256 _amountIn;
+        uint256 _amountOut;
+
+        {
+            uint256 aDec = ERC20(_tokenA).decimals();
+            uint256 bDec = ERC20(_tokenB).decimals();
+
+            uint256 price18;
+            {
+                uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
+                price18 = _tokenAIs0 
+                    ? FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), 1 << 192, priceX192)
+                    : FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), priceX192, 1 << 192);
+            }
+
+            uint256 _a = _tokenABalance * (10 ** (18 - aDec));
+
+            uint256 _ratio = FullMath.mulDiv(_a, 1e18, _midRatio * (10 ** (18 - bDec)));
+
+            uint256 _denominator = 1e18 + FullMath.mulDiv(_ratio, 1e18, price18);
+            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (18 - bDec)), _ratio, 1e18);
+
+            _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
+            _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
+        }
+
+        uint24 _fee = _fee;
+        
+        if (_tokenBBalance < _midRatio) {
+            // we want more token b
+
+            address _tokenIn = _tokenAIs0 ? _token0 : _token1;
+            address _tokenOut = _tokenAIs0 ? _token1 : _token0;
+
+            IERC20(_tokenIn).safeApprove(_swapRouter, _tokenABalance);
+            ISwapRouter(_swapRouter).exactInputSingle(ISwapRouter.ExactInputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            }));
+            IERC20(_tokenIn).safeApprove(_swapRouter, 0);
+
+        } else {
+            // we want more token a
+
+            address _tokenIn = _tokenAIs0 ? _token1 : _token0;
+            address _tokenOut = _tokenAIs0 ? _token0 : _token1;
+
+            IERC20(_tokenIn).safeApprove(_swapRouter, _tokenBBalance);
+            ISwapRouter(_swapRouter).exactOutputSingle(ISwapRouter.ExactOutputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountOut: _amountOut,
+                amountInMaximum: _tokenBBalance,
+                sqrtPriceLimitX96: 0
+            }));
+            IERC20(_tokenIn).safeApprove(_swapRouter, 0);
+        }
     }
 
     function _swapToSingleAsset(address _hypervisor, address _wantedToken, address _swapRouter, uint24 _fee) private {
