@@ -35,7 +35,7 @@ contract Common {
         weth = new MockWETH();
 
         uniswapRouter = new MockSwapRouter();
-        
+
         clNativeUsd = new ChainlinkMock("ETH/USD");
         clNativeUsd.setPrice(2000_0000_0000);
     }

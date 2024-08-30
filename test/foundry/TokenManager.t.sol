@@ -22,7 +22,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
     function test_defaultNative() public {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         assertEq(acceptedTokens.length, 1);
-        
+
         ITokenManager.Token memory token = acceptedTokens[0];
         assertEq(token.symbol, NATIVE);
         assertEq(token.addr, address(0));

@@ -59,10 +59,9 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         // PROTOCOL balances before
         uint256 protocolETHBalance = PROTOCOL.balance;
         uint256 protocolWETHBalance = weth.balanceOf(PROTOCOL);
-        
+
         assertEq(protocolETHBalance, 0);
         assertEq(protocolWETHBalance, 0);
-
 
         // Add WETH as an accepted token
         tokenManager.addAcceptedToken(address(weth), address(clNativeUsd));
@@ -72,7 +71,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         weth.mint(vault, wethAmount);
 
         uint256 nativeAmount = 1 ether;
-        (bool success, ) = vault.call{value: nativeAmount}("");
+        (bool success,) = vault.call{value: nativeAmount}("");
         if (!success) {
             console.log("Failed to mint native collateral");
         }
@@ -166,13 +165,13 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
 
         assertEq(smartVaultManager.balanceOf(VAULT_OWNER), senderBalanceBefore - 1);
         assertEq(smartVaultManager.vaultIDs(VAULT_OWNER).length, senderBalanceBefore - 1);
-        
+
         assertEq(smartVaultManager.balanceOf(recipient), recipientBalanceBefore + 1);
         assertEq(smartVaultManager.vaultIDs(recipient).length, recipientBalanceBefore + 1);
 
         bool found;
         uint256[] memory recipientIds = smartVaultManager.vaultIDs(recipient);
-        for (uint256 i=0; i < recipientIds.length; i++) {
+        for (uint256 i = 0; i < recipientIds.length; i++) {
             if (recipientIds[i] == tokenId) {
                 found = true;
                 break;
@@ -189,7 +188,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         // Compare the first 28 characters of metadataJSON with the expected string
         bytes memory metadataBytes = bytes(metadataJSON);
         bytes memory expectedPrefix = bytes("data:application/json;base64,");
-    
+
         assertTrue(metadataBytes.length >= expectedPrefix.length);
         // Compare each byte to ensure the prefix matches
         for (uint256 i = 0; i < expectedPrefix.length; i++) {

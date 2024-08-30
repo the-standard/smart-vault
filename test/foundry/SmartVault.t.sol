@@ -16,7 +16,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
         vm.expectRevert(SmartVaultV4.InvalidUser.selector);
         smartVault.setOwner(newOwner);
-        
+
         vm.prank(address(smartVaultManager));
         smartVault.setOwner(newOwner);
         assertEq(smartVault.owner(), newOwner);
@@ -43,7 +43,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         // expect emit USDsMinted
         // assert balances + fee
     }
-    
+
     function test_burnUsds() public {
         // expect revert Overrepay
         // expect emit USDsBurned

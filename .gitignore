@@ -23,3 +23,5 @@ artifacts
 
 .DS_Store
 .idea/
+
+venv/

@@ -189,8 +189,11 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             uint256 _denominator = 1e18 + FullMath.mulDiv(_ratio, 1e18, price18);
             uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (18 - bDec)), _ratio, 1e18);
 
-            _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
-            _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
+            if (_a > _rb) {
+                _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
+            } else {
+                _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
+            }
         }
 
         uint24 _fee = _fee;

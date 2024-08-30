@@ -37,9 +37,9 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
             address(nftMetadataGenerator),
             // address(yieldManager),
             VAULT_LIMIT
-            // address(uniswapRouter),
-            // address(weth)
         );
+        // address(uniswapRouter),
+        // address(weth)
         // vm.startPrank(sender) is not yet fully supported, so we have to duplicate vm.prank
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setYieldManager(address(yieldManager));
