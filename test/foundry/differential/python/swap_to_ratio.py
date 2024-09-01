@@ -9,13 +9,26 @@ def main(args):
 
 
 def swap_to_ratio(args):
-    if args.length < 4:
+    if not args.price or args.price == 0 or args.ratio == 0:
         return (0, 0)
 
-    delta_a = (args.balance_a - args.mid_ratio * args.balance_b) / (1 + args.mid_ratio / args.price)
-    delta_b = delta_a / args.price
-    
-    return (delta_a, delta_b)
+    delta_a = 0
+    delta_b = 0
+
+    a = args.balance_a / 1e18
+    b = args.balance_b / 1e18
+    r = args.ratio / 1e18
+    p = args.price / 1e18
+
+    rb = r * b
+    d = 1 + (r / p)
+
+    if a > rb:
+        delta_a = (a - rb) / d
+    else:
+        delta_a = (rb - a) / d
+
+    return (int(delta_a * 1e18), int(delta_b * 1e18))
 
 
 def encode_and_print(delta_a, delta_b):
@@ -28,7 +41,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("function", choices=["swap_to_ratio"])
     parser.add_argument("--price", type=int)
-    parser.add_argument("--mid-ratio", type=int)
+    parser.add_argument("--ratio", type=int)
     parser.add_argument("--balance-a", type=int)
     parser.add_argument("--balance-b", type=int)
     return parser.parse_args()
