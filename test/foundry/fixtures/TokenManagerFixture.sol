@@ -6,11 +6,21 @@ import {Common} from "./Common.sol";
 import {TokenManager} from "src/TokenManager.sol";
 
 contract TokenManagerFixture is Common {
-    TokenManager internal tokenManager;
+    TokenManager tokenManager;
 
     function setUp() public virtual override {
-        super.setUp();
-        
+        // avoid duplicate invocations by inheriting contracts
+        if (collateralSymbols.length == 0) {
+            super.setUp();
+        }
+
         tokenManager = new TokenManager(NATIVE, address(clNativeUsd));
+
+        for (uint256 i; i < collateralSymbols.length; i++) {
+            if (collateralSymbols[i] == NATIVE) continue;
+
+            CollateralData memory collateral = collateralData[collateralSymbols[i]];
+            tokenManager.addAcceptedToken(address(collateral.token), address(collateral.clFeed));
+        }
     }
 }

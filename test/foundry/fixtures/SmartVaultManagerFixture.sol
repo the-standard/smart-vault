@@ -9,10 +9,11 @@ import {TokenManagerFixture} from "./TokenManagerFixture.sol";
 import {SmartVaultDeployerV4} from "src/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 import {SmartVaultManagerV6} from "src/SmartVaultManagerV6.sol";
+
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 
 contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManagerFixture {
-    SmartVaultManagerV6 internal smartVaultManager;
+    SmartVaultManagerV6 smartVaultManager;
 
     function setUp() public virtual override(SmartVaultYieldManagerFixture, TokenManagerFixture) {
         SmartVaultYieldManagerFixture.setUp();
@@ -20,6 +21,7 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
 
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE);
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
+
         MockNFTMetadataGenerator nftMetadataGenerator = new MockNFTMetadataGenerator();
 
         smartVaultManager = new SmartVaultManagerV6();
@@ -27,7 +29,7 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.initialize(
             COLLATERAL_RATE,
-            FEE_RATE,
+            PROTOCOL_FEE_RATE,
             address(usds),
             PROTOCOL,
             LIQUIDATOR,
@@ -37,10 +39,10 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
             address(nftMetadataGenerator),
             // address(yieldManager),
             VAULT_LIMIT
-            // address(uniswapRouter),
-            // address(weth)
         );
-        // vm.startPrank(sender) is not yet fully supported, so we have to duplicate vm.prank
+        // address(uniswapRouter),
+        // address(weth)
+        // vm.startPrank(sender) is not yet fully supported by invariant fuzzers, so we have to duplicate vm.prank
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setYieldManager(address(yieldManager));
         vm.prank(VAULT_MANAGER_OWNER);
@@ -50,7 +52,7 @@ contract SmartVaultManagerFixture is SmartVaultYieldManagerFixture, TokenManager
 
         // the foundry deployment address is the owner of the smartVaultIndex
         smartVaultIndex.setVaultManager(address(smartVaultManager));
-        // the usds mock does not have any ownership access controls
+        // the usds mock does not have any ownership access controls, only default admin and minter/burner roles
         usds.grantRole(usds.DEFAULT_ADMIN_ROLE(), address(smartVaultManager));
     }
 }

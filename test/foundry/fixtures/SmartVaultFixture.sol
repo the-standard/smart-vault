@@ -21,5 +21,6 @@ contract SmartVaultFixture is SmartVaultManagerFixture {
         vm.prank(VAULT_OWNER);
         (address vault, uint256 tokenId) = smartVaultManager.mint();
         smartVaults[VAULT_OWNER].push(VaultData(SmartVaultV4(payable(vault)), tokenId));
+        // NOTE: If a smart vault is deployed bypassing the manager then we need to grant roles as in js test
     }
 }

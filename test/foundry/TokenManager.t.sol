@@ -22,7 +22,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
     function test_defaultNative() public {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         assertEq(acceptedTokens.length, 1);
-        
+
         ITokenManager.Token memory token = acceptedTokens[0];
         assertEq(token.symbol, NATIVE);
         assertEq(token.addr, address(0));
@@ -35,10 +35,10 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
         vm.expectEmit(false, false, false, true);
         emit TokenAdded(wethSymbol, address(weth));
-        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd));
+        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd)); // TODO: this will revert now that fixture has been changed to already include tokens
 
         vm.expectRevert(abi.encodeWithSelector(TokenManager.TokenExists.selector, wethSymbol, address(weth)));
-        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd));
+        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd)); // TODO: this will revert now that fixture has been changed to already include tokens
 
         ITokenManager.Token[] memory tokensBefore = tokenManager.getAcceptedTokens();
         assertEq(tokensBefore.length, 2);

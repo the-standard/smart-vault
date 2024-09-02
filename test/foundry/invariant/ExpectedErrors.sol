@@ -56,7 +56,7 @@ abstract contract ExpectedErrors is Properties {
         SWAP_COLLATERAL_ERRORS.push(bytes4(keccak256(bytes("SafeERC20: low-level call failed"))));
         SWAP_COLLATERAL_ERRORS.push(bytes4(keccak256(bytes("SafeERC20: ERC20 operation did not succeed"))));
         SWAP_COLLATERAL_ERRORS.push(bytes4(keccak256(bytes("SafeERC20: approve from non-zero to non-zero allowance"))));
-        
+
         // DEPOSIT_YIELD_ERRORS
         DEPOSIT_YIELD_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         DEPOSIT_YIELD_ERRORS.push(SmartVaultV4.InvalidToken.selector);

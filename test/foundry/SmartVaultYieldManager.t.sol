@@ -12,17 +12,17 @@ contract SmartVaultYieldManagerTest is SmartVaultYieldManagerFixture, Test {
 
     function test_addHypervisorData() public {
         // expect revert addHypervisorData
-        // owner call + assert 
+        // owner call + assert
     }
 
     function test_removeHypervisorData() public {
         // expect revert removeHypervisorData
-        // owner call + assert 
+        // owner call + assert
     }
 
     function test_setFeeData() public {
         // expect revert setFeeData
-        // owner call + assert 
+        // owner call + assert
     }
 
     function test_deposit() public {
@@ -34,7 +34,7 @@ contract SmartVaultYieldManagerTest is SmartVaultYieldManagerFixture, Test {
         // expect emit deposit
         // assert addresses + balances + fee
     }
-    
+
     function test_withdraw() public {
         // withdraw usds hypervisor
         // withdraw other hypervisor

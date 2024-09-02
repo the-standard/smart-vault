@@ -21,33 +21,47 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_removeCollateralNative(uint256 amount, address payable to) public getMsgSender checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS) {
+    function smartVaultV4_removeCollateralNative(uint256 amount, address payable to)
+        public
+        getMsgSender
+        checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
 
         vm.prank(msgSender);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.removeCollateralNative, (amount, to)));
+        (success, returnData) =
+            address(smartVault).call(abi.encodeCall(smartVault.removeCollateralNative, (amount, to)));
 
         if (success) {
             __after();
         }
     }
 
-    function smartVaultV4_removeCollateral(bytes32 symbol, uint256 amount, address to) public getMsgSender checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS) {
+    function smartVaultV4_removeCollateral(bytes32 symbol, uint256 amount, address to)
+        public
+        getMsgSender
+        checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
 
         vm.prank(msgSender);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.removeCollateral, (symbol, amount, to)));
+        (success, returnData) =
+            address(smartVault).call(abi.encodeCall(smartVault.removeCollateral, (symbol, amount, to)));
 
         if (success) {
             __after();
         }
     }
 
-    function smartVaultV4_removeAsset(address token, uint256 amount, address to) public getMsgSender checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS) {
+    function smartVaultV4_removeAsset(address token, uint256 amount, address to)
+        public
+        getMsgSender
+        checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
@@ -86,33 +100,47 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_swap(bytes32 inToken, bytes32 outToken, uint256 amount, uint256 requestedMinOut) public getMsgSender checkExpectedErrors(SWAP_COLLATERAL_ERRORS) {
+    function smartVaultV4_swap(bytes32 inToken, bytes32 outToken, uint256 amount, uint256 requestedMinOut)
+        public
+        getMsgSender
+        checkExpectedErrors(SWAP_COLLATERAL_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
 
         vm.prank(msgSender);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.swap, (inToken, outToken, amount, requestedMinOut)));
+        (success, returnData) =
+            address(smartVault).call(abi.encodeCall(smartVault.swap, (inToken, outToken, amount, requestedMinOut)));
 
         if (success) {
             __after();
         }
     }
 
-    function smartVaultV4_depositYield(bytes32 symbol, uint256 stablePercentage) public getMsgSender checkExpectedErrors(DEPOSIT_YIELD_ERRORS) {
+    function smartVaultV4_depositYield(bytes32 symbol, uint256 stablePercentage)
+        public
+        getMsgSender
+        checkExpectedErrors(DEPOSIT_YIELD_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
 
         vm.prank(msgSender);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage)));
+        (success, returnData) =
+            address(smartVault).call(abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage)));
 
         if (success) {
             __after();
         }
     }
 
-    function smartVaultV4_withdrawYield(address hypervisor, bytes32 symbol) public getMsgSender checkExpectedErrors(WITHDRAW_YIELD_ERRORS) {
+    function smartVaultV4_withdrawYield(address hypervisor, bytes32 symbol)
+        public
+        getMsgSender
+        checkExpectedErrors(WITHDRAW_YIELD_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
@@ -127,7 +155,11 @@ abstract contract TargetFunctions is ExpectedErrors {
 
     // SmartVaultV4 view functions: status, undercollateralised, getToken, getTokenisedAddr, calculateMinimumAmountOut, yieldAssets
 
-    function smartVaultYieldManager_deposit(address token, uint256 usdPercentage) public getMsgSender checkExpectedErrors(DEPOSIT_YIELD_ERRORS) {
+    function smartVaultYieldManager_deposit(address token, uint256 usdPercentage)
+        public
+        getMsgSender
+        checkExpectedErrors(DEPOSIT_YIELD_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
@@ -140,7 +172,11 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultYieldManager_withdraw(address hypervisor, address token) public getMsgSender checkExpectedErrors(WITHDRAW_YIELD_ERRORS) {
+    function smartVaultYieldManager_withdraw(address hypervisor, address token)
+        public
+        getMsgSender
+        checkExpectedErrors(WITHDRAW_YIELD_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
@@ -153,13 +189,18 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultManagerV6_liquidateVault(uint256 tokenId) public getMsgSender checkExpectedErrors(LIQUIDATE_VAULT_ERRORS) {
+    function smartVaultManagerV6_liquidateVault(uint256 tokenId)
+        public
+        getMsgSender
+        checkExpectedErrors(LIQUIDATE_VAULT_ERRORS)
+    {
         __before();
 
         SmartVaultV4 smartVault = _getRandomSmartVault();
 
         vm.prank(msgSender);
-        (success, returnData) = address(smartVaultManager).call(abi.encodeCall(smartVaultManager.liquidateVault, tokenId));
+        (success, returnData) =
+            address(smartVaultManager).call(abi.encodeCall(smartVaultManager.liquidateVault, tokenId));
 
         if (success) {
             __after();

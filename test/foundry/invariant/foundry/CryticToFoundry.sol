@@ -7,7 +7,7 @@ import {FoundryAsserts} from "@chimera/FoundryAsserts.sol";
 import "forge-std/console2.sol";
 
 contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
-    function setUp() override public {
+    function setUp() public override {
         vm.deal(address(USER1), 100e18);
         vm.deal(address(USER2), 100e18);
         vm.deal(address(USER3), 100e18);

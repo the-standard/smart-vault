@@ -14,6 +14,8 @@ import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract SmartVaultV4 is ISmartVault {
     using SafeERC20 for IERC20;
 

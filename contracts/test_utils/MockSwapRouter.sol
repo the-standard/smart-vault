@@ -4,6 +4,8 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract MockSwapRouter is ISwapRouter {
     address private tokenIn;
     address private tokenOut;
@@ -85,5 +87,9 @@ contract MockSwapRouter is ISwapRouter {
 
     function setRate(address _tokenIn, address _tokenOut, uint256 _rate) external {
         rates[_tokenIn][_tokenOut] = _rate;
+    }
+
+    function getRate(address _tokenIn, address _tokenOut) external view returns (uint256) {
+        return rates[_tokenIn][_tokenOut];
     }
 }
