@@ -88,24 +88,12 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
         uint160 _sqrtPriceX96;
         {
-            // (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
-            // _sqrtPriceX96 = (FullMath.sqrt(
-            //     FullMath.mulDiv(
-            //         token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
-            //         1e18,
-            //         token1Balance * 10 ** (18 - ERC20(_token1).decimals())
-            //     )
-            // ) * (1 << 96)) / 1e9;
-
-            // TODO: the above doesn't work because there are no tokens deposited to the Hypervisor to begin with
-            // so either mint tokens during setup or calculate sqrtPriceX96 from the mock rates
-            // uint256 rate = ISwapRouter(_swapRouter).getRate(_token0, _token1);
-            // _sqrtPriceX96 = ;
-
             // this is difficult to mock, so calculate directly from hypervisor balances/swap router rates instead
-            // PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
-            // address factory = IPeripheryImmutableState(_swapRouter).factory();
-            // (_sqrtPriceX96,,,,,,) = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey)).slot0();
+            PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
+            address factory = IPeripheryImmutableState(_swapRouter).factory();
+            (_sqrtPriceX96,,,,,,) = _swapRouter == uniswapRouter? 
+                IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0(): 
+                IUniswapV3Pool(PoolAddress.computeAddressRamses(factory, poolKey)).slot0();
         }
 
         uint256 _midRatio;

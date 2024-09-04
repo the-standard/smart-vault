@@ -10,11 +10,8 @@ contract ForkTest is ForkFixture {
     }
 
     function test_nativeSwap() public {
-        vm.deal(VAULT_OWNER,1 ether);
+        vm.deal(address(vault),1 ether);
 
-        vm.prank(VAULT_OWNER);
-        (bool success, ) = address(vault).call{value: 1 ether}("");
-        vm.assertTrue(success);
         vm.assertFalse(vault.undercollateralised());
 
         vm.prank(VAULT_OWNER);
@@ -36,5 +33,12 @@ contract ForkTest is ForkFixture {
         vm.prank(VAULT_OWNER);
         vm.expectRevert();
         vault.swap(WETH, WBTC, 0.5 ether, 0);
+    }
+
+    function test_depositYield() public {
+        vm.deal(address(vault),1 ether);
+
+        vm.prank(VAULT_OWNER);
+        vault.depositYield(NATIVE, 1e4);
     }
 }
