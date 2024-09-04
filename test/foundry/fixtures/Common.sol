@@ -24,8 +24,8 @@ contract Common {
     uint256 constant DEFAULT_LINK_ETH_DIVISOR = 200;
     uint256 constant COLLATERAL_RATE = 110_000; // 110%
     uint256 constant PROTOCOL_FEE_RATE = 500; // 0.5%
-    uint24 constant UNISWAP_FEE = 500; // 0.5%
-    uint24 constant RAMSES_FEE = 3000; // 3%
+    uint24 constant UNISWAP_FEE = 500; // 0.05%
+    uint24 constant RAMSES_FEE = 3000; // 0.3%
     uint16 constant VAULT_LIMIT = 10;
 
     // Mocks
@@ -126,7 +126,7 @@ contract Common {
         uniswapRouter = new MockSwapRouter();
     }
 
-    // create our own version of this forge-std cheat to avoid linearization issues
+    // create our own version of this forge-std cheat to avoid linearization issues in invariant scaffolding
     function _makeAddr(string memory name) internal virtual returns (address addr) {
         addr = vm.addr(uint256(keccak256(abi.encodePacked(name))));
         vm.label(addr, name);

@@ -18,6 +18,8 @@ import {FullMath} from "contracts/uniswap/FullMath.sol";
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 
+import {console} from "forge-std/console.sol";
+
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 
@@ -88,14 +90,16 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
         uint160 _sqrtPriceX96;
         {
-            // (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
-            // _sqrtPriceX96 = (FullMath.sqrt(
-            //     FullMath.mulDiv(
-            //         token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
-            //         1e18,
-            //         token1Balance * 10 ** (18 - ERC20(_token1).decimals())
-            //     )
-            // ) * (1 << 96)) / 1e9;
+            (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
+            _sqrtPriceX96 = (FullMath.sqrt(
+                FullMath.mulDiv(
+                    token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
+                    1e18,
+                    token1Balance * 10 ** (18 - ERC20(_token1).decimals())
+                )
+            ) * (1 << 96));
+
+            // console.log("sqrtPriceX96: %s", _sqrtPriceX96);
 
             // TODO: the above doesn't work because there are no tokens deposited to the Hypervisor to begin with
             // so either mint tokens during setup or calculate sqrtPriceX96 from the mock rates
@@ -115,6 +119,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             if (_withinRatio(_thisBalanceOf(_tokenB), _amountStart, _amountEnd)) return;
 
             _midRatio = (_amountStart + _amountEnd) / 2;
+            // console.log("midRatio: %s", _midRatio);
         }
 
         bool _tokenAIs0 = _tokenA == _token0;
@@ -134,6 +139,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 price18 = _tokenAIs0
                     ? FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), 1 << 192, priceX192)
                     : FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), priceX192, 1 << 192);
+                // console.log("price18: %s", price18);
             }
 
             uint256 _a = _tokenABalance * (10 ** (18 - aDec));
@@ -144,8 +150,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
             if (_a > _rb) {
                 _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
+                // console.log("amountIn: %s", _amountIn);
             } else {
                 _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
+                // console.log("amountOut: %s", _amountOut);
             }
         }
 

@@ -44,8 +44,8 @@ contract SmartVaultYieldManagerFixture is Common {
         ); // 1:200
 
         // ramses router rates: usds <-> usdc
-        ramsesRouter.setRate(address(usds), address(usdc), (18 + usdc.decimals() - usds.decimals())); // 1:1
-        ramsesRouter.setRate(address(usdc), address(usds), (18 + usds.decimals() - usdc.decimals())); // 1:1
+        ramsesRouter.setRate(address(usds), address(usdc), 10 ** (18 + usdc.decimals() - usds.decimals())); // 1:1
+        ramsesRouter.setRate(address(usdc), address(usds), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
 
         // uniswap router rates: weth/wbtc/link <-> usdc
         uniswapRouter.setRate(
@@ -97,6 +97,14 @@ contract SmartVaultYieldManagerFixture is Common {
         weth.mint(address(uniswapRouter), 10_000 * 10 ** weth.decimals());
         wbtc.mint(address(uniswapRouter), 400 * 10 ** wbtc.decimals());
         link.mint(address(uniswapRouter), 2_000_000 * 10 ** link.decimals());
+
+        // mint tokens (based on the rates) to hypervisors (this is part of a workaround for the _swapToRatio() logic in the yield manager)
+        usds.mint(address(usdsHypervisor), 25_000_000 * 10 ** usds.decimals());
+        usdc.mint(address(usdsHypervisor), 25_000_000 * 10 ** usdc.decimals());
+        wbtc.mint(address(wbtcHypervisor), 400 * 10 ** wbtc.decimals());
+        weth.mint(address(wbtcHypervisor), 10_000 * 10 ** weth.decimals());
+        link.mint(address(linkHypervisor), 2_000_000 * 10 ** link.decimals());
+        weth.mint(address(linkHypervisor), 10_000 * 10 ** weth.decimals());
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),

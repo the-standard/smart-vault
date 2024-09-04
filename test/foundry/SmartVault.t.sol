@@ -106,16 +106,28 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.startPrank(VAULT_OWNER);
         address(smartVault).call{value: 1 ether}("");
         SmartVaultV4.Status memory status = smartVault.status();
+        console.log("USDS balance of VAULT_OWNER before mint: %s", usds.balanceOf(VAULT_OWNER));
+        console.log("USDS balance of SmartVault before mint: %s", usds.balanceOf(address(smartVault)));
         smartVault.mint(VAULT_OWNER, status.maxMintable * 90 / 100);
+        console.log("USDS balance of VAULT_OWNER before depositYield: %s", usds.balanceOf(VAULT_OWNER));
+        console.log("USDS balance of SmartVault before depositYield: %s", usds.balanceOf(address(smartVault)));
+        console.log("Undercollateralised before depositYield: %s", smartVault.undercollateralised());
         smartVault.depositYield(NATIVE, 1e5);
         SmartVaultV4.YieldPair[] memory yieldPairs = smartVault.yieldAssets();
         assertEq(yieldPairs.length, 1);
         address hypervisor = yieldPairs[0].hypervisor;
-        smartVault.removeAsset(yieldPairs[0].hypervisor, IHypervisor(hypervisor).balanceOf(VAULT_OWNER), VAULT_OWNER);
+        console.log("Hypervisor balance of VAULT_OWNER before removeAsset: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
+        console.log("Hypervisor balance of SmartVault before removeAsset: %s", IHypervisor(hypervisor).balanceOf(address(smartVault)));
+        console.log("USDS balance of VAULT_OWNER before removeAsset: %s", usds.balanceOf(VAULT_OWNER));
+        console.log("USDS balance of SmartVault before removeAsset: %s", usds.balanceOf(address(smartVault)));
+        console.log("Undercollateralised before removeAsset: %s", smartVault.undercollateralised());
+        smartVault.removeAsset(yieldPairs[0].hypervisor, IHypervisor(hypervisor).balanceOf(address(smartVault)), VAULT_OWNER);
         vm.stopPrank();
 
-        console.log("Undercollateralised: %s", smartVault.undercollateralised());
-        console.log("USDS balance: %s", usds.balanceOf(VAULT_OWNER));
-        console.log("Hypervisor balance: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
+        console.log("Hypervisor balance of VAULT_OWNER after: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
+        console.log("Hypervisor balance of SmartVault after: %s", IHypervisor(hypervisor).balanceOf(address(smartVault)));
+        console.log("USDS balance of VAULT_OWNER after: %s", usds.balanceOf(VAULT_OWNER));
+        console.log("USDS balance of SmartVault after: %s", usds.balanceOf(address(smartVault)));
+        console.log("Undercollateralised after: %s", smartVault.undercollateralised());
     }
 }
