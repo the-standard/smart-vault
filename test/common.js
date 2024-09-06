@@ -31,10 +31,12 @@ const fullyUpgradedSmartVaultManager = async (
   const V6 = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManagerV6'), [
     collateralRate, protocolFeeRate, usdsAddress, protocolAddress, 
     liquidatorAddress, tokenManagerAddress, smartVaultDeployerAddress,
-    smartVaultIndexAddress, nFTMetadataGeneratorAddress, yieldManagerAddress,
-    vaultLimit, swapRouterAddress, wethAddress
+    smartVaultIndexAddress, nFTMetadataGeneratorAddress, vaultLimit
   ]);
 
+  await V6.setWethAddress(wethAddress);
+  await V6.setSwapRouter(swapRouterAddress);
+  await V6.setYieldManager(yieldManagerAddress);
   return V6;
 }
 
