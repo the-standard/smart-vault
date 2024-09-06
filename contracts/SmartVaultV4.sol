@@ -72,6 +72,11 @@ contract SmartVaultV4 is ISmartVault {
         _;
     }
 
+    modifier remainCollateralised {
+        _;
+        if (undercollateralised()) revert Undercollateralised();
+    }
+
     function getTokenManager() private view returns (ITokenManager) {
         return ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
     }
@@ -167,30 +172,19 @@ contract SmartVaultV4 is ISmartVault {
 
     receive() external payable {}
 
-    function canRemoveCollateral(ITokenManager.Token memory _token, uint256 _amount) private view returns (bool) {
-        if (minted == 0) return true;
-        uint256 usdValueToRemove = calculator.tokenToUSD(_token, _amount);
-        uint256 _newCollateral = usdCollateral() - usdValueToRemove;
-        return maxMintable(_newCollateral) >= minted;
-    }
-
-    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
-        if (!canRemoveCollateral(getTokenManager().getToken(NATIVE), _amount)) revert Undercollateralised();
+    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner remainCollateralised {
         (bool sent,) = _to.call{value: _amount}("");
         if (!sent) revert TransferError();
         emit CollateralRemoved(NATIVE, _amount, _to);
     }
 
-    function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner {
+    function removeCollateral(bytes32 _symbol, uint256 _amount, address _to) external onlyOwner remainCollateralised {
         ITokenManager.Token memory token = getTokenManager().getToken(_symbol);
-        if (!canRemoveCollateral(token, _amount)) revert Undercollateralised();
         IERC20(token.addr).safeTransfer(_to, _amount);
         emit CollateralRemoved(_symbol, _amount, _to);
     }
 
-    function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner {
-        ITokenManager.Token memory token = getTokenManager().getTokenIfExists(_tokenAddr);
-        if (token.addr == _tokenAddr && !canRemoveCollateral(token, _amount)) revert Undercollateralised();
+    function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner remainCollateralised {
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
         emit AssetRemoved(_tokenAddr, _amount, _to);
     }
@@ -247,20 +241,9 @@ contract SmartVaultV4 is ISmartVault {
         if (wethBalance > 0) weth.withdraw(wethBalance);
     }
 
-    function calculateMinimumAmountOut(bytes32 _inTokenSymbol, bytes32 _outTokenSymbol, uint256 _amount) private view returns (uint256) {
-        ISmartVaultManagerV3 _manager = ISmartVaultManagerV3(manager);
-        uint256 requiredCollateralValue = minted * _manager.collateralRate() / _manager.HUNDRED_PC();
-        // add 1% min collateral buffer
-        uint256 collateralValueMinusSwapValue = usdCollateral() - calculator.tokenToUSD(getToken(_inTokenSymbol), _amount * 101 / 100);
-        return collateralValueMinusSwapValue >= requiredCollateralValue ?
-            0 : calculator.USDToToken(getToken(_outTokenSymbol), requiredCollateralValue - collateralValueMinusSwapValue);
-    }
-
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _requestedMinOut) external onlyOwner {
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut) external onlyOwner remainCollateralised {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
-        uint256 minimumAmountOut = calculateMinimumAmountOut(_inToken, _outToken, _amount + swapFee);
-        if (_requestedMinOut > minimumAmountOut) minimumAmountOut = _requestedMinOut;
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: inToken,
                 tokenOut: getTokenisedAddr(_outToken),
@@ -268,7 +251,7 @@ contract SmartVaultV4 is ISmartVault {
                 recipient: address(this),
                 deadline: block.timestamp + 60,
                 amountIn: _amount - swapFee,
-                amountOutMinimum: minimumAmountOut,
+                amountOutMinimum: _minOut,
                 sqrtPriceLimitX96: 0
             });
         inToken == ISmartVaultManagerV3(manager).weth() ?
