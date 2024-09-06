@@ -22,10 +22,4 @@ contract PriceCalculator is IPriceCalculator {
         (,int256 _tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
         return scaledCollateral * uint256(_tokenUsdPrice) / 10 ** _token.clDec;
     }
-
-    function USDToToken(ITokenManager.Token memory _token, uint256 _usdValue) external view returns (uint256) {
-        Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
-        (, int256 tokenUsdPrice,,,) = tokenUsdClFeed.latestRoundData();
-        return _usdValue * 10 ** _token.clDec / uint256(tokenUsdPrice) / 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
-    }
 }
