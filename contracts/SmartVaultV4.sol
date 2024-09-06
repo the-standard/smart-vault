@@ -144,8 +144,12 @@ contract SmartVaultV4 is ISmartVault {
             getAssets(), liquidated, version, vaultType);
     }
 
+    function _undercollateralised(uint256 _usdCollateral) private view returns (bool) {
+        return minted > maxMintable(_usdCollateral);
+    }
+
     function undercollateralised() public view returns (bool) {
-        return minted > maxMintable(usdCollateral());
+        return _undercollateralised(usdCollateral());
     }
 
     function liquidateNative() private {
@@ -289,7 +293,8 @@ contract SmartVaultV4 is ISmartVault {
         (address _hypervisor1, address _hypervisor2) = ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
         addUniqueHypervisor(_hypervisor1);
         if (_hypervisor2 != address(0)) addUniqueHypervisor(_hypervisor2);
-        if (undercollateralised() || significantCollateralDrop(_preDepositCollateral, usdCollateral())) revert Undercollateralised();
+        uint256 _postWithdrawCollateral = usdCollateral();
+        if (_undercollateralised(_postWithdrawCollateral) || significantCollateralDrop(_preDepositCollateral, _postWithdrawCollateral)) revert Undercollateralised();
     }
 
     function withdrawYield(address _hypervisor, bytes32 _symbol) external onlyOwner {
@@ -301,7 +306,8 @@ contract SmartVaultV4 is ISmartVault {
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
-        if (undercollateralised() || significantCollateralDrop(_preWithdrawCollateral, usdCollateral())) revert Undercollateralised();
+        uint256 _postWithdrawCollateral = usdCollateral();
+        if (_undercollateralised(_postWithdrawCollateral) || significantCollateralDrop(_preWithdrawCollateral, _postWithdrawCollateral)) revert Undercollateralised();
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
