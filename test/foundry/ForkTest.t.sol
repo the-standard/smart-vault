@@ -1,12 +1,17 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import {ForkFixture, IWETH9} from "test/foundry/fixtures/ForkFixture.sol";
+import {ForkFixture, IWETH9, IERC20} from "test/foundry/fixtures/ForkFixture.sol";
+
+import {console} from "forge-std/console.sol";
+
+import {IHypervisor} from "contracts/interfaces/IHypervisor.sol";
+
 
 contract ForkTest is ForkFixture {
 
     function setUp() public override {
-        super.setUp();        
+        super.setUp();
     }
 
     function test_nativeSwap() public {
@@ -38,7 +43,10 @@ contract ForkTest is ForkFixture {
     function test_depositYield() public {
         vm.deal(address(vault),1 ether);
 
+        vm.warp(block.timestamp + 1);
+
         vm.prank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4);
     }
+
 }

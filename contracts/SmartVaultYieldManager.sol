@@ -79,7 +79,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
-
+    
     function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _token1 = IHypervisor(_hypervisor).token1();
@@ -120,8 +120,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             {
                 uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
                 price18 = _tokenAIs0
-                    ? FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), 1 << 192, priceX192)
-                    : FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), priceX192, 1 << 192);
+                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), 1 << 192, priceX192)
+                    : FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), priceX192, 1 << 192);
             }
 
             uint256 _a = _tokenABalance * (10 ** (18 - aDec));
@@ -136,7 +136,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
             }
         }
-
+        
         // Push _fee back on to the stack
         uint24 _fee = _fee;
 
