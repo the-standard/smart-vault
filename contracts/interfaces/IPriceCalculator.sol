@@ -5,5 +5,4 @@ import "contracts/interfaces/ITokenManager.sol";
 
 interface IPriceCalculator {
     function tokenToUSD(ITokenManager.Token memory _token, uint256 _amount) external view returns (uint256);
-    function USDToToken(ITokenManager.Token memory _token, uint256 _amount) external view returns (uint256);
 }
