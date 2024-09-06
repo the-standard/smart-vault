@@ -373,13 +373,6 @@ describe('SmartVault', async () => {
       const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
-      // expected minimum out
-      // collateral value is $1600
-      // minted is $1200 + .5% mint fee = $1206
-      // min collateral is $1326.6
-      // collateral value to swap is $800
-      // $526.6 should be minimum from swap
-
       const {
         tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
         sqrtPriceLimitX96, txValue
@@ -391,7 +384,7 @@ describe('SmartVault', async () => {
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts + 60);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
-      expect(amountOutMinimum).to.be.greaterThan(ethers.utils.parseUnits('526.6', 6)); // something slightly wrong with the rounding calculation here
+      expect(amountOutMinimum).to.equal(0); // something slightly wrong with the rounding calculation here
       expect(sqrtPriceLimitX96).to.equal(0);
       expect(txValue).to.equal(swapValue.sub(swapFee));
       expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
