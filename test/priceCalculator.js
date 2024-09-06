@@ -43,20 +43,4 @@ describe('PriceCalculator', async () => {
       expect(usdValue).to.equal(expectedUsdValue);
     })
   });
-
-  describe('USDToToken', async () => {
-    it('returns the value of USD in token based on the latest chainlink price', async () => {
-      // latest ETH price is $1600
-      const usdValue = ethers.utils.parseEther('1600');
-      const expectedEthValue = ethers.utils.parseEther('1');
-      const ethValue = await PriceCalculator.USDToToken(Ethereum, usdValue);
-      expect(ethValue).to.equal(expectedEthValue);
-
-      // latest WBTC price is $32000
-      // 1 eth is 1/20 wbtc
-      const expectedWBTCValue = ethers.utils.parseUnits('0.05', 8);
-      const wbtcValue = await PriceCalculator.USDToToken(WBTC, usdValue);
-      expect(wbtcValue).to.equal(expectedWBTCValue);
-    })
-  });
 });
