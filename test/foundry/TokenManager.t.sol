@@ -3,6 +3,9 @@ pragma solidity 0.8.17;
 
 import {Test} from "forge-std/Test.sol";
 
+import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
+import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
+
 import {TokenManagerFixture, TokenManager} from "./fixtures/TokenManagerFixture.sol";
 import {ITokenManager} from "src/interfaces/ITokenManager.sol";
 
@@ -21,7 +24,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
     function test_defaultNative() public {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
-        assertEq(acceptedTokens.length, 1);
+        assertEq(acceptedTokens.length, collateralSymbols.length); // collateralSymbols.length -1 + NATIVE
 
         ITokenManager.Token memory token = acceptedTokens[0];
         assertEq(token.symbol, NATIVE);
@@ -31,32 +34,32 @@ contract TokenManagerTest is TokenManagerFixture, Test {
     }
 
     function test_manageAcceptedTokens() public {
-        bytes32 wethSymbol = bytes32(bytes(weth.symbol()));
-
-        vm.expectEmit(false, false, false, true);
-        emit TokenAdded(wethSymbol, address(weth));
-        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd)); // TODO: this will revert now that fixture has been changed to already include tokens
-
-        vm.expectRevert(abi.encodeWithSelector(TokenManager.TokenExists.selector, wethSymbol, address(weth)));
-        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd)); // TODO: this will revert now that fixture has been changed to already include tokens
-
         ITokenManager.Token[] memory tokensBefore = tokenManager.getAcceptedTokens();
-        assertEq(tokensBefore.length, 2);
+        assertEq(tokensBefore.length, collateralSymbols.length); // collateralSymbols.length -1 + NATIVE
 
-        ITokenManager.Token memory token = tokensBefore[1];
-        assertEq(token.symbol, wethSymbol);
-        assertEq(token.addr, address(weth));
-        assertEq(token.dec, weth.decimals());
-        assertEq(token.clAddr, address(clNativeUsd));
-        assertEq(token.clDec, clNativeUsd.decimals());
-
+        // native cannot be removed
         vm.expectRevert("err-native-required");
         tokenManager.removeAcceptedToken(NATIVE);
 
+        // weth can be removed
+        bytes32 wethSymbol = bytes32(bytes(weth.symbol()));
         tokenManager.removeAcceptedToken(wethSymbol);
         emit TokenRemoved(wethSymbol);
 
         ITokenManager.Token[] memory tokensAfter = tokenManager.getAcceptedTokens();
-        assertEq(tokensAfter.length, 1);
+        assertEq(tokensAfter.length, tokensBefore.length - 1);
+
+        // add new token
+        string memory newSymbol = "NEW";
+        address newToken = address(new ERC20Mock("New Token", newSymbol, 18));
+        address clNewUsd = address(new ChainlinkMock("NEW/USD"));
+
+        vm.expectEmit(false, false, false, true);
+        emit TokenAdded(bytes32(bytes(newSymbol)), newToken);
+        tokenManager.addAcceptedToken(newToken, clNewUsd);
+
+        // cannot add existing token
+        vm.expectRevert(abi.encodeWithSelector(TokenManager.TokenExists.selector, bytes32(bytes(newSymbol)), newToken));
+        tokenManager.addAcceptedToken(newToken, clNewUsd);
     }
 }

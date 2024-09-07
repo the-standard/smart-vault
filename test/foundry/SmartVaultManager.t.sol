@@ -33,7 +33,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         assertEq(status.minted, 0);
         assertEq(status.maxMintable, 0);
         assertEq(status.totalCollateralValue, 0);
-        assertEq(status.collateral.length, 1); // NATIVE
+        assertEq(status.collateral.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
         assertEq(status.liquidated, false);
         assertEq(status.version, 4);
         assertEq(status.vaultType, bytes32("USDs"));
@@ -62,9 +62,6 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
 
         assertEq(protocolETHBalance, 0);
         assertEq(protocolWETHBalance, 0);
-
-        // Add WETH as an accepted token
-        tokenManager.addAcceptedToken(address(weth), address(clNativeUsd)); // TODO: this will revert now that fixture has been changed to already include tokens
 
         // Mint collateral to the vault
         uint256 wethAmount = 1 ether;
@@ -110,7 +107,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         assertEq(statusAfter.minted, 0);
         assertEq(statusAfter.maxMintable, 0);
         assertEq(statusAfter.totalCollateralValue, 0);
-        assertEq(statusAfter.collateral.length, 2); // NATIVE + WETH
+        assertEq(statusAfter.collateral.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
         for (uint256 i = 0; i < statusAfter.collateral.length; i++) {
             assertEq(statusAfter.collateral[i].amount, 0);
         }
