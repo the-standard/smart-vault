@@ -34,7 +34,7 @@ contract SmartVaultFixture is SmartVaultManagerFixture {
         usds.grantRole(usds.BURNER_ROLE(), address(vault));
     }
 
-    function _getVaultCollateralVault(SmartVaultV4 vault) internal view returns (uint256) {
+    function _getVaultCollateralVaulue(SmartVaultV4 vault) internal view returns (uint256) {
         return vault.status().totalCollateralValue;
     }
 }
