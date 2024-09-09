@@ -81,7 +81,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
-
+    
     function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _token1 = IHypervisor(_hypervisor).token1();
@@ -90,30 +90,33 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
         uint160 _sqrtPriceX96;
         {
-            (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
-            _sqrtPriceX96 = (
-                FullMath.sqrt(
-                    FullMath.mulDiv(
-                        token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
-                        1e18,
-                        token1Balance * 10 ** (18 - ERC20(_token1).decimals())
-                    )
-                ) * (1 << 96)
-            );
-
-            // console.log("sqrtPriceX96: %s", _sqrtPriceX96);
-
-            // NOTE: the above doesn't work because there are no tokens deposited to the Hypervisor to begin with
-            // so tokens are mint during setup in SmartVaultYieldManagerFixture.
+            // NOTE: This workaround requires tokens to be deposited to the Hypervisor to begin with
+            // so they are minted during setup in SmartVaultYieldManagerFixture.
             // Alternatively, sqrtPriceX96 can be calculated from the mock rates, but this requires additional mocking
             // of the Gamma vaults.
-            // uint256 rate = ISwapRouter(_swapRouter).getRate(_token0, _token1);
-            // _sqrtPriceX96 = ;
+            // (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
+            // _sqrtPriceX96 = (
+            //     FullMath.sqrt(
+            //         FullMath.mulDiv(
+            //             token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
+            //             1e18,
+            //             token1Balance * 10 ** (18 - ERC20(_token1).decimals())
+            //         )
+            //     ) * (1 << 96)
+            // );
+            // TODO: we need the above logic for the mocked unit tests, but it shouldn't be added here,
+            // so use vm.mockCall on factory() to stop it reverting and return this calculation for slot()
 
-            // this is difficult to mock, so calculate directly from hypervisor balances/swap router rates instead
+            // this is difficult to mock, so calculate directly from hypervisor balances/swap router rates instead (above)
             // PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
             // address factory = IPeripheryImmutableState(_swapRouter).factory();
             // (_sqrtPriceX96,,,,,,) = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey)).slot0();
+
+            PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
+            address factory = IPeripheryImmutableState(_swapRouter).factory();
+            (_sqrtPriceX96,,,,,,) = _swapRouter == uniswapRouter? 
+                IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0(): 
+                IUniswapV3Pool(PoolAddress.computeAddressRamses(factory, poolKey)).slot0();
         }
 
         uint256 _midRatio;
@@ -137,30 +140,27 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             uint256 aDec = ERC20(_tokenA).decimals();
             uint256 bDec = ERC20(_tokenB).decimals();
 
-            uint256 price18;
+            uint256 price36;
             {
                 uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
-                price18 = _tokenAIs0
-                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), 1 << 192, priceX192)
-                    : FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), priceX192, 1 << 192);
-                // console.log("price18: %s", price18);
+                price36 = _tokenAIs0
+                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (36 - bDec)), 1 << 192, priceX192)
+                    : FullMath.mulDiv((10 ** bDec) * (10 ** (36 - aDec)), priceX192, 1 << 192);
             }
 
-            uint256 _a = _tokenABalance * (10 ** (18 - aDec));
-            uint256 _ratio = FullMath.mulDiv(_a, 1e18, _midRatio * (10 ** (18 - bDec)));
+            uint256 _a = _tokenABalance * (10 ** (36 - aDec));
+            uint256 _ratio = FullMath.mulDiv(_a, 1e36, _midRatio * (10 ** (36 - bDec)));
 
-            uint256 _denominator = 1e18 + FullMath.mulDiv(_ratio, 1e18, price18);
-            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (18 - bDec)), _ratio, 1e18);
+            uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio, 1e36, price36);
+            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
 
             if (_a > _rb) {
-                _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
-                // console.log("amountIn: %s", _amountIn);
+                _amountIn = FullMath.mulDiv(_a - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
             } else {
-                _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
-                // console.log("amountOut: %s", _amountOut);
+                _amountOut = FullMath.mulDiv(_rb - _a, 1e36, _denominator) / 10 ** (36 - aDec);
             }
         }
-
+        
         // Push _fee back on to the stack
         uint24 _fee = _fee;
 

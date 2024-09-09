@@ -66,7 +66,6 @@ contract Common {
         weth = new MockWETH();
         collateralSymbols.push(bytes32(bytes(weth.symbol())));
         collateralTokens.push(weth);
-        vm.deal(address(weth), 1000 ether); // ensure there is native token to unwrap
 
         string memory wbtcSymbol = "WBTC";
         wbtc = new ERC20Mock("Wrapped Bitcoin", wbtcSymbol, 8);
@@ -102,7 +101,7 @@ contract Common {
             abi.encode(address(usdc), RAMSES_FEE, address(weth))
         ); // wbtcHypervisor because all native token gets converted to its wrapped equivalent. TODO: probably could just remove this and related checks
         collateralData[bytes32(bytes(weth.symbol()))] = CollateralData(
-            weth,
+            ERC20Mock(address(weth)),
             clNativeUsd,
             wbtcHypervisor,
             abi.encode(address(weth), RAMSES_FEE, address(usdc)),
