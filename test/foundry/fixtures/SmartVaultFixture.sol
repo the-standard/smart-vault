@@ -29,7 +29,9 @@ contract SmartVaultFixture is SmartVaultYieldManagerFixture {
 
     function _createStandaloneSmartVault(address owner) internal returns (SmartVaultV4 vault) {
         // NOTE: Smart vault is deployed bypassing the manager, so we need to grant USDs minter/burner roles
-        vault = new SmartVaultV4(NATIVE, address(smartVaultManager), owner, address(usds), address(new PriceCalculator(NATIVE)));
+        vault = new SmartVaultV4(
+            NATIVE, address(smartVaultManager), owner, address(usds), address(new PriceCalculator(NATIVE))
+        );
         usds.grantRole(usds.MINTER_ROLE(), address(vault));
         usds.grantRole(usds.BURNER_ROLE(), address(vault));
     }

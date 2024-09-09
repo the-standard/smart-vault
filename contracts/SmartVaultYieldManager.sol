@@ -91,13 +91,15 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         uint160 _sqrtPriceX96;
         {
             (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
-            _sqrtPriceX96 = (FullMath.sqrt(
-                FullMath.mulDiv(
-                    token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
-                    1e18,
-                    token1Balance * 10 ** (18 - ERC20(_token1).decimals())
-                )
-            ) * (1 << 96));
+            _sqrtPriceX96 = (
+                FullMath.sqrt(
+                    FullMath.mulDiv(
+                        token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
+                        1e18,
+                        token1Balance * 10 ** (18 - ERC20(_token1).decimals())
+                    )
+                ) * (1 << 96)
+            );
 
             // console.log("sqrtPriceX96: %s", _sqrtPriceX96);
 

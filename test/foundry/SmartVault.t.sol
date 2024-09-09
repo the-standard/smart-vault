@@ -13,7 +13,7 @@ import {SmartVaultFixture, SmartVaultV4} from "./fixtures/SmartVaultFixture.sol"
 contract SmartVaultTest is SmartVaultFixture, Test {
     SmartVaultV4 smartVault;
 
-    // SmartVaultV4 events    
+    // SmartVaultV4 events
     event CollateralRemoved(bytes32 symbol, uint256 amount, address to);
     event AssetRemoved(address token, uint256 amount, address to);
     event USDsMinted(address to, uint256 amount, uint256 fee);
@@ -22,7 +22,6 @@ contract SmartVaultTest is SmartVaultFixture, Test {
     // SmartVaultYieldManager events
     event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 usdPercentage);
     event Withdraw(address indexed smartVault, address indexed token, address hypervisor, uint256 amount);
-
 
     function setUp() public override {
         super.setUp();
@@ -44,7 +43,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
     function test_addCollateral() public {
         uint256 usdCollateral = smartVault.status().totalCollateralValue;
         assertEq(usdCollateral, 0);
-        
+
         // add each collateral
         _addCollateral(smartVault);
 
@@ -136,21 +135,21 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
         smartVault.removeCollateralNative(address(smartVault).balance, payable(VAULT_OWNER));
         vm.stopPrank();
-        
+
         uint256 wethAmount = weth.balanceOf(address(smartVault));
         bytes32 wethSymbol = bytes32(bytes(weth.symbol()));
         vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
         smartVault.removeCollateral(wethSymbol, wethAmount, VAULT_OWNER);
         vm.stopPrank();
-        
+
         uint256 wbtcAmount = wbtc.balanceOf(address(smartVault));
         bytes32 wbtcSymbol = bytes32(bytes(wbtc.symbol()));
         vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
         smartVault.removeCollateral(wbtcSymbol, wbtcAmount, VAULT_OWNER);
         vm.stopPrank();
-        
+
         uint256 linkAmount = link.balanceOf(address(smartVault));
         bytes32 linkSymbol = bytes32(bytes(link.symbol()));
         vm.startPrank(VAULT_OWNER);
@@ -159,7 +158,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.stopPrank();
 
         // ETH/WETH moons, so remove WBTC collateral
-        (, int256 nativeUsdPrice, , , ) = clNativeUsd.latestRoundData();
+        (, int256 nativeUsdPrice,,,) = clNativeUsd.latestRoundData();
         clNativeUsd.setPrice(nativeUsdPrice * 20);
         wbtcAmount = wbtc.balanceOf(address(smartVault));
         assertTrue(wbtcAmount != 0);
@@ -183,7 +182,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.expectRevert("Address: call to non-contract");
         smartVault.removeCollateral(NATIVE, address(smartVault).balance, VAULT_OWNER);
         vm.stopPrank();
-        
+
         // removing non-collateral asset via removeCollateral reverts
         uint256 usdcAmount = 10 ** usdc.decimals();
         assertEq(usdc.balanceOf(address(smartVault)), 0);
@@ -226,11 +225,11 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         smartVault.removeAsset(address(link), linkAmount, VAULT_OWNER);
 
         // WBTC & LINK moon, so remove ETH/WETH collateral
-        (, int256 wbtcUsdPrice, , ,) = clWbtcUsd.latestRoundData();
+        (, int256 wbtcUsdPrice,,,) = clWbtcUsd.latestRoundData();
         clWbtcUsd.setPrice(wbtcUsdPrice * 100);
-        (, int256 linkUsdPrice, , ,) = clLinkUsd.latestRoundData();
+        (, int256 linkUsdPrice,,,) = clLinkUsd.latestRoundData();
         clLinkUsd.setPrice(linkUsdPrice * 100);
-        
+
         // NOTE: this actually reverts because it attempts to perform an ERC-20 transfer on address(0)
         uint256 nativeAmount = address(smartVault).balance;
         assertTrue(nativeAmount != 0);
@@ -243,7 +242,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.stopPrank();
         // assertEq(address(smartVault).balance, 0);
         // assertEq(VAULT_OWNER.balance, nativeBefore + nativeAmount);
-        
+
         wethAmount = weth.balanceOf(address(smartVault));
         assertTrue(wethAmount != 0);
         uint256 wethBefore = weth.balanceOf(VAULT_OWNER);
@@ -260,7 +259,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
     function test_mintUsds() public {
         uint256 usdsDecimals = usds.decimals();
-        
+
         // cannot mint if undercollateralised (no collateral)
         vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
@@ -299,7 +298,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
         _addCollateral(smartVault);
         uint256 mintFee = _mintUsds(smartVault, VAULT_OWNER, usdsAmountBefore);
-        
+
         // expect emit USDsBurned
         uint256 usdsAmountBurned = usdsAmountBefore * 90 / 100;
         uint256 burnFee = smartVaultManager.burnFeeRate() * usdsAmountBurned / smartVaultManager.HUNDRED_PC();
@@ -308,7 +307,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         emit USDsBurned(usdsAmountBurned, burnFee);
         smartVault.burn(usdsAmountBurned);
         vm.stopPrank();
-        
+
         // assert balances + fees
         assertEq(usds.balanceOf(VAULT_OWNER), usdsAmountBefore - usdsAmountBurned - burnFee);
         assertEq(smartVault.status().minted, usdsAmountBefore + mintFee - usdsAmountBurned);
@@ -334,7 +333,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.stopPrank();
 
         // undercollateralised true with collateral and borrowing after price decrease
-        (, int256 nativeUsdPrice, , ,) = clNativeUsd.latestRoundData();
+        (, int256 nativeUsdPrice,,,) = clNativeUsd.latestRoundData();
         clNativeUsd.setPrice(nativeUsdPrice / 10);
         assertTrue(smartVault.undercollateralised());
 
@@ -359,7 +358,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         assertEq(link.balanceOf(address(smartVault)), 0);
         assertEq(smartVault.status().totalCollateralValue, 0);
         assertEq(smartVault.status().maxMintable, 0);
-        
+
         assertEq(PROTOCOL.balance, nativeBalanceBefore);
         assertEq(weth.balanceOf(PROTOCOL), wethBalanceBefore);
         assertEq(wbtc.balanceOf(PROTOCOL), wbtcBalanceBefore);
@@ -414,14 +413,16 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         // assert no changes to wbtc hypervisor
         assertEq(wbtcHypervisor.balanceOf(address(smartVault)), wbtcHypervisorBalance);
         assertEq(wbtcHypervisor.totalSupply(), wbtcHypervisorTotalSupply);
-        (uint256 wbtcHypervisorUnderlying0After, uint256 wbtcHypervisorUnderlying1After) = wbtcHypervisor.getTotalAmounts();
+        (uint256 wbtcHypervisorUnderlying0After, uint256 wbtcHypervisorUnderlying1After) =
+            wbtcHypervisor.getTotalAmounts();
         assertEq(wbtcHypervisorUnderlying0After, wbtcHypervisorUnderlying0);
         assertEq(wbtcHypervisorUnderlying1After, wbtcHypervisorUnderlying1);
 
         // assert usds hypervisor balances
         assertGt(usdsHypervisor.balanceOf(address(smartVault)), usdsHypervisorBalance);
         assertGt(usdsHypervisor.totalSupply(), usdsHypervisorTotalSupply);
-        (uint256 usdsHypervisorUnderlying0After, uint256 usdsHypervisorUnderlying1After) = usdsHypervisor.getTotalAmounts();
+        (uint256 usdsHypervisorUnderlying0After, uint256 usdsHypervisorUnderlying1After) =
+            usdsHypervisor.getTotalAmounts();
         assertGe(usdsHypervisorUnderlying0After, usdsHypervisorUnderlying0);
         assertGe(usdsHypervisorUnderlying1After, usdsHypervisorUnderlying1);
 
@@ -482,16 +483,25 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         SmartVaultV4.YieldPair[] memory yieldPairs = smartVault.yieldAssets();
         assertEq(yieldPairs.length, 1);
         address hypervisor = yieldPairs[0].hypervisor;
-        console.log("Hypervisor balance of VAULT_OWNER before removeAsset: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
-        console.log("Hypervisor balance of SmartVault before removeAsset: %s", IHypervisor(hypervisor).balanceOf(address(smartVault)));
+        console.log(
+            "Hypervisor balance of VAULT_OWNER before removeAsset: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER)
+        );
+        console.log(
+            "Hypervisor balance of SmartVault before removeAsset: %s",
+            IHypervisor(hypervisor).balanceOf(address(smartVault))
+        );
         console.log("USDS balance of VAULT_OWNER before removeAsset: %s", usds.balanceOf(VAULT_OWNER));
         console.log("USDS balance of SmartVault before removeAsset: %s", usds.balanceOf(address(smartVault)));
         console.log("Undercollateralised before removeAsset: %s", smartVault.undercollateralised());
-        smartVault.removeAsset(yieldPairs[0].hypervisor, IHypervisor(hypervisor).balanceOf(address(smartVault)), VAULT_OWNER);
+        smartVault.removeAsset(
+            yieldPairs[0].hypervisor, IHypervisor(hypervisor).balanceOf(address(smartVault)), VAULT_OWNER
+        );
         vm.stopPrank();
 
         console.log("Hypervisor balance of VAULT_OWNER after: %s", IHypervisor(hypervisor).balanceOf(VAULT_OWNER));
-        console.log("Hypervisor balance of SmartVault after: %s", IHypervisor(hypervisor).balanceOf(address(smartVault)));
+        console.log(
+            "Hypervisor balance of SmartVault after: %s", IHypervisor(hypervisor).balanceOf(address(smartVault))
+        );
         console.log("USDS balance of VAULT_OWNER after: %s", usds.balanceOf(VAULT_OWNER));
         console.log("USDS balance of SmartVault after: %s", usds.balanceOf(address(smartVault)));
         console.log("Undercollateralised after: %s", smartVault.undercollateralised());

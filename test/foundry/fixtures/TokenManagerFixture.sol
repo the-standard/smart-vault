@@ -10,7 +10,7 @@ contract TokenManagerFixture is Common {
 
     function setUp() public virtual override {
         super.setUp();
-        
+
         tokenManager = new TokenManager(NATIVE, address(clNativeUsd));
 
         for (uint256 i; i < collateralSymbols.length; i++) {

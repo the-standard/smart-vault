@@ -123,9 +123,27 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         weth.mint(address(this), 2 * wethAmount);
         link.mint(address(this), linkAmount);
 
-        uniProxy.deposit(usdsAmount, usdcAmount, address(0xDEAD), address(usdsHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
-        uniProxy.deposit(wbtcAmount, wethAmount, address(0xDEAD), address(wbtcHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
-        uniProxy.deposit(linkAmount, wethAmount, address(0xDEAD), address(linkHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
+        uniProxy.deposit(
+            usdsAmount,
+            usdcAmount,
+            address(0xDEAD),
+            address(usdsHypervisor),
+            [uint256(0), uint256(0), uint256(0), uint256(0)]
+        );
+        uniProxy.deposit(
+            wbtcAmount,
+            wethAmount,
+            address(0xDEAD),
+            address(wbtcHypervisor),
+            [uint256(0), uint256(0), uint256(0), uint256(0)]
+        );
+        uniProxy.deposit(
+            linkAmount,
+            wethAmount,
+            address(0xDEAD),
+            address(linkHypervisor),
+            [uint256(0), uint256(0), uint256(0), uint256(0)]
+        );
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
