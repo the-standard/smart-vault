@@ -169,10 +169,6 @@ contract ForkFixture is Test {
 
         vm.prank(IClearing(uniProxy).owner());
         IClearing(clearing).addPosition(hypervisor, 1);
-        
-        // scary: TWAP check turned off
-        vm.prank(IClearing(uniProxy).owner());
-        IClearing(clearing).setTwapCheck(false);
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -258,20 +254,19 @@ contract ForkFixture is Test {
 
         IUniswapV3Pool(USDs_USDC_pool).initialize(sqrtPriceX96);
  
-        int24 tickLower = tick - 100 - tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
-        int24 tickUpper = tick + 100 + tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
+        int24 tickLower = tick - 10 - tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
+        int24 tickUpper = tick + 10 + tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
 
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
             TickMath.getSqrtRatioAtTick(tickLower),
             TickMath.getSqrtRatioAtTick(tickUpper),
-            10_000e18,
-            10_000e6
+            100_000e18,
+            100_000e6
         );
+        IUniswapV3Pool(USDs_USDC_pool).mint(address(this), tickLower, tickUpper, liquidity,"");
 
         IUniswapV3Pool(USDs_USDC_pool).increaseObservationCardinalityNext(100);
-
-        IUniswapV3Pool(USDs_USDC_pool).mint(address(this), tickLower, tickUpper, liquidity,"");
     }
 
     function sqrt(uint256 x) internal pure returns (uint128) {
