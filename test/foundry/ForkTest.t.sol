@@ -48,5 +48,4 @@ contract ForkTest is ForkFixture {
         vm.prank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4);
     }
-
 }

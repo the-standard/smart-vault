@@ -169,6 +169,8 @@ contract ForkFixture is Test {
 
         vm.prank(IClearing(uniProxy).owner());
         IClearing(clearing).addPosition(hypervisor, 1);
+        
+        // scary: TWAP check turned off
         vm.prank(IClearing(uniProxy).owner());
         IClearing(clearing).setTwapCheck(false);
 
