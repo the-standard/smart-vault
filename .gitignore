@@ -23,3 +23,8 @@ artifacts
 
 .DS_Store
 .idea/
+
+# crytic
+crytic-export/
+echidna/
+medusa/

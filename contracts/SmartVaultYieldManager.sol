@@ -105,12 +105,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             //     ) * (1 << 96)
             // );
             // TODO: we need the above logic for the mocked unit tests, but it shouldn't be added here,
-            // so use vm.mockCall on factory() to stop it reverting and return this calculation for slot()
-
-            // this is difficult to mock, so calculate directly from hypervisor balances/swap router rates instead (above)
-            // PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
-            // address factory = IPeripheryImmutableState(_swapRouter).factory();
-            // (_sqrtPriceX96,,,,,,) = IUniswapV3Pool(PoolAddress.computeAddress(factory, poolKey)).slot0();
+            // so we could use vm.mockCall on factory() to stop it reverting and return this calculation for slot()
+            // however that would require us to know which hypervisor we are calculating for, which we can't do unless
+            // we look at the token addresses, but at this rate we may as well just mock it properly and use the logic below.
 
             PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
             address factory = IPeripheryImmutableState(_swapRouter).factory();
