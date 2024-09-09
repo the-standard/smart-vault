@@ -98,8 +98,9 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
         emit VaultDeployed(vault, msg.sender, usds, tokenId);
     }
 
-    function liquidateVault(uint256 _tokenId) external onlyLiquidator {
+    function liquidateVault(uint256 _tokenId) external {
         ISmartVault vault = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId));
+        IUSDs(usds).burn(msg.sender, vault.status().minted);
         vault.liquidate();
         IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
         IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
