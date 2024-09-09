@@ -1,12 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import {ForkFixture, IWETH9, IERC20} from "test/foundry/fixtures/ForkFixture.sol";
-
-import {console} from "forge-std/console.sol";
-
-import {IHypervisor} from "contracts/interfaces/IHypervisor.sol";
-
+import {ForkFixture, IWETH9} from "test/foundry/fixtures/ForkFixture.sol";
 
 contract ForkTest is ForkFixture {
 

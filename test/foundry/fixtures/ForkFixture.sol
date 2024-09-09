@@ -4,29 +4,25 @@ pragma solidity 0.8.17;
 import {Test} from "forge-std/Test.sol";
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-
-import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
-
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IPeripheryImmutableState} from "src/interfaces/IPeripheryImmutableState.sol";
-
-import {FullMath} from "src/uniswap/FullMath.sol";
 
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {SmartVaultManagerV6} from "src/SmartVaultManagerV6.sol";
 import {TokenManager} from "src/TokenManager.sol";
 import {SmartVaultYieldManager} from "src/SmartVaultYieldManager.sol";
-
 import {SmartVaultDeployerV4} from "src/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
-
-import {IUniProxy} from "contracts/interfaces/IUniProxy.sol";
-import {TickMath} from "test/foundry/TickMath.sol";
-import {LiquidityAmounts} from "test/foundry/LiquidityAmounts.sol";
-
 import {USDsMock} from "src/test_utils/USDsMock.sol";
+
+import {FullMath} from "src/uniswap/FullMath.sol";
+import {TickMath} from "src/uniswap/TickMath.sol";
+import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
+
+import {IPeripheryImmutableState} from "src/interfaces/IPeripheryImmutableState.sol";
+import {IUniProxy} from "src/interfaces/IUniProxy.sol";
+import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 import "./ForkConstants.sol";
 
@@ -95,7 +91,6 @@ contract ForkFixture is Test {
     address uniProxy = 0x82FcEB07a4D01051519663f6c1c919aF21C27845;
     address clearing = 0x80a44ce970D9380bDA7677916B860f37b4ba8Ce2;
 
-    address usdsUsdcHypervisor;
     address wtbcEthHypervisor = 0x52ee1FFBA696c5E9b0Bc177A9f8a3098420EA691;
 
     address weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -151,24 +146,11 @@ contract ForkFixture is Test {
         usds.grantRole(usds.DEFAULT_ADMIN_ROLE(), address(smartVaultManager));
 
         IUniswapV3Factory factory = IUniswapV3Factory(IPeripheryImmutableState(ramsesRouter).factory());
-        //IUniswapV3Factory factory = IUniswapV3Factory(IPeripheryImmutableState(uniswapRouter).factory());
         USDs_USDC_pool = factory.createPool(usdc, address(usds), 500);
         vm.label(USDs_USDC_pool, "USDs/USDC Pool");
 
-        bytes memory constructorParams = abi.encode(USDs_USDC_pool, address(this), "USDs/USDC Hypervisors", "USDSUSDCHypervisor");
-        bytes memory bytecodeWithParams = bytes.concat(hypervisorCode, constructorParams);
-
-        address hypervisor;
-        assembly {
-            hypervisor := create(0, add(bytecodeWithParams, 0x20), mload(bytecodeWithParams))
-        }
-        vm.assertNotEq(hypervisor, address(0));
-        vm.label(hypervisor, "USDs/USDC Hypervisor");
-        HypervisorOwner(hypervisor).setWhitelist(uniProxy);
-        usdsUsdcHypervisor = hypervisor;
-
-        vm.prank(IClearing(uniProxy).owner());
-        IClearing(clearing).addPosition(hypervisor, 1);
+        addLiquidity();
+        address hypervisor = setupHypervisor();
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -208,31 +190,6 @@ contract ForkFixture is Test {
         (address smartVault, ) = smartVaultManager.mint();
         
         vault = SmartVaultV4(payable(smartVault));
-
-        addLiquidity();
-
-        HypervisorOwner(usdsUsdcHypervisor).rebalance(
-            -276350, // base lower  
-            -276300, // base upper  
-            -276280, // limit lower
-            -276230, // limit upper
-            FEE_RECIPIENT,
-            [uint256(0), uint256(0), uint256(0), uint256(0)],
-            [uint256(0), uint256(0), uint256(0), uint256(0)]
-        );
-        vm.warp(block.timestamp + 3601);
-        deal(address(usds), address(this), 1000e18);
-        deal(usdc, address(this), 1000e6);
-
-        usds.approve(usdsUsdcHypervisor, 1000e18);
-        IERC20(usdc).approve(usdsUsdcHypervisor, 1000e6);
-        IUniProxy(uniProxy).deposit(
-            1000e18,
-            1000e6,
-            msg.sender,
-            usdsUsdcHypervisor,
-            [uint256(0), uint256(0), uint256(0), uint256(0)]
-        );
     }
 
     function ramsesV2MintCallback(
@@ -269,6 +226,43 @@ contract ForkFixture is Test {
         IUniswapV3Pool(USDs_USDC_pool).increaseObservationCardinalityNext(100);
     }
 
+    function setupHypervisor() internal returns(address hypervisor) {
+        bytes memory constructorParams = abi.encode(USDs_USDC_pool, address(this), "USDs/USDC Hypervisors", "USDSUSDCHypervisor");
+        bytes memory bytecodeWithParams = bytes.concat(hypervisorCode, constructorParams);
+
+        assembly {
+            hypervisor := create(0, add(bytecodeWithParams, 0x20), mload(bytecodeWithParams))
+        }
+        vm.assertNotEq(hypervisor, address(0));
+        vm.label(hypervisor, "USDs/USDC Hypervisor");
+        HypervisorOwner(hypervisor).setWhitelist(uniProxy);
+        vm.prank(IClearing(uniProxy).owner());
+        IClearing(clearing).addPosition(hypervisor, 1);
+
+        HypervisorOwner(hypervisor).rebalance(
+            -276350, // base lower  
+            -276300, // base upper  
+            -276280, // limit lower
+            -276230, // limit upper
+            FEE_RECIPIENT,
+            [uint256(0), uint256(0), uint256(0), uint256(0)],
+            [uint256(0), uint256(0), uint256(0), uint256(0)]
+        );
+        vm.warp(block.timestamp + 3601);
+        deal(address(usds), address(this), 1000e18);
+        deal(usdc, address(this), 1000e6);
+
+        usds.approve(hypervisor, 1000e18);
+        IERC20(usdc).approve(hypervisor, 1000e6);
+        IUniProxy(uniProxy).deposit(
+            1000e18,
+            1000e6,
+            msg.sender,
+            hypervisor,
+            [uint256(0), uint256(0), uint256(0), uint256(0)]
+        );
+    }
+
     function sqrt(uint256 x) internal pure returns (uint128) {
         if (x == 0) return 0;
         else{
@@ -292,27 +286,4 @@ contract ForkFixture is Test {
             return uint128 (r < r1 ? r : r1);
         }
     }
-/* 
-    function getQuoteAtTick(
-        int24 tick,
-        uint128 baseAmount,
-        address baseToken,
-        address quoteToken
-    ) internal pure returns (uint256 quoteAmount) {
-        uint160 sqrtRatioX96 = TickMath.getSqrtRatioAtTick(tick);
-
-        // Calculate quoteAmount with better precision if it doesn't overflow when multiplied by itself
-        if (sqrtRatioX96 <= type(uint128).max) {
-            uint256 ratioX192 = uint256(sqrtRatioX96) * sqrtRatioX96;
-            quoteAmount = baseToken < quoteToken
-                ? FullMath.mulDiv(ratioX192, baseAmount, 1 << 192)
-                : FullMath.mulDiv(1 << 192, baseAmount, ratioX192);
-        } else {
-            uint256 ratioX128 = FullMath.mulDiv(sqrtRatioX96, sqrtRatioX96, 1 << 64);
-            quoteAmount = baseToken < quoteToken
-                ? FullMath.mulDiv(ratioX128, baseAmount, 1 << 128)
-                : FullMath.mulDiv(1 << 128, baseAmount, ratioX128);
-        }
-    }
- */
 }
