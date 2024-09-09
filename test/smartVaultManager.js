@@ -176,8 +176,8 @@ describe('SmartVaultManager', async () => {
         userVault.status.collateral.forEach(asset => {
           expect(asset.amount).to.equal(0);
         });
-        expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
-        expect(await protocol.getBalance()).to.equal(protocolETHBalance.add(ethValue));
+        expect(await Tether.balanceOf(liquidator.address)).to.equal(tetherValue);
+        await expect(liquidate).to.changeEtherBalance(liquidator, ethValue);
       });
     });
 
