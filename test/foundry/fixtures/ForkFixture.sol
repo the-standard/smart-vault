@@ -91,6 +91,7 @@ contract ForkFixture is Test {
     address uniProxy = 0x82FcEB07a4D01051519663f6c1c919aF21C27845;
     address clearing = 0x80a44ce970D9380bDA7677916B860f37b4ba8Ce2;
 
+    address usdsUsdcHypervisor;
     address wtbcEthHypervisor = 0x52ee1FFBA696c5E9b0Bc177A9f8a3098420EA691;
 
     address weth = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
@@ -150,7 +151,7 @@ contract ForkFixture is Test {
         vm.label(USDs_USDC_pool, "USDs/USDC Pool");
 
         addLiquidity();
-        address usdsUsdcHypervisor = setupHypervisor();
+        usdsUsdcHypervisor = setupHypervisor();
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -162,6 +163,7 @@ contract ForkFixture is Test {
             usdsUsdcHypervisor,
             uniswapRouter
         );
+        yieldManager.setFeeData(0,address(smartVaultManager));
 
         yieldManager.addHypervisorData(
             weth,

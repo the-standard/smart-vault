@@ -35,12 +35,18 @@ contract ForkTest is ForkFixture {
         vault.swap(WETH, WBTC, 0.5 ether, 0);
     }
 
-    function test_depositYield() public {
+    function test_depositAndWithdrawYield() public {
         vm.deal(address(vault),1 ether);
 
         vm.warp(block.timestamp + 1);
 
         vm.prank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4);
+
+        vm.prank(VAULT_OWNER);
+        vault.withdrawYield(usdsUsdcHypervisor, NATIVE);
+
+        vm.prank(VAULT_OWNER);
+        vault.withdrawYield(wtbcEthHypervisor, NATIVE);
     }
 }
