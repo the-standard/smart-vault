@@ -41,6 +41,7 @@ interface IUniswapV3Factory {
 interface IClearing {
     function owner() external view returns (address);
     function addPosition(address pos, uint8 version) external;
+    function setTwapCheck(bool check) external;
 }
 
 interface HypervisorOwner {
@@ -168,6 +169,8 @@ contract ForkFixture is Test {
 
         vm.prank(IClearing(uniProxy).owner());
         IClearing(clearing).addPosition(hypervisor, 1);
+        vm.prank(IClearing(uniProxy).owner());
+        IClearing(clearing).setTwapCheck(false);
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -263,6 +266,8 @@ contract ForkFixture is Test {
             10_000e18,
             10_000e6
         );
+
+        IUniswapV3Pool(USDs_USDC_pool).increaseObservationCardinalityNext(100);
 
         IUniswapV3Pool(USDs_USDC_pool).mint(address(this), tickLower, tickUpper, liquidity,"");
     }

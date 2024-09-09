@@ -26,4 +26,8 @@ interface IUniswapV3Pool {
     ) external returns (uint256 amount0, uint256 amount1);
 
     function tickSpacing() external view returns (int24);
+
+    function increaseObservationCardinalityNext(
+        uint16 observationCardinalityNext
+    ) external;
 }
