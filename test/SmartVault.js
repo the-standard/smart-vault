@@ -302,7 +302,7 @@ describe('SmartVault', async () => {
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
 
-      await expect(Vault.liquidate()).to.be.revertedWithCustomError(Vault, 'InvalidUser');
+      await expect(Vault.liquidate(protocol.address)).to.be.revertedWithCustomError(Vault, 'InvalidUser');
 
       await expect(VaultManager.connect(protocol).liquidateVault(1)).not.to.be.reverted;
       const { minted, maxMintable, totalCollateralValue, collateral, liquidated } = await Vault.status();

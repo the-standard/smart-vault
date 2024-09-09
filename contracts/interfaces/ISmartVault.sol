@@ -13,5 +13,5 @@ interface ISmartVault {
     function status() external view returns (Status memory);
     function undercollateralised() external view returns (bool);
     function setOwner(address _newOwner) external;
-    function liquidate() external;
+    function liquidate(address _liquidator) external;
 }

@@ -163,7 +163,7 @@ contract SmartVaultV4 is ISmartVault {
         if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(ISmartVaultManagerV3(manager).protocol(), _token.balanceOf(address(this)));
     }
 
-    function liquidate() external onlyVaultManager {
+    function liquidate(address _liquidator) external onlyVaultManager {
         if (!undercollateralised()) revert NotUndercollateralised();
         liquidated = true;
         minted = 0;
