@@ -296,7 +296,7 @@ describe('SmartVault', async () => {
       const mintedValue = ethers.utils.parseEther('1000');
       await Vault.connect(user).mint(user.address, mintedValue);
 
-      await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWith('vault-not-undercollateralised')
+      await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWithCustomError(Vault, 'NotUndercollateralised');
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);

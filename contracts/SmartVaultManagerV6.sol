@@ -100,16 +100,13 @@ contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function liquidateVault(uint256 _tokenId) external onlyLiquidator {
         ISmartVault vault = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId));
-        try vault.undercollateralised() returns (bool _undercollateralised) {
-            require(_undercollateralised, "vault-not-undercollateralised");
-            vault.liquidate();
-            IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
-            IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
-            emit VaultLiquidated(address(vault));
-        } catch {
-            revert("other-liquidation-error");
-        }
+        vault.liquidate();
+        IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
+        IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
+        emit VaultLiquidated(address(vault));
     }
+
+    // TODO maintain vault liquidations with old vault liquidate interface for EUROs
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         ISmartVault.Status memory vaultStatus = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).status();
