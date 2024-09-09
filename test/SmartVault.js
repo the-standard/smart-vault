@@ -594,6 +594,23 @@ describe('SmartVault', async () => {
       // TODO assertions on the yield assets for wbtc deposit
     });
 
+    it('removes hypervisor tokens in liquidation', async () => {
+      const ethCollateral = ethers.utils.parseEther('0.1')
+      await user.sendTransaction({ to: Vault.address, value: ethCollateral });
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('120'));
+
+      // tank eth price
+      await ClEthUsd.setPrice(1);
+      
+      const vaultHypervisorBalance = await MockWETHWBTCHypervisor.balanceOf(Vault.address);
+
+      await USDs.mint(otherUser.address, ethers.utils.parseEther('1000'));
+      await VaultManager.connect(otherUser).liquidateVault(1);
+      expect(await MockWETHWBTCHypervisor.balanceOf(otherUser.address)).to.equal(vaultHypervisorBalance);
+      expect(await MockWETHWBTCHypervisor.balanceOf(Vault.address)).to.equal(0);
+    });
+
     xit('can put 100% of yield deposit in stable pair', async () => {
 
     });

@@ -152,33 +152,27 @@ contract SmartVaultV4 is ISmartVault {
         return _undercollateralised(usdCollateral());
     }
 
-    function liquidateNative() private {
-        if (address(this).balance != 0) {
-            (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: address(this).balance}("");
-            if (!sent) revert TransferError();
-        }
-    }
-
-    function liquidateERC20(IERC20 _token) private {
-        if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(ISmartVaultManagerV3(manager).protocol(), _token.balanceOf(address(this)));
-    }
-
     function liquidate(address _liquidator) external onlyVaultManager {
         if (!undercollateralised()) revert NotUndercollateralised();
         liquidated = true;
         minted = 0;
-        // liquidate eth
+        // remove eth
         if (address(this).balance != 0) {
             (bool sent,) = payable(_liquidator).call{value: address(this).balance}("");
             if (!sent) revert TransferError();
         }
-        // liquidate all erc20 collateral
+        // remove all erc20 collateral
         ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol != NATIVE) {
                 IERC20 _token = IERC20(tokens[i].addr);
                 if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(_liquidator, _token.balanceOf(address(this)));
             }
+        }
+        // remove all hypervisor tokens
+        for (uint256 i = 0; i < hypervisors.length; i++) {
+            IERC20 _hypervisor = IERC20(hypervisors[i]);
+            if (_hypervisor.balanceOf(address(this)) != 0) _hypervisor.safeTransfer(_liquidator, _hypervisor.balanceOf(address(this)));
         }
     }
 
