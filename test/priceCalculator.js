@@ -10,7 +10,9 @@ describe('PriceCalculator', async () => {
     await clEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)
     const clWBTCUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
     await clWBTCUsd.setPrice(DEFAULT_ETH_USD_PRICE.mul(20))
-    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH);
+    const clUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
+    await clUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
+    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, clUSDCUSD.address);
     Ethereum = {
       symbol: ETH,
       addr: ethers.constants.AddressZero,
@@ -41,6 +43,13 @@ describe('PriceCalculator', async () => {
       expectedUsdValue = ethers.utils.parseEther('16000');
       usdValue = await PriceCalculator.tokenToUSD(WBTC, wbtcValue);
       expect(usdValue).to.equal(expectedUsdValue);
+    })
+  });
+
+  describe('USDCToUSD', async () => {
+    it('returns the USD 18 dec value of given USDC amount', async () => {
+      const USDCAmount = 100_000_000 // $100
+      expect(await PriceCalculator.USDCToUSD(USDCAmount, 6)).to.equal(ethers.utils.parseEther('100'));
     })
   });
 });

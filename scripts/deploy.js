@@ -19,7 +19,12 @@ async function main() {
   );
   await YieldManager.deployed();
 
-  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+  const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH);
+  await PriceCalculator.deployed();
+
+  const SmartVaultSwapper = await (await ethers.getContractFactory('SmartVaultSwapper')).deploy();
+
+  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address, SmartVaultSwapper.address);
   await Deployer.deployed();
 
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
@@ -53,14 +58,15 @@ async function main() {
     SmartVaultIndex: SmartVaultIndex.address,
     NFTMetadataGenerator: NFTMetadataGenerator.address,
     SmartVaultManager: SmartVaultManager.address,
-    YieldManager: YieldManager.address
+    YieldManager: YieldManager.address,
+    PriceCalculator: PriceCalculator.address
   });
 
   await new Promise(resolve => setTimeout(resolve, 60000));
 
   await run(`verify:verify`, {
     address: Deployer.address,
-    constructorArguments: [ETH],
+    constructorArguments: [ETH, PriceCalculator.address, Swapper.address],
   });
 
   await run(`verify:verify`, {
@@ -76,6 +82,11 @@ async function main() {
   await run(`verify:verify`, {
     address: SmartVaultIndex.address,
     constructorArguments: [],
+  });
+
+  await run(`verify:verify`, {
+    address: PriceCalculator.address,
+    constructorArguments: [ETH],
   });
 }
 

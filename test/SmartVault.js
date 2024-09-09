@@ -17,7 +17,10 @@ describe('SmartVault', async () => {
     await ClEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
     USDs = await (await ethers.getContractFactory('USDsMock')).deploy();
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
-    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+    const ClUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
+    await ClUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
+    const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, ClUSDCUSD.address);
+    const SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     const NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
@@ -474,6 +477,7 @@ describe('SmartVault', async () => {
 
   describe('yield', async () => {
     let WBTC, USDT, WBTCPerETH, MockWETHWBTCHypervisor;
+    const FIFTY_PERCENT = HUNDRED_PC.div(2);
 
     beforeEach(async () => {
       WBTC = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Bitcoin', 'WBTC', 8);
@@ -544,12 +548,12 @@ describe('SmartVault', async () => {
       expect(getCollateralOf('ETH', collateral).amount).to.equal(ethCollateral);
 
       // only vault owner can deposit collateral as yield
-      let depositYield = Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2));
+      let depositYield = Vault.connect(admin).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT);
       await expect(depositYield).to.be.revertedWithCustomError(Vault, 'InvalidUser');
       // 5% to stables pool is below minimum
-      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(20));
+      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(20), FIFTY_PERCENT);
       await expect(depositYield).to.be.revertedWithCustomError(YieldManager, 'StablePoolPercentageError');
-      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      depositYield = Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT);
       await expect(depositYield).not.to.be.reverted;
       await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, MockWeth.address, ethCollateral, HUNDRED_PC.div(2));
 
@@ -557,12 +561,13 @@ describe('SmartVault', async () => {
       const USDTBytes = ethers.utils.formatBytes32String('USDT');
       const USDTCollateral = ethers.utils.parseUnits('1000', 6);
       await USDT.mint(Vault.address, USDTCollateral);
-      await expect(Vault.connect(user).depositYield(USDTBytes, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(YieldManager, 'HypervisorDataError');
+      await expect(Vault.connect(user).depositYield(USDTBytes, HUNDRED_PC.div(2), FIFTY_PERCENT)).to.be.revertedWithCustomError(YieldManager, 'HypervisorDataError');
       await Vault.connect(user).removeCollateral(USDTBytes, USDTCollateral, user.address);
 
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('ETH', collateral).amount).to.equal(0);
-      expect(totalCollateralValue).to.equal(preYieldCollateral);
+      // about 25% of collateral in USDs now, and therefore not included
+      expect(totalCollateralValue).to.equal(preYieldCollateral.mul(3).div(4));
 
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(2);
@@ -586,19 +591,18 @@ describe('SmartVault', async () => {
       preYieldCollateral = totalCollateralValue;
 
       // deposit wbtc for yield, 25% to USDs pool
-      depositYield = Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4));
+      depositYield = Vault.connect(user).depositYield(ethers.utils.formatBytes32String('WBTC'), HUNDRED_PC.div(4), FIFTY_PERCENT);
       await expect(depositYield).to.emit(YieldManager, 'Deposit').withArgs(Vault.address, WBTC.address, wbtcCollateral, HUNDRED_PC.div(4)); // bit of accuracy issue
       ({ collateral, totalCollateralValue } = await Vault.status());
       expect(getCollateralOf('WBTC', collateral).amount).to.equal(0);
-      expect(totalCollateralValue).to.be.closeTo(preYieldCollateral, 1);
       // TODO assertions on the yield assets for wbtc deposit
     });
 
     it('removes hypervisor tokens in liquidation', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
-      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('120'));
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT);
+      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('90'));
 
       // tank eth price
       await ClEthUsd.setPrice(1);
@@ -619,33 +623,34 @@ describe('SmartVault', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1')
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
 
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).not.to.be.reverted;
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT)).not.to.be.reverted;
 
       await expect(YieldManager.connect(user).removeHypervisorData(MockWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(YieldManager.connect(admin).removeHypervisorData(MockWeth.address)).not.to.be.reverted;
 
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(YieldManager, 'HypervisorDataError');
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT)).to.be.revertedWithCustomError(YieldManager, 'HypervisorDataError');
     });
 
     it('withdraw yield deposits by vault', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1');
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
 
+      const preDepositCollateral = (await Vault.status()).totalCollateralValue
+
       // 25% yield to stable pool
-      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4));
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4), FIFTY_PERCENT);
       expect(await Vault.yieldAssets()).to.have.length(2);
-      const status = await Vault.status();
-      const preWithdrawCollateralValue = status.totalCollateralValue;
-      expect(getCollateralOf('ETH', status.collateral).amount).to.equal(0);
+      expect(getCollateralOf('ETH', (await Vault.status()).collateral).amount).to.equal(0);
       const [ USDsYield ] = await Vault.yieldAssets();
 
-      let withdrawYield = Vault.connect(user).withdrawYield(USDsYield.hypervisor, ETH);
+      let withdrawYield = Vault.connect(user).withdrawYield(USDsYield.hypervisor, ETH, FIFTY_PERCENT);
       let protocolFee = ethCollateral.div(4).mul(PROTOCOL_FEE_RATE).div(HUNDRED_PC);
       await expect(withdrawYield).to.emit(YieldManager, 'Withdraw').withArgs(Vault.address, MockWeth.address, MockUSDsHypervisor.address, ethCollateral.div(4).sub(protocolFee)) // bit of an accuracy issue
       let { totalCollateralValue, collateral } = await Vault.status();
-      // ~99.875% of collateral expected because of protocol fee on quarter of yield withdrawal
-      let expectedCollateral = preWithdrawCollateralValue.mul(99875).div(100000);
+      // 25% of deposit in usd hypervisor, therefore 1/8 of collateral hidden in USDs deposit
+      // 
+      let expectedCollateral = preDepositCollateral.mul(99875).div(100000);
       expect(totalCollateralValue).to.be.closeTo(expectedCollateral, 2000);
       const yieldAssets = await Vault.yieldAssets();
       expect(yieldAssets).to.have.length(1);
@@ -653,10 +658,10 @@ describe('SmartVault', async () => {
       // should have withdrawn ~quarter of eth collateral, because that much was put in stable pool originally, minus protocol fee
       expect(getCollateralOf('ETH', collateral).amount).to.be.closeTo(ethCollateral.div(4).sub(protocolFee), 1);
       expect(await MockWeth.balanceOf(protocol.address)).to.be.closeTo(protocolFee, 1);
-      await Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('WBTC'));
+      await Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('WBTC'), FIFTY_PERCENT);
       ({ totalCollateralValue, collateral } = await Vault.status());
       // ~99.5% of original collateral because all collateral withdrawn with .5% protocol fee rate
-      expectedCollateral = preWithdrawCollateralValue.mul(HUNDRED_PC.sub(PROTOCOL_FEE_RATE)).div(HUNDRED_PC);
+      expectedCollateral = preDepositCollateral.mul(HUNDRED_PC.sub(PROTOCOL_FEE_RATE)).div(HUNDRED_PC);
       expect(totalCollateralValue).to.be.closeTo(expectedCollateral, 2000);
       expect(await Vault.yieldAssets()).to.be.empty;
       // wbtc amount should be roughly equal to 0.075 ETH = 0.075
@@ -670,7 +675,7 @@ describe('SmartVault', async () => {
     it('reverts when collateral asset is not compatible with given asset on withdrawal', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1');
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), FIFTY_PERCENT);
 
       // add usdc hypervisor data
       const MockUSDTWETHHypervisor = await (await ethers.getContractFactory('HypervisorMock')).deploy(
@@ -690,7 +695,7 @@ describe('SmartVault', async () => {
       )).not.to.be.reverted;
 
       // weth / wbtc hypervisor cannot be withdrawn to USDT, even tho there is USDT hypervisor data
-      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDT')))
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ethers.utils.formatBytes32String('USDT'), FIFTY_PERCENT))
         .to.be.revertedWithCustomError(YieldManager, 'IncompatibleHypervisor');
     })
 
@@ -698,40 +703,39 @@ describe('SmartVault', async () => {
       const ethCollateral = ethers.utils.parseEther('0.1');
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
       // should be able to borrow up to $160
-      // borrowing $150 to allow for minting fee
-      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('140'));
+      // borrowing $120, 25% of collateral will be hidden as USDs
+      await Vault.connect(user).mint(user.address, ethers.utils.parseEther('100'));
 
-      // ETH / WBTC swap rate drops enough to drop collateral value below required (but not quite 90% drop)
+      // ETH / WBTC rate drops by 75%
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.mul(3).div(4));
-
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
-
+      
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), 0)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
+      
       // reset ETH / WBTC to normal rate
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
-      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), 0);
+      
+      // WBTC / ETH swap rate drops to 1 ETH per WBTC
+      await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('1',28))
 
-      // WBTC / ETH swap rate drops enough to drop collateral value below required (but not quite 90% drop)
-      await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('17',28))
-
-      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH, 0)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
     });
 
-    it('reverts if collateral level drops by more than 10% during deposit or withdrawal', async () => {
+    it('reverts if collateral level drops by given % during deposit or withdrawal', async () => {
+      // required to maintain 90% during deposit + withdrawal
+      const NINETY_PERCENT = HUNDRED_PC.mul(9).div(10);
       const ethCollateral = ethers.utils.parseEther('0.1');
       await user.sendTransaction({ to: Vault.address, value: ethCollateral });
-
-      // ETH / WBTC swap price halves, so yield value is significantly lower than ETH collateral value
-      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH.div(2));
       
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2))).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
+      // half of collateral going to usd hypervisor, therefore 25% of collateral going to be inactive
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2), NINETY_PERCENT)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
 
-      // reset ETH / WBTC to normal rate
-      await MockSwapRouter.setRate(MockWeth.address, WBTC.address, WBTCPerETH);
-      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(2));
+      // only put 10% in hypervisor, maintains collateral level enough
+      await Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(10), NINETY_PERCENT);
 
-      // WBTC / ETH swap price halves, so yield value is significantly lower than ETH collateral value
-      await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('10',28))
-      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
+      // WBTC / ETH swap price drops to 1:1, 90% threshold not maintained
+      await MockSwapRouter.setRate(WBTC.address, MockWeth.address, ethers.utils.parseUnits('1',28))
+      await expect(Vault.connect(user).withdrawYield(MockWETHWBTCHypervisor.address, ETH, NINETY_PERCENT)).to.be.revertedWithCustomError(Vault, 'Undercollateralised');
     });
 
     it('reverts if ratio is not reached within limited swap iterations', async () => {
@@ -741,7 +745,7 @@ describe('SmartVault', async () => {
       // 0.001 wbtc returned for 1 eth in swapping, ratio cannot be reached
       await MockSwapRouter.setRate(MockWeth.address, WBTC.address, 100000)
 
-      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4))).to.be.revertedWithCustomError(YieldManager, 'RatioError');
+      await expect(Vault.connect(user).depositYield(ETH, HUNDRED_PC.div(4), FIFTY_PERCENT)).to.be.revertedWithCustomError(YieldManager, 'RatioError');
     });
 
     it('only allows owner to set fee data', async() => {

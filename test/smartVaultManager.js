@@ -17,7 +17,10 @@ describe('SmartVaultManager', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     USDs = await (await ethers.getContractFactory('USDsMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+    const ClUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
+    await ClUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
+    const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, ClUSDCUSD.address);
+    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
@@ -48,7 +51,7 @@ describe('SmartVaultManager', async () => {
       const newGenerator = await (await getNFTMetadataContract()).deploy();
       const newSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
       const newWeth = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Ether', 'WETH', 18);
-      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ethers.constants.AddressZero);
       await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSwapFeeRate(newSwapFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
