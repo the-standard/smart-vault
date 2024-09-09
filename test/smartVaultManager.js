@@ -29,6 +29,7 @@ describe('SmartVaultManager', async () => {
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await USDs.grantRole(await USDs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await USDs.grantRole(await USDs.BURNER_ROLE(), VaultManager.address);
   });
 
   describe('setting admin data', async () => {
@@ -143,9 +144,10 @@ describe('SmartVaultManager', async () => {
         const vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
 
-        let liquidate = VaultManager.connect(admin).liquidateVault(1);
-        await expect(liquidate).to.be.revertedWith('err-invalid-liquidator');
+        let liquidate = VaultManager.connect(liquidator).liquidateVault(1);
+        await expect(liquidate).to.be.revertedWith('ERC20: burn amount exceeds balance');
 
+        await USDs.connect(admin).mint(liquidator.address, status.maxMintable);
         // shouldn't liquidate any vaults, as both are sufficiently collateralised, should revert so no gas fees paid
         liquidate = VaultManager.connect(liquidator).liquidateVault(1);
         await expect(liquidate).to.be.revertedWithCustomError(vault, 'NotUndercollateralised');

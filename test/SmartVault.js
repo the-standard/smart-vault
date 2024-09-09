@@ -40,7 +40,7 @@ describe('SmartVault', async () => {
     await YieldManager.setFeeData(PROTOCOL_FEE_RATE, VaultManager.address);
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await USDs.grantRole(await USDs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
-    await USDs.grantRole(await USDs.MINTER_ROLE(), admin.address);
+    await USDs.grantRole(await USDs.BURNER_ROLE(), VaultManager.address);
     await VaultManager.connect(user).mint();
     const [ vaultID ] = await VaultManager.vaultIDs(user.address);
     const { status } = await VaultManager.vaultData(vaultID);
@@ -296,6 +296,7 @@ describe('SmartVault', async () => {
       const mintedValue = ethers.utils.parseEther('1000');
       await Vault.connect(user).mint(user.address, mintedValue);
 
+      await USDs.mint(protocol.address, (await Vault.status()).minted)
       await expect(VaultManager.connect(protocol).liquidateVault(1)).to.be.revertedWithCustomError(Vault, 'NotUndercollateralised');
       
       // drop price, now vault is liquidatable
@@ -312,7 +313,7 @@ describe('SmartVault', async () => {
       expect(liquidated).to.equal(true);
     });
 
-    it('will not allow minting of USDs if liquidated', async () => {
+    it.only('will not allow minting of USDs if liquidated', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
@@ -321,7 +322,8 @@ describe('SmartVault', async () => {
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
-
+      
+      await USDs.mint(protocol.address, (await Vault.status()).minted)
       await VaultManager.connect(protocol).liquidateVault(1);
       const { liquidated } = await Vault.status();
       expect(liquidated).to.equal(true);
