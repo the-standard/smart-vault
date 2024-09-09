@@ -313,7 +313,7 @@ describe('SmartVault', async () => {
       expect(liquidated).to.equal(true);
     });
 
-    it.only('will not allow minting of USDs if liquidated', async () => {
+    it('will not allow minting of USDs if liquidated', async () => {
       const ethValue = ethers.utils.parseEther('1');
       await user.sendTransaction({to: Vault.address, value: ethValue});
 
@@ -322,7 +322,7 @@ describe('SmartVault', async () => {
       
       // drop price, now vault is liquidatable
       await ClEthUsd.setPrice(100000000000);
-      
+
       await USDs.mint(protocol.address, (await Vault.status()).minted)
       await VaultManager.connect(protocol).liquidateVault(1);
       const { liquidated } = await Vault.status();
