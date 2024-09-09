@@ -66,6 +66,7 @@ contract Common {
         weth = new MockWETH();
         collateralSymbols.push(bytes32(bytes(weth.symbol())));
         collateralTokens.push(weth);
+        vm.deal(address(weth), 1000 ether); // ensure there is native token to unwrap
 
         string memory wbtcSymbol = "WBTC";
         wbtc = new ERC20Mock("Wrapped Bitcoin", wbtcSymbol, 8);

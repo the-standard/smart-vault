@@ -12,11 +12,17 @@ import {SmartVaultFixture, SmartVaultV4} from "./fixtures/SmartVaultFixture.sol"
 
 contract SmartVaultTest is SmartVaultFixture, Test {
     SmartVaultV4 smartVault;
-    
+
+    // SmartVaultV4 events    
     event CollateralRemoved(bytes32 symbol, uint256 amount, address to);
     event AssetRemoved(address token, uint256 amount, address to);
     event USDsMinted(address to, uint256 amount, uint256 fee);
     event USDsBurned(uint256 amount, uint256 fee);
+
+    // SmartVaultYieldManager events
+    event Deposit(address indexed smartVault, address indexed token, uint256 amount, uint256 usdPercentage);
+    event Withdraw(address indexed smartVault, address indexed token, address hypervisor, uint256 amount);
+
 
     function setUp() public override {
         super.setUp();
@@ -115,6 +121,8 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.stopPrank();
         assertEq(usdc.balanceOf(address(smartVault)), 0);
         assertEq(usdc.balanceOf(VAULT_OWNER), usdcBefore + usdcAmount);
+
+        assertFalse(smartVault.undercollateralised());
     }
 
     function test_removeCollateralUndercollateralised() public {
@@ -124,36 +132,47 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.prank(VAULT_OWNER);
         smartVault.mint(VAULT_OWNER, usdsAmount);
 
+        vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
         smartVault.removeCollateralNative(address(smartVault).balance, payable(VAULT_OWNER));
+        vm.stopPrank();
         
         uint256 wethAmount = weth.balanceOf(address(smartVault));
+        bytes32 wethSymbol = bytes32(bytes(weth.symbol()));
+        vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
-        vm.prank(VAULT_OWNER);
-        smartVault.removeCollateral(bytes32(bytes(weth.symbol())), wethAmount, VAULT_OWNER);
+        smartVault.removeCollateral(wethSymbol, wethAmount, VAULT_OWNER);
+        vm.stopPrank();
         
-        uint256 wbtcAmount = weth.balanceOf(address(smartVault));
+        uint256 wbtcAmount = wbtc.balanceOf(address(smartVault));
+        bytes32 wbtcSymbol = bytes32(bytes(wbtc.symbol()));
+        vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
-        vm.prank(VAULT_OWNER);
-        smartVault.removeCollateral(bytes32(bytes(wbtc.symbol())), wbtcAmount, VAULT_OWNER);
+        smartVault.removeCollateral(wbtcSymbol, wbtcAmount, VAULT_OWNER);
+        vm.stopPrank();
         
         uint256 linkAmount = link.balanceOf(address(smartVault));
+        bytes32 linkSymbol = bytes32(bytes(link.symbol()));
+        vm.startPrank(VAULT_OWNER);
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
-        vm.prank(VAULT_OWNER);
-        smartVault.removeCollateral(bytes32(bytes(link.symbol())), wethAmount, VAULT_OWNER);
+        smartVault.removeCollateral(linkSymbol, linkAmount, VAULT_OWNER);
+        vm.stopPrank();
 
         // ETH/WETH moons, so remove WBTC collateral
-        clNativeUsd.setPrice(int256(DEFAULT_ETH_USD_PRICE * 20));
+        (, int256 nativeUsdPrice, , , ) = clNativeUsd.latestRoundData();
+        clNativeUsd.setPrice(nativeUsdPrice * 20);
         wbtcAmount = wbtc.balanceOf(address(smartVault));
         assertTrue(wbtcAmount != 0);
         uint256 wbtcBefore = wbtc.balanceOf(VAULT_OWNER);
         vm.startPrank(VAULT_OWNER);
         vm.expectEmit(false, false, false, true);
-        emit CollateralRemoved(bytes32(bytes(wbtc.symbol())), wbtcAmount, VAULT_OWNER);
-        smartVault.removeCollateral(bytes32(bytes(wbtc.symbol())), wbtcAmount, VAULT_OWNER);
+        emit CollateralRemoved(wbtcSymbol, wbtcAmount, VAULT_OWNER);
+        smartVault.removeCollateral(wbtcSymbol, wbtcAmount, VAULT_OWNER);
         vm.stopPrank();
         assertEq(wbtc.balanceOf(address(smartVault)), 0);
         assertEq(wbtc.balanceOf(VAULT_OWNER), wbtcBefore + wbtcAmount);
+
+        assertFalse(smartVault.undercollateralised());
     }
 
     function test_removeCollateralFunctions() public {
@@ -235,6 +254,8 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.stopPrank();
         assertEq(weth.balanceOf(address(smartVault)), 0);
         assertEq(weth.balanceOf(VAULT_OWNER), wethBefore + wethAmount);
+
+        assertFalse(smartVault.undercollateralised());
     }
 
     function test_mintUsds() public {
@@ -295,16 +316,63 @@ contract SmartVaultTest is SmartVaultFixture, Test {
     }
 
     function test_liquidation() public {
-        // undercollateralised false with no collateral (+ canRemoveCollateral)
+        // undercollateralised false with no collateral
+        assertFalse(smartVault.undercollateralised());
+
         // undercollateralised false with collateral and no borrowing
+        _addCollateral(smartVault);
+        assertFalse(smartVault.undercollateralised());
+
         // undercollateralised false with collateral and borrowing before price decrease
-        // expect revert liquidate "vault-not-undercollateralised"
+        _mintUsds(smartVault, VAULT_OWNER, smartVault.status().maxMintable * 90 / 100);
+        assertFalse(smartVault.undercollateralised());
+
+        // expect revert liquidate
+        vm.startPrank(address(smartVaultManager));
+        vm.expectRevert(SmartVaultV4.NotUndercollateralised.selector);
+        smartVault.liquidate();
+        vm.stopPrank();
+
         // undercollateralised true with collateral and borrowing after price decrease
-        // expect revert liquidate InvalidUser
+        (, int256 nativeUsdPrice, , ,) = clNativeUsd.latestRoundData();
+        clNativeUsd.setPrice(nativeUsdPrice / 10);
+        assertTrue(smartVault.undercollateralised());
+
+        // try to liquidate with non-manager account
+        vm.expectRevert(SmartVaultV4.InvalidUser.selector);
+        smartVault.liquidate();
+
+        // liquidate as manager
+        uint256 nativeBalanceBefore = address(smartVault).balance;
+        uint256 wethBalanceBefore = weth.balanceOf(address(smartVault));
+        uint256 wbtcBalanceBefore = wbtc.balanceOf(address(smartVault));
+        uint256 linkBalanceBefore = link.balanceOf(address(smartVault));
+
+        vm.prank(address(smartVaultManager));
+        smartVault.liquidate();
+
         // assert balances + state
+        assertTrue(smartVault.status().liquidated);
+        assertEq(address(smartVault).balance, 0);
+        assertEq(weth.balanceOf(address(smartVault)), 0);
+        assertEq(wbtc.balanceOf(address(smartVault)), 0);
+        assertEq(link.balanceOf(address(smartVault)), 0);
+        assertEq(smartVault.status().totalCollateralValue, 0);
+        assertEq(smartVault.status().maxMintable, 0);
+        
+        assertEq(PROTOCOL.balance, nativeBalanceBefore);
+        assertEq(weth.balanceOf(PROTOCOL), wethBalanceBefore);
+        assertEq(wbtc.balanceOf(PROTOCOL), wbtcBalanceBefore);
+        assertEq(link.balanceOf(PROTOCOL), linkBalanceBefore);
+
         // expect revert mint VaultLiquidated
+        uint256 usdsAmount = 100 * 10 ** usds.decimals();
+        vm.startPrank(VAULT_OWNER);
+        vm.expectRevert(SmartVaultV4.VaultLiquidated.selector);
+        smartVault.mint(VAULT_OWNER, usdsAmount);
     }
 
+    // NOTE: best to fork test swaps
     function test_swap() public {
         // expect revert swap InvalidUser
         // swap native
@@ -317,11 +385,45 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         // as above using slippage parameter
     }
 
+    // NOTE: should also fork test yield deposits due to intermediate swaps
     function test_yieldDeposit() public {
-        // TODO: in fixture: deploy mock gamma vaults, add hypervisor data in manager, set ratio on uni proxy, set swap router rates
-        // expect revert not owner
-        // puts 100% of collateral into yield
-        // assert balances/events/etc
+        _addCollateral(smartVault);
+
+        uint256 nativeAmount = address(smartVault).balance;
+        uint256 wethAmount = weth.balanceOf(address(smartVault));
+        uint256 stablePercentage = 1e5;
+
+        // revert invalid oener
+        vm.expectRevert(SmartVaultV4.InvalidUser.selector);
+        smartVault.depositYield(NATIVE, stablePercentage);
+
+        // cache state before
+        uint256 wbtcHypervisorBalance = wbtcHypervisor.balanceOf(address(smartVault));
+        uint256 wbtcHypervisorTotalSupply = wbtcHypervisor.totalSupply();
+        (uint256 wbtcHypervisorUnderlying0, uint256 wbtcHypervisorUnderlying1) = wbtcHypervisor.getTotalAmounts();
+        uint256 usdsHypervisorBalance = usdsHypervisor.balanceOf(address(smartVault));
+        uint256 usdsHypervisorTotalSupply = usdsHypervisor.totalSupply();
+        (uint256 usdsHypervisorUnderlying0, uint256 usdsHypervisorUnderlying1) = usdsHypervisor.getTotalAmounts();
+
+        // put 100% of collateral into yield
+        vm.startPrank(VAULT_OWNER);
+        vm.expectEmit(true, true, false, true);
+        emit Deposit(address(smartVault), address(weth), nativeAmount + wethAmount, stablePercentage);
+        smartVault.depositYield(NATIVE, stablePercentage);
+
+        // assert no changes to wbtc hypervisor
+        assertEq(wbtcHypervisor.balanceOf(address(smartVault)), wbtcHypervisorBalance);
+        assertEq(wbtcHypervisor.totalSupply(), wbtcHypervisorTotalSupply);
+        (uint256 wbtcHypervisorUnderlying0After, uint256 wbtcHypervisorUnderlying1After) = wbtcHypervisor.getTotalAmounts();
+        assertEq(wbtcHypervisorUnderlying0After, wbtcHypervisorUnderlying0);
+        assertEq(wbtcHypervisorUnderlying1After, wbtcHypervisorUnderlying1);
+
+        // assert usds hypervisor balances
+        assertGt(usdsHypervisor.balanceOf(address(smartVault)), usdsHypervisorBalance);
+        assertGt(usdsHypervisor.totalSupply(), usdsHypervisorTotalSupply);
+        (uint256 usdsHypervisorUnderlying0After, uint256 usdsHypervisorUnderlying1After) = usdsHypervisor.getTotalAmounts();
+        assertGe(usdsHypervisorUnderlying0After, usdsHypervisorUnderlying0);
+        assertGe(usdsHypervisorUnderlying1After, usdsHypervisorUnderlying1);
 
         // expect revert 24 decimal Hypervisor token
         // ERC20Mock largeDecimals = new ERC20Mock("Large Decimals", "XXL", 24);
@@ -329,14 +431,34 @@ contract SmartVaultTest is SmartVaultFixture, Test {
     }
 
     function test_yieldWithdraw() public {
-        // deposit
+        // add collateral & deposit
+        _addCollateral(smartVault);
+
+        uint256 nativeAmount = address(smartVault).balance;
+        uint256 wethAmount = weth.balanceOf(address(smartVault));
+        uint256 stablePercentage = 1e5;
+
+        vm.startPrank(VAULT_OWNER);
+        vm.expectEmit(true, true, false, true);
+        emit Deposit(address(smartVault), address(weth), nativeAmount + wethAmount, stablePercentage);
+        smartVault.depositYield(NATIVE, stablePercentage);
+
         // withdraw + assert balances/fees/etc
+        uint256 nativeBefore = address(smartVault).balance;
+        vm.startPrank(VAULT_OWNER);
+        vm.expectEmit(true, true, false, false);
+        emit Withdraw(address(smartVault), address(weth), address(usdsHypervisor), 0);
+        smartVault.withdrawYield(address(usdsHypervisor), NATIVE);
+        vm.stopPrank();
+        assertGt(address(smartVault).balance, nativeAmount + wethAmount - nativeBefore);
     }
 
     function test_yieldCollateralCheck() public {
-        // slippage check revert during deposit/withdrawal
+        // TODO: slippage check revert during deposit/withdrawal
+        // nuke collateral value & assert undercollateralised/significant collateral drop
     }
 
+    // NOTE: new implementation tested with differential fork test
     function test_yieldSwapRatio() public {
         // reverts if no convergence
     }

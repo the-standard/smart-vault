@@ -1,21 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.17;
 
-import {Common} from "./Common.sol";
+import "@chimera/Hevm.sol";
+
+import {SmartVaultManagerFixture} from "./SmartVaultManagerFixture.sol";
 
 import {SmartVaultYieldManager} from "src/SmartVaultYieldManager.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 import {UniProxyMock} from "src/test_utils/UniProxyMock.sol";
 
-contract SmartVaultYieldManagerFixture is Common {
+contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
+    using SafeERC20 for IERC20;
+
     SmartVaultYieldManager yieldManager;
 
     function setUp() public virtual override {
-        // avoid duplicate invocations by inheriting contracts
-        if (collateralSymbols.length == 0) {
-            super.setUp();
-        }
+        super.setUp();
 
         UniProxyMock uniProxy = new UniProxyMock();
         MockSwapRouter ramsesRouter = new MockSwapRouter();
@@ -90,6 +93,12 @@ contract SmartVaultYieldManagerFixture is Common {
         ); // 200000000000000000000: 1 WETH <-> 200 LINK ✅ exactInput/Output
 
         // mint tokens ($25M worth of each) to swap routers
+        uint256 usdsAmount = 25_000_000 * 10 ** usds.decimals();
+        uint256 usdcAmount = 25_000_000 * 10 ** usdc.decimals();
+        uint256 wbtcAmount = 400 * 10 ** wbtc.decimals();
+        uint256 wethAmount = 10_000 * 10 ** weth.decimals();
+        uint256 linkAmount = 2_000_000 * 10 ** link.decimals();
+
         usds.grantRole(usds.MINTER_ROLE(), address(this));
         usds.mint(address(ramsesRouter), 25_000_000 * 10 ** usds.decimals());
         usdc.mint(address(ramsesRouter), 25_000_000 * 10 ** usdc.decimals());
@@ -98,13 +107,25 @@ contract SmartVaultYieldManagerFixture is Common {
         wbtc.mint(address(uniswapRouter), 400 * 10 ** wbtc.decimals());
         link.mint(address(uniswapRouter), 2_000_000 * 10 ** link.decimals());
 
-        // mint tokens (based on the rates) to hypervisors (this is part of a workaround for the _swapToRatio() logic in the yield manager)
-        usds.mint(address(usdsHypervisor), 25_000_000 * 10 ** usds.decimals());
-        usdc.mint(address(usdsHypervisor), 25_000_000 * 10 ** usdc.decimals());
-        wbtc.mint(address(wbtcHypervisor), 400 * 10 ** wbtc.decimals());
-        weth.mint(address(wbtcHypervisor), 10_000 * 10 ** weth.decimals());
-        link.mint(address(linkHypervisor), 2_000_000 * 10 ** link.decimals());
-        weth.mint(address(linkHypervisor), 10_000 * 10 ** weth.decimals());
+        // deposit tokens (based on the rates) to hypervisors and burn tokens to ensure the rates are correct
+        // and these underlying tokens remain in the hypervisors when testing yield manager withdrawal logic
+        // NOTE: this is part of a workaround for the _swapToRatio() logic in the yield manager
+        IERC20(address(usds)).safeApprove(address(usdsHypervisor), usdsAmount);
+        IERC20(address(usdc)).safeApprove(address(usdsHypervisor), usdcAmount);
+        IERC20(address(wbtc)).safeApprove(address(wbtcHypervisor), wbtcAmount);
+        IERC20(address(weth)).safeApprove(address(wbtcHypervisor), wethAmount);
+        IERC20(address(link)).safeApprove(address(linkHypervisor), linkAmount);
+        IERC20(address(weth)).safeApprove(address(linkHypervisor), wethAmount);
+
+        usds.mint(address(this), usdsAmount);
+        usdc.mint(address(this), usdcAmount);
+        wbtc.mint(address(this), wbtcAmount);
+        weth.mint(address(this), 2 * wethAmount);
+        link.mint(address(this), linkAmount);
+
+        uniProxy.deposit(usdsAmount, usdcAmount, address(0xDEAD), address(usdsHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
+        uniProxy.deposit(wbtcAmount, wethAmount, address(0xDEAD), address(wbtcHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
+        uniProxy.deposit(linkAmount, wethAmount, address(0xDEAD), address(linkHypervisor), [uint256(0), uint256(0), uint256(0), uint256(0)]);
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -129,5 +150,12 @@ contract SmartVaultYieldManagerFixture is Common {
                 collateral.pathFromUsdc
             );
         }
+
+        // set fee data
+        yieldManager.setFeeData(PROTOCOL_FEE_RATE, address(smartVaultManager));
+
+        // set yield manager
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setYieldManager(address(yieldManager));
     }
 }

@@ -3,12 +3,12 @@ pragma solidity 0.8.17;
 
 import "@chimera/Hevm.sol";
 
-import {SmartVaultManagerFixture} from "./SmartVaultManagerFixture.sol";
+import {SmartVaultYieldManagerFixture} from "./SmartVaultYieldManagerFixture.sol";
 
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {PriceCalculator} from "src/PriceCalculator.sol";
 
-contract SmartVaultFixture is SmartVaultManagerFixture {
+contract SmartVaultFixture is SmartVaultYieldManagerFixture {
     struct VaultData {
         SmartVaultV4 vault;
         uint256 tokenId;

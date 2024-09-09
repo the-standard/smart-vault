@@ -42,12 +42,7 @@ contract MockSwapRouter is ISwapRouter {
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         txValue = msg.value;
 
-        // console.log("exactInputSingle: %s -> %s", tokenIn, tokenOut);
-        // console.log("amountIn: %s", amountIn);
-        // console.log("amountOutMinimum: %s", amountOutMinimum);
-        // console.log("rates: %s", rates[tokenIn][tokenOut]);
         _amountOut = rates[tokenIn][tokenOut] * amountIn / 1e18;
-        // console.log("amountOut: %s", _amountOut);
         require(_amountOut > amountOutMinimum);
         if (msg.value == 0) {
             IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);

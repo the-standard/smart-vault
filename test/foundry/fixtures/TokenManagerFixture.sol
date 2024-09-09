@@ -9,11 +9,8 @@ contract TokenManagerFixture is Common {
     TokenManager tokenManager;
 
     function setUp() public virtual override {
-        // avoid duplicate invocations by inheriting contracts
-        if (collateralSymbols.length == 0) {
-            super.setUp();
-        }
-
+        super.setUp();
+        
         tokenManager = new TokenManager(NATIVE, address(clNativeUsd));
 
         for (uint256 i; i < collateralSymbols.length; i++) {

@@ -101,8 +101,10 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
             // console.log("sqrtPriceX96: %s", _sqrtPriceX96);
 
-            // TODO: the above doesn't work because there are no tokens deposited to the Hypervisor to begin with
-            // so either mint tokens during setup or calculate sqrtPriceX96 from the mock rates
+            // NOTE: the above doesn't work because there are no tokens deposited to the Hypervisor to begin with
+            // so tokens are mint during setup in SmartVaultYieldManagerFixture.
+            // Alternatively, sqrtPriceX96 can be calculated from the mock rates, but this requires additional mocking
+            // of the Gamma vaults.
             // uint256 rate = ISwapRouter(_swapRouter).getRate(_token0, _token1);
             // _sqrtPriceX96 = ;
 
@@ -137,8 +139,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             {
                 uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
                 price18 = _tokenAIs0
-                    ? FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), 1 << 192, priceX192)
-                    : FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), priceX192, 1 << 192);
+                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), 1 << 192, priceX192)
+                    : FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), priceX192, 1 << 192);
                 // console.log("price18: %s", price18);
             }
 
