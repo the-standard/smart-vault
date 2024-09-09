@@ -150,7 +150,7 @@ contract ForkFixture is Test {
         vm.label(USDs_USDC_pool, "USDs/USDC Pool");
 
         addLiquidity();
-        address hypervisor = setupHypervisor();
+        address usdsUsdcHypervisor = setupHypervisor();
 
         yieldManager = new SmartVaultYieldManager(
             address(usds),
@@ -159,7 +159,7 @@ contract ForkFixture is Test {
             uniProxy,
             ramsesRouter,
             //uniswapRouter,
-            hypervisor,
+            usdsUsdcHypervisor,
             uniswapRouter
         );
 
