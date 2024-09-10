@@ -168,7 +168,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function deposit(address _collateralToken, uint256 _usdPercentage) external returns (address _hypervisor0, address _hypervisor1) {
         if (_usdPercentage < MIN_USDS_PERCENTAGE) revert StablePoolPercentageError();
-        uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
+        uint256 _balance = IERC20(_collateralToken).balanceOf(msg.sender);
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
         if (_hypervisorData.hypervisor == address(0)) revert HypervisorDataError();
