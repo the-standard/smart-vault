@@ -467,8 +467,6 @@ contract SmartVaultTest is SmartVaultFixture, Test {
     function test_pocDepositYieldRemoveCollateral() public {
         // borrow usds -> deposit yield -> SmartVaultV4::removeAsset (hypervisor token) -> profit
 
-        SmartVaultV4 smartVault = smartVaults[VAULT_OWNER][0].vault;
-
         vm.deal(VAULT_OWNER, 1 ether);
         vm.startPrank(VAULT_OWNER);
         address(smartVault).call{value: 1 ether}("");

@@ -52,7 +52,6 @@ contract Common {
     }
 
     bytes32[] collateralSymbols;
-    ERC20Mock[] collateralTokens; // TODO: probably not needed
     mapping(bytes32 => CollateralData) collateralData;
 
     function setUp() public virtual {
@@ -60,22 +59,18 @@ contract Common {
         usdc = new ERC20Mock("USD Coin", "USDC", 6); // NOTE: USDC cannot be a collateral token due to being paired with USDs
 
         // collateral tokens
-        // NOTE: push NATIVE symbol to the collateralSymbols array but not the collateralTokens array as it is handled separately using address(0)
         collateralSymbols.push(NATIVE);
 
         weth = new MockWETH();
         collateralSymbols.push(bytes32(bytes(weth.symbol())));
-        collateralTokens.push(weth);
 
         string memory wbtcSymbol = "WBTC";
         wbtc = new ERC20Mock("Wrapped Bitcoin", wbtcSymbol, 8);
         collateralSymbols.push(bytes32(bytes(wbtcSymbol)));
-        collateralTokens.push(wbtc);
 
         string memory linkSymbol = "LINK";
         link = new ERC20Mock("Chainlink", linkSymbol, 18);
         collateralSymbols.push(bytes32(bytes(linkSymbol)));
-        collateralTokens.push(link);
 
         // chainlink feeds
         clNativeUsd = new ChainlinkMock("ETH/USD");
@@ -99,7 +94,7 @@ contract Common {
             wbtcHypervisor,
             abi.encode(address(weth), RAMSES_FEE, address(usdc)),
             abi.encode(address(usdc), RAMSES_FEE, address(weth))
-        ); // wbtcHypervisor because all native token gets converted to its wrapped equivalent. TODO: probably could just remove this and related checks
+        ); // wbtcHypervisor because all native token gets converted to its wrapped equivalent.
         collateralData[bytes32(bytes(weth.symbol()))] = CollateralData(
             ERC20Mock(address(weth)),
             clNativeUsd,

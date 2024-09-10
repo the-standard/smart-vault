@@ -40,4 +40,16 @@ contract HypervisorMock is IHypervisor, ERC20 {
         IERC20(token0).transfer(to, amount0);
         IERC20(token1).transfer(to, amount1);
     }
+
+    function rebalance(
+        int24 baseLower,
+        int24 baseUpper,
+        int24 limitLower,
+        int24 limitUpper,
+        address feeRecipient,
+        uint256[4] memory baseFees,
+        uint256[4] memory limitFees
+    ) external {}
+
+    function setWhitelist(address _address) external {}
 }
