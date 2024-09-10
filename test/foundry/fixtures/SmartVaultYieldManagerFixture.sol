@@ -138,6 +138,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         usdc.mint(address(ramsesRouter), 25_000_000 * 10 ** usdc.decimals());
         usdc.mint(address(uniswapRouter), 25_000_000 * 10 ** usdc.decimals());
         weth.mint(address(uniswapRouter), 10_000 * 10 ** weth.decimals());
+        vm.deal(address(weth), address(weth).balance + 10_000 * 10 ** weth.decimals());
         wbtc.mint(address(uniswapRouter), 400 * 10 ** wbtc.decimals());
         link.mint(address(uniswapRouter), 2_000_000 * 10 ** link.decimals());
 
@@ -155,6 +156,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         usdc.mint(address(this), usdcAmount);
         wbtc.mint(address(this), wbtcAmount);
         weth.mint(address(this), 2 * wethAmount);
+        vm.deal(address(weth), address(weth).balance + 2 * wethAmount);
         link.mint(address(this), linkAmount);
 
         uniProxy.deposit(
