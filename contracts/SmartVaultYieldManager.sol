@@ -112,7 +112,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function _swapToSingleAsset(address _hypervisor, address _wantedToken, address _swapRouter, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
-        address _unwantedToken = IHypervisor(_hypervisor).token0() == _wantedToken ?
+        address _unwantedToken = _token0 == _wantedToken ?
             IHypervisor(_hypervisor).token1() :
             _token0;
         uint256 _balance = _thisBalanceOf(_unwantedToken);
