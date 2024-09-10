@@ -190,7 +190,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             amountIn: _balance,
             amountOutMinimum: 0
         }));
-        IERC20(USDs).safeApprove(uniswapRouter, 0);
+        IERC20(USDC).safeApprove(uniswapRouter, 0);
     }
 
     function _withdrawUSDsDeposit(address _hypervisor, address _token) private {
