@@ -15,6 +15,8 @@ import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {USDsMock} from "src/test_utils/USDsMock.sol";
+import {Maths} from "src/test_utils/Maths.sol";
+import "src/test_utils/ByteCodeConstants.sol";
 
 import {FullMath} from "src/uniswap/FullMath.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
@@ -23,8 +25,6 @@ import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
 import {IPeripheryImmutableState} from "src/interfaces/IPeripheryImmutableState.sol";
 import {IUniProxy} from "src/interfaces/IUniProxy.sol";
 import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
-
-import "./ForkConstants.sol";
 
 interface IWETH9 is IERC20 {
     function deposit() external payable;
@@ -207,7 +207,7 @@ contract ForkFixture is Test {
         (address token0 , address token1) = address(usds) < usdc ? (address(usds), usdc) : (usdc, address(usds));
 
         uint256 price = (10 ** ERC20(token1).decimals() * 1 << 192) / 10 ** ERC20(token0).decimals();
-        uint160 sqrtPriceX96 = uint160(sqrt(price));
+        uint160 sqrtPriceX96 = uint160(Maths.sqrt(price));
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
 
@@ -263,29 +263,5 @@ contract ForkFixture is Test {
             hypervisor,
             [uint256(0), uint256(0), uint256(0), uint256(0)]
         );
-    }
-
-    function sqrt(uint256 x) internal pure returns (uint128) {
-        if (x == 0) return 0;
-        else{
-            uint256 xx = x;
-            uint256 r = 1;
-            if (xx >= 0x100000000000000000000000000000000) { xx >>= 128; r <<= 64; }
-            if (xx >= 0x10000000000000000) { xx >>= 64; r <<= 32; }
-            if (xx >= 0x100000000) { xx >>= 32; r <<= 16; }
-            if (xx >= 0x10000) { xx >>= 16; r <<= 8; }
-            if (xx >= 0x100) { xx >>= 8; r <<= 4; }
-            if (xx >= 0x10) { xx >>= 4; r <<= 2; }
-            if (xx >= 0x8) { r <<= 1; }
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            r = (r + x / r) >> 1;
-            uint256 r1 = x / r;
-            return uint128 (r < r1 ? r : r1);
-        }
     }
 }
