@@ -245,13 +245,13 @@ contract SmartVaultV4 is ISmartVault {
         if (wethBalance > 0) weth.withdraw(wethBalance);
     }
 
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut) external onlyOwner remainCollateralised {
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee) external onlyOwner remainCollateralised {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: inToken,
                 tokenOut: getTokenisedAddr(_outToken),
-                fee: 3000,
+                fee: _fee,
                 recipient: address(this),
                 deadline: block.timestamp + 60,
                 amountIn: _amount - swapFee,

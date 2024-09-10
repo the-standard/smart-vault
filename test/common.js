@@ -6,6 +6,7 @@ const DEFAULT_COLLATERAL_RATE = BigNumber.from(110000); // 110%
 const DEFAULT_ETH_USD_PRICE = BigNumber.from(160000000000); // $1600
 const PROTOCOL_FEE_RATE = BigNumber.from(500); // 0.5%
 const TEST_VAULT_LIMIT = 10;
+const DEFAULT_POOL_FEE = 3000;
 const ETH = ethers.utils.formatBytes32String('ETH');
 const WETH_ADDRESS = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
 
@@ -47,6 +48,7 @@ module.exports = {
   PROTOCOL_FEE_RATE,
   ETH,
   TEST_VAULT_LIMIT,
+  DEFAULT_POOL_FEE,
   WETH_ADDRESS,
   getCollateralOf,
   getNFTMetadataContract,

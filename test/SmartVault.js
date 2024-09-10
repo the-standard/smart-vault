@@ -1,7 +1,7 @@
 const { ethers } = require('hardhat');
 const { BigNumber } = ethers;
 const { expect } = require('chai');
-const { DEFAULT_ETH_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT } = require('./common');
+const { DEFAULT_ETH_USD_PRICE, DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, getCollateralOf, ETH, getNFTMetadataContract, fullyUpgradedSmartVaultManager, TEST_VAULT_LIMIT, DEFAULT_POOL_FEE } = require('./common');
 const { HUNDRED_PC } = require('./common');
 
 let VaultManager, Vault, TokenManager, ClEthUsd, USDs, USDC, MockSwapRouter, MockWeth, admin, user, otherUser, protocol, YieldManager, UniProxyMock, MockUSDsHypervisor;
@@ -351,12 +351,13 @@ describe('SmartVault', async () => {
       const inToken = ethers.utils.formatBytes32String('ETH');
       const outToken = ethers.utils.formatBytes32String('sUSD');
       const swapValue = ethers.utils.parseEther('0.5');
-      const swap = Vault.connect(admin).swap(inToken, outToken, swapValue, 0);
+      const swap = Vault.connect(admin).swap(inToken, outToken, swapValue, 0, DEFAULT_POOL_FEE);
 
       await expect(swap).to.be.revertedWithCustomError(Vault, 'InvalidUser');
     });
 
     it('invokes swaprouter with value for eth swap, paying fees to protocol', async () => {
+      const GIVEN_FEE = 500;
       // user vault has 1 ETH collateral
       await user.sendTransaction({to: Vault.address, value: ethers.utils.parseEther('1')});
       // user borrows 1200 USDs
@@ -375,7 +376,7 @@ describe('SmartVault', async () => {
       // rate of eth / usd is default rate, scaled down from 8 dec (chainlink) to 6 dec (stablecoin decimals)
       await MockSwapRouter.setRate(MockWeth.address, Stablecoin.address, DEFAULT_ETH_USD_PRICE / 100);
 
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0, GIVEN_FEE);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
@@ -385,7 +386,7 @@ describe('SmartVault', async () => {
 
       expect(tokenIn).to.equal(MockWeth.address);
       expect(tokenOut).to.equal(Stablecoin.address);
-      expect(fee).to.equal(3000);
+      expect(fee).to.equal(GIVEN_FEE);
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts + 60);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
@@ -420,7 +421,7 @@ describe('SmartVault', async () => {
       // rate of eth / usd is default rate, scaled down from 8 dec (chainlink) to 6 dec (stablecoin decimals)
       await MockSwapRouter.setRate(MockWeth.address, Stablecoin.address, DEFAULT_ETH_USD_PRICE / 100);
 
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, swapMinimum);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, swapMinimum, DEFAULT_POOL_FEE);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
@@ -430,7 +431,7 @@ describe('SmartVault', async () => {
 
       expect(tokenIn).to.equal(MockWeth.address);
       expect(tokenOut).to.equal(Stablecoin.address);
-      expect(fee).to.equal(3000);
+      expect(fee).to.equal(DEFAULT_POOL_FEE);
       expect(recipient).to.equal(Vault.address);
       expect(deadline).to.equal(ts + 60);
       expect(amountIn).to.equal(swapValue.sub(swapFee));
@@ -455,7 +456,7 @@ describe('SmartVault', async () => {
       // rate of usd / eth is 1 / DEFAULT RATE * 10 ^ 20 (to scale from 6 dec to 18, and remove 8 dec scale down from chainlink price)
       await MockSwapRouter.setRate(Stablecoin.address, MockWeth.address, BigNumber.from(10).pow(20).div(DEFAULT_ETH_USD_PRICE));
 
-      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0);
+      const swap = await Vault.connect(user).swap(inToken, outToken, swapValue, 0, DEFAULT_POOL_FEE);
       const ts = (await ethers.provider.getBlock(swap.blockNumber)).timestamp;
 
       const {
