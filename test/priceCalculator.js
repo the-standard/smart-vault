@@ -5,8 +5,10 @@ const { ETH, DEFAULT_ETH_USD_PRICE } = require('./common');
 let PriceCalculator, Ethereum, WBTC;
 
 describe('PriceCalculator', async () => {
+  let clEthUsd;
+
   beforeEach(async () => {
-    const clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
+    clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
     await clEthUsd.setPrice(DEFAULT_ETH_USD_PRICE)
     const clWBTCUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('WBTC / USD');
     await clWBTCUsd.setPrice(DEFAULT_ETH_USD_PRICE.mul(20))
@@ -43,7 +45,38 @@ describe('PriceCalculator', async () => {
       expectedUsdValue = ethers.utils.parseEther('16000');
       usdValue = await PriceCalculator.tokenToUSD(WBTC, wbtcValue);
       expect(usdValue).to.equal(expectedUsdValue);
-    })
+    });
+
+    it('reverts if price data is invalid', async () => {
+      const etherValue = ethers.utils.parseEther('1');
+
+      // set round ID to 0
+      await clEthUsd.setRoundID(0);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, etherValue)).to.be.revertedWithCustomError(PriceCalculator, 'InvalidRoundId');
+      // reset to valid round ID
+      await clEthUsd.setRoundID(1);
+
+      // set price to invalid price
+      await clEthUsd.setPrice(0);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, etherValue)).to.be.revertedWithCustomError(PriceCalculator, 'InvalidPrice');
+      // reset to valid price
+      await clEthUsd.setPrice(DEFAULT_ETH_USD_PRICE);
+
+      // set updatedAt to invalid time
+      await clEthUsd.setUpdatedAt(0);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, etherValue)).to.be.revertedWithCustomError(PriceCalculator, 'InvalidUpdate');
+      // also invalid in future
+      const now = Math.floor(new Date / 1000);
+      const day = 60 * 60 * 24;
+      await clEthUsd.setUpdatedAt(now + day);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, etherValue)).to.be.revertedWithCustomError(PriceCalculator, 'InvalidUpdate');
+      // reset to valid updated at
+      await clEthUsd.setPrice(now);
+
+      // latest price is more than a day old
+      await clEthUsd.setUpdatedAt(now - day - 1);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, etherValue)).to.be.revertedWithCustomError(PriceCalculator, 'StalePrice');
+    });
   });
 
   describe('USDCToUSD', async () => {

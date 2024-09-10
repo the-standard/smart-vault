@@ -7,11 +7,15 @@ contract ChainlinkMock is AggregatorV3Interface {
 
     string private desc;
     int256 private price;
+    uint256 private updatedAt;
+    uint80 private roundID;
 
     struct PriceRound { uint256 timestamp; int256 price; }
 
     constructor (string memory _desc) {
         desc = _desc;
+        updatedAt = block.timestamp;
+        roundID = 1;
     }
 
     function decimals() external pure returns (uint8) { return 8; }
@@ -20,8 +24,18 @@ contract ChainlinkMock is AggregatorV3Interface {
         price = _price;
     }
 
-    function latestRoundData() external view returns (uint80,int256 answer,uint256,uint256,uint80) {
-        answer = price;
+    function setUpdatedAt(uint256 _updatedAt) external {
+        updatedAt = _updatedAt;
+    }
+
+    function setRoundID(uint80 _roundID) external {
+        roundID = _roundID;
+    }
+
+    function latestRoundData() external view returns (uint80 _roundID,int256 _answer,uint256,uint256 _updatedAt,uint80) {
+        _roundID = roundID;
+        _answer = price;
+        _updatedAt = updatedAt;
     }
 
     function getRoundData(uint80 _roundId) external view returns (uint80,int256 answer,uint256,uint256,uint80) {
