@@ -387,7 +387,7 @@ describe('SmartVault', async () => {
 
       const {
         tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
-        sqrtPriceLimitX96, txValue
+        sqrtPriceLimitX96
       } = await MockSwapRouter.receivedSwap();
 
       expect(tokenIn).to.equal(MockWeth.address);
@@ -398,8 +398,7 @@ describe('SmartVault', async () => {
       expect(amountIn).to.equal(swapValue.sub(swapFee));
       expect(amountOutMinimum).to.equal(0); // something slightly wrong with the rounding calculation here
       expect(sqrtPriceLimitX96).to.equal(0);
-      expect(txValue).to.equal(swapValue.sub(swapFee));
-      expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
+      expect(await MockWeth.balanceOf(protocol.address)).to.equal(swapFee);
     });
 
     it('amount out minimum is given by user if larger than minimum collateral value', async () => {
@@ -443,8 +442,7 @@ describe('SmartVault', async () => {
       expect(amountIn).to.equal(swapValue.sub(swapFee));
       expect(amountOutMinimum).to.equal(swapMinimum);
       expect(sqrtPriceLimitX96).to.equal(0);
-      expect(txValue).to.equal(swapValue.sub(swapFee));
-      expect(await protocol.getBalance()).to.equal(protocolBalance.add(swapFee));
+      expect(await MockWeth.balanceOf(protocol.address)).to.equal(swapFee);
     });
 
     it('invokes swaprouter after creating approval for erc20, paying fees to protocol, converting all weth back to eth', async () => {
@@ -477,7 +475,6 @@ describe('SmartVault', async () => {
       expect(amountIn).to.equal(actualSwap);
       expect(amountOutMinimum).to.equal(0);
       expect(sqrtPriceLimitX96).to.equal(0);
-      expect(txValue).to.equal(0);
       expect(await Stablecoin.balanceOf(protocol.address)).to.equal(swapFee);
     });
   });

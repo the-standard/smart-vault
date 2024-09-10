@@ -13,13 +13,12 @@ contract MockSwapRouter is ISwapRouter {
     uint256 private amountIn;
     uint256 private amountOutMinimum;
     uint160 private sqrtPriceLimitX96;
-    uint256 private txValue;
 
     mapping(address => mapping(address => uint256)) private rates;
 
     struct MockSwapData {
         address tokenIn; address tokenOut; uint24 fee; address recipient; uint256 deadline;
-        uint256 amountIn; uint256 amountOutMinimum; uint160 sqrtPriceLimitX96; uint256 txValue;
+        uint256 amountIn; uint256 amountOutMinimum; uint160 sqrtPriceLimitX96;
     }
 
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 _amountOut) {
@@ -31,20 +30,17 @@ contract MockSwapRouter is ISwapRouter {
         amountIn = params.amountIn;
         amountOutMinimum = params.amountOutMinimum;
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
-        txValue = msg.value;
 
         _amountOut = rates[tokenIn][tokenOut] * amountIn / 1e18;
         require(_amountOut > amountOutMinimum);
-        if (msg.value == 0) {
-            IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        }
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         IERC20(tokenOut).transfer(recipient, _amountOut);
     }
 
     function receivedSwap() external view returns (MockSwapData memory) {
         return MockSwapData(
             tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum,
-            sqrtPriceLimitX96, txValue
+            sqrtPriceLimitX96
         );
     }
 
@@ -52,9 +48,7 @@ contract MockSwapRouter is ISwapRouter {
         (address _tokenIn,, address _tokenOut) = abi.decode(params.path, (address, uint24, address));
         _amountOut = rates[_tokenIn][_tokenOut] * params.amountIn / 1e18;
         require(_amountOut > params.amountOutMinimum);
-        if (msg.value == 0) {
-            IERC20(_tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        }
+        IERC20(_tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         IERC20(_tokenOut).transfer(params.recipient, _amountOut);
     }
 
@@ -62,18 +56,14 @@ contract MockSwapRouter is ISwapRouter {
         (address _tokenOut, , address _tokenIn) = abi.decode(params.path, (address, uint24, address));
         _amountIn = params.amountOut * 1e18 / rates[_tokenIn][_tokenOut];
         require(_amountIn < params.amountInMaximum);
-        if (msg.value == 0) {
-            IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
-        }
+        IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
         IERC20(_tokenOut).transfer(params.recipient, params.amountOut);
     }
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 _amountIn) {
         _amountIn = params.amountOut * 1e18 / rates[params.tokenIn][params.tokenOut];
         require(_amountIn < params.amountInMaximum);
-        if (msg.value == 0) {
-            IERC20(params.tokenIn).transferFrom(msg.sender, address(this), _amountIn);
-        }
+        IERC20(params.tokenIn).transferFrom(msg.sender, address(this), _amountIn);
         IERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
     }
 

@@ -240,20 +240,17 @@ contract SmartVaultV4 is ISmartVault {
         ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle{value: _params.amountIn}(_params);
     }
 
-    function executeERC20SwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
+    function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
         ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
-        IWETH weth = IWETH(ISmartVaultManagerV3(manager).weth());
-        // convert potentially received weth to eth
-        uint256 wethBalance = weth.balanceOf(address(this));
-        if (wethBalance > 0) weth.withdraw(wethBalance);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline) external onlyOwner remainCollateralised {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
+        if (_inToken == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{ value: _amount }();
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
                 tokenIn: inToken,
                 tokenOut: getTokenisedAddr(_outToken),
@@ -264,9 +261,11 @@ contract SmartVaultV4 is ISmartVault {
                 amountOutMinimum: _minOut,
                 sqrtPriceLimitX96: 0
             });
-        inToken == ISmartVaultManagerV3(manager).weth() ?
-            executeNativeSwapAndFee(params, swapFee) :
-            executeERC20SwapAndFee(params, swapFee);
+        executeSwapAndFee(params, swapFee);
+        if (_outToken == NATIVE) {
+            IWETH _weth = IWETH(ISmartVaultManagerV3(manager).weth());
+            _weth.withdraw(_weth.balanceOf(address(this)));
+        }
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
