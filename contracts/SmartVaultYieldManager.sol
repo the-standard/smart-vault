@@ -128,6 +128,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             sqrtPriceLimitX96: 0
         }));
         IERC20(_unwantedToken).safeApprove(_swapRouter, 0);
+        // transfer any dust amounts of unwanted token to smart vault
+        IERC20(_unwantedToken).safeTransfer(msg.sender, _thisBalanceOf(_unwantedToken));
     }
 
     function _swapToUSDC(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
