@@ -195,8 +195,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(USDC).safeApprove(uniswapRouter, 0);
     }
 
-    function _withdrawUSDsDeposit(address _hypervisor, address _token) private {
-        IHypervisor(_hypervisor).withdraw(_thisBalanceOf(_hypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
+    function _withdrawUSDsDeposit(address _token) private {
+        IHypervisor(usdsHypervisor).withdraw(_thisBalanceOf(usdsHypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
         _swapToSingleAsset(usdsHypervisor, USDC, ramsesRouter, 500);
         _sellUSDC(_token);
     }
@@ -211,7 +211,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     function withdraw(address _hypervisor, address _token) external {
         IERC20(_hypervisor).safeTransferFrom(msg.sender, address(this), IERC20(_hypervisor).balanceOf(msg.sender));
         _hypervisor == usdsHypervisor ? 
-            _withdrawUSDsDeposit(_hypervisor, _token) :
+            _withdrawUSDsDeposit(_token) :
             _withdrawOtherDeposit(_hypervisor, _token);
         uint256 _withdrawn = _thisBalanceOf(_token);
         uint256 _fee = _withdrawn * feeRate / HUNDRED_PC;
