@@ -43,6 +43,7 @@ contract SmartVaultV4 is ISmartVault {
     error NotUndercollateralised();
     error Undercollateralised();
     error InvalidToken();
+    error DeadlineExpired();
 
     constructor(bytes32 _native, address _manager, address _owner, address _usds, address _priceCalculator) {
         NATIVE = _native;
@@ -75,6 +76,11 @@ contract SmartVaultV4 is ISmartVault {
     modifier remainCollateralised {
         _;
         if (undercollateralised()) revert Undercollateralised();
+    }
+
+    modifier withinTimestamp(uint256 _deadline) {
+        _;
+        if (block.timestamp > _deadline) revert DeadlineExpired();
     }
 
     function getTokenManager() private view returns (ITokenManager) {
@@ -245,7 +251,7 @@ contract SmartVaultV4 is ISmartVault {
         if (wethBalance > 0) weth.withdraw(wethBalance);
     }
 
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee) external onlyOwner remainCollateralised {
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline) external onlyOwner remainCollateralised {
         uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
@@ -253,7 +259,7 @@ contract SmartVaultV4 is ISmartVault {
                 tokenOut: getTokenisedAddr(_outToken),
                 fee: _fee,
                 recipient: address(this),
-                deadline: block.timestamp + 60,
+                deadline: _deadline,
                 amountIn: _amount - swapFee,
                 amountOutMinimum: _minOut,
                 sqrtPriceLimitX96: 0
@@ -283,7 +289,7 @@ contract SmartVaultV4 is ISmartVault {
         return _postCollateralValue < _minCollateralPercentage * _preCollateralValue / ISmartVaultManagerV3(manager).HUNDRED_PC();
     }
 
-    function depositYield(bytes32 _symbol, uint256 _stablePercentage, uint256 _minCollateralPercentage) external onlyOwner {
+    function depositYield(bytes32 _symbol, uint256 _stablePercentage, uint256 _minCollateralPercentage, uint256 _deadline) external onlyOwner withinTimestamp(_deadline) {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
@@ -298,7 +304,7 @@ contract SmartVaultV4 is ISmartVault {
             significantCollateralDrop(_preDepositCollateral, _postDepositCollateral, _minCollateralPercentage)) revert Undercollateralised();
     }
 
-    function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage) external onlyOwner {
+    function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage, uint256 _deadline) external onlyOwner withinTimestamp(_deadline) {
         address _token = getTokenisedAddr(_symbol);
         IERC20(_hypervisor).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this)));
         uint256 _preWithdrawCollateral = usdCollateral();
