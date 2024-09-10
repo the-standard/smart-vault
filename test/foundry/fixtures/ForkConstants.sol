@@ -11,7 +11,8 @@ import {IHypervisor} from "src/interfaces/IHypervisor.sol";
 
 // Fork constants
 string constant ENV_RPC_URL = "ARBITRUM_RPC_URL";
-string constant DEFAULT_RPC_URL = "https://arbitrum.llamarpc.com";
+// string constant DEFAULT_RPC_URL = "https://arbitrum.llamarpc.com";
+string constant DEFAULT_RPC_URL = "https://arb-mainnet.g.alchemy.com/v2/KJep5DfijLZMn12AJ9EuT239GzJbJFof"; // TODO: remove
 
 // Token constants
 address constant USDC_ADDRESS = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;

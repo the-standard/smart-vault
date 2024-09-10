@@ -104,7 +104,7 @@ contract ForkFixture is Test {
         vm.label(CL_GMX_USD_ADDRESS, "Chainlink GMX/USD");
         // vm.label(CL_PAXG_USD_ADDRESS, "Chainlink PAXG/USD");
         // vm.label(CL_RDNT_USD_ADDRESS, "Chainlink RDNT/USD");
-        // // vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
+        // vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
         vm.label(RAMSES_ROUTER_ADDRESS, "Ramses Router");
@@ -137,48 +137,48 @@ contract ForkFixture is Test {
             ERC20(address(0)),
             CL_NATIVE_USD,
             WBTC_HYPERVISOR,
-            abi.encode(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS)
+            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS)
         );
 
         collateralData[WETH_SYMBOL] = CollateralData(
             WETH,
             CL_NATIVE_USD,
             WBTC_HYPERVISOR,
-            abi.encode(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS)
+            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS)
         );
 
         collateralData[WBTC_SYMBOL] = CollateralData(
             WBTC,
             CL_WBTC_USD,
             WBTC_HYPERVISOR,
-            abi.encode(WBTC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, WBTC_ADDRESS)
+            abi.encodePacked(WBTC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, WBTC_ADDRESS)
         );
 
         collateralData[LINK_SYMBOL] = CollateralData(
             LINK,
             CL_LINK_USD,
             LINK_HYPERVISOR,
-            abi.encode(LINK_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, LINK_ADDRESS)
+            abi.encodePacked(LINK_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, LINK_ADDRESS)
         );
 
         collateralData[ARB_SYMBOL] = CollateralData(
             ARB,
             CL_ARB_USD,
             ARB_HYPERVISOR,
-            abi.encode(ARB_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, ARB_ADDRESS)
+            abi.encodePacked(ARB_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, ARB_ADDRESS)
         );
 
         collateralData[GMX_SYMBOL] = CollateralData(
             GMX,
             CL_GMX_USD,
             GMX_HYPERVISOR,
-            abi.encode(GMX_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encode(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
+            abi.encodePacked(GMX_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
         );
 
         // TODO: PAXG, RDNT, SUSHI configurations not clear

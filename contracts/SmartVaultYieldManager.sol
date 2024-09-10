@@ -279,7 +279,6 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         _usdDeposit(_collateralToken, _usdPercentage, _hypervisorData.pathToUSDC);
         _hypervisor0 = usdsHypervisor;
         if (_usdPercentage < HUNDRED_PC) {
-            console.log("other");
             _otherDeposit(_collateralToken, _hypervisorData);
             _hypervisor1 = _hypervisorData.hypervisor;
         }
