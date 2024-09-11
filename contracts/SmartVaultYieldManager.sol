@@ -81,7 +81,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
-    
+
     function _swapToRatio(address _tokenA, address _hypervisor, address _swapRouter, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _token1 = IHypervisor(_hypervisor).token1();
@@ -111,9 +111,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
             PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
             address factory = IPeripheryImmutableState(_swapRouter).factory();
-            (_sqrtPriceX96,,,,,,) = _swapRouter == uniswapRouter? 
-                IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0(): 
-                IUniswapV3Pool(PoolAddress.computeAddressRamses(factory, poolKey)).slot0();
+            (_sqrtPriceX96,,,,,,) = _swapRouter == uniswapRouter
+                ? IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0()
+                : IUniswapV3Pool(PoolAddress.computeAddressRamses(factory, poolKey)).slot0();
         }
 
         uint256 _midRatio;
@@ -157,7 +157,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 _amountOut = FullMath.mulDiv(_rb - _a, 1e36, _denominator) / 10 ** (36 - aDec);
             }
         }
-        
+
         // Push _fee back on to the stack
         uint24 _fee = _fee;
 

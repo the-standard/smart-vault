@@ -3,7 +3,7 @@ pragma solidity 0.8.17;
 
 import "./ByteCodeConstants.sol";
 
-contract MockUniFactory {
+contract MockUniswapFactory {
     struct Parameters {
         address factory;
         address token0;
@@ -23,7 +23,7 @@ contract MockUniFactory {
     }
 
     function deploy(address tokenA, address tokenB, uint24 fee) external returns (address pool) {
-        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB): (tokenB, tokenA);
+        (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         bytes32 salt = keccak256(abi.encode(token0, token1, fee));
         bytes memory bytecode = uniPoolCode;
         parameters = Parameters({
@@ -34,7 +34,7 @@ contract MockUniFactory {
             tickSpacing: feeAmountTickSpacing[fee]
         });
         assembly {
-            pool := create2(0,add(bytecode, 0x20), mload(bytecode),salt)
+            pool := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
         }
         delete parameters;
     }

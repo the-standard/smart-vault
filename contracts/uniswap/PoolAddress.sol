@@ -35,10 +35,7 @@ library PoolAddress {
                 uint256(
                     keccak256(
                         abi.encodePacked(
-                            hex"ff",
-                            factory,
-                            keccak256(abi.encode(key.token0, key.token1, key.fee)),
-                            UNI_INIT_CODE_HASH
+                            hex"ff", factory, keccak256(abi.encode(key.token0, key.token1, key.fee)), UNI_INIT_CODE_HASH
                         )
                     )
                 )

@@ -15,7 +15,6 @@ import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {USDsMock} from "src/test_utils/USDsMock.sol";
-import {Maths} from "src/test_utils/Maths.sol";
 import "src/test_utils/ByteCodeConstants.sol";
 
 import {FullMath} from "src/uniswap/FullMath.sol";
@@ -54,9 +53,7 @@ interface HypervisorOwner {
     function setWhitelist(address _address) external;
 }
 
-
 contract ForkFixture is Test {
-
     uint256 arbFork = vm.createFork(vm.envString("ARBITRUM_RPC_URL"));
 
     address VAULT_OWNER = makeAddr("Vault owner");
@@ -87,7 +84,7 @@ contract ForkFixture is Test {
 
     address uniswapRouter = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
     address ramsesRouter = 0xAA23611badAFB62D37E7295A682D21960ac85A90;
-    
+
     address uniProxy = 0x82FcEB07a4D01051519663f6c1c919aF21C27845;
     address clearing = 0x80a44ce970D9380bDA7677916B860f37b4ba8Ce2;
 
@@ -163,7 +160,7 @@ contract ForkFixture is Test {
             usdsUsdcHypervisor,
             uniswapRouter
         );
-        yieldManager.setFeeData(0,address(smartVaultManager));
+        yieldManager.setFeeData(0, address(smartVaultManager));
 
         yieldManager.addHypervisorData(
             weth,
@@ -189,32 +186,28 @@ contract ForkFixture is Test {
         smartVaultManager.setWethAddress(weth);
 
         vm.prank(VAULT_OWNER);
-        (address smartVault, ) = smartVaultManager.mint();
-        
+        (address smartVault,) = smartVaultManager.mint();
+
         vault = SmartVaultV4(payable(smartVault));
     }
 
-    function ramsesV2MintCallback(
-        uint256 amount0Owed,
-        uint256 amount1Owed,
-        bytes calldata
-    ) external  {
+    function ramsesV2MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata) external {
         deal(address(usds), msg.sender, amount0Owed);
         deal(usdc, msg.sender, amount1Owed);
     }
 
     function addLiquidity() internal {
-        (address token0 , address token1) = address(usds) < usdc ? (address(usds), usdc) : (usdc, address(usds));
+        (address token0, address token1) = address(usds) < usdc ? (address(usds), usdc) : (usdc, address(usds));
 
         uint256 price = (10 ** ERC20(token1).decimals() * 1 << 192) / 10 ** ERC20(token0).decimals();
-        uint160 sqrtPriceX96 = uint160(Maths.sqrt(price));
+        uint160 sqrtPriceX96 = uint160(FullMath.sqrt(price));
 
         int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
 
         IUniswapV3Pool(USDs_USDC_pool).initialize(sqrtPriceX96);
- 
-        int24 tickLower = tick - 10 - tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
-        int24 tickUpper = tick + 10 + tick%IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
+
+        int24 tickLower = tick - 10 - tick % IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
+        int24 tickUpper = tick + 10 + tick % IUniswapV3Pool(USDs_USDC_pool).tickSpacing();
 
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
@@ -223,13 +216,14 @@ contract ForkFixture is Test {
             100_000e18,
             100_000e6
         );
-        IUniswapV3Pool(USDs_USDC_pool).mint(address(this), tickLower, tickUpper, liquidity,"");
+        IUniswapV3Pool(USDs_USDC_pool).mint(address(this), tickLower, tickUpper, liquidity, "");
 
         IUniswapV3Pool(USDs_USDC_pool).increaseObservationCardinalityNext(100);
     }
 
-    function setupHypervisor() internal returns(address hypervisor) {
-        bytes memory constructorParams = abi.encode(USDs_USDC_pool, address(this), "USDs/USDC Hypervisors", "USDSUSDCHypervisor");
+    function setupHypervisor() internal returns (address hypervisor) {
+        bytes memory constructorParams =
+            abi.encode(USDs_USDC_pool, address(this), "USDs/USDC Hypervisors", "USDSUSDCHypervisor");
         bytes memory bytecodeWithParams = bytes.concat(hypervisorCode, constructorParams);
 
         assembly {
@@ -242,8 +236,8 @@ contract ForkFixture is Test {
         IClearing(clearing).addPosition(hypervisor, 1);
 
         HypervisorOwner(hypervisor).rebalance(
-            -276350, // base lower  
-            -276300, // base upper  
+            -276350, // base lower
+            -276300, // base upper
             -276280, // limit lower
             -276230, // limit upper
             FEE_RECIPIENT,
@@ -257,11 +251,7 @@ contract ForkFixture is Test {
         usds.approve(hypervisor, 1000e18);
         IERC20(usdc).approve(hypervisor, 1000e6);
         IUniProxy(uniProxy).deposit(
-            1000e18,
-            1000e6,
-            msg.sender,
-            hypervisor,
-            [uint256(0), uint256(0), uint256(0), uint256(0)]
+            1000e18, 1000e6, msg.sender, hypervisor, [uint256(0), uint256(0), uint256(0), uint256(0)]
         );
     }
 }

@@ -16,10 +16,9 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 import {UniProxyMock} from "src/test_utils/UniProxyMock.sol";
-import {MockUniFactory} from "src/test_utils/MockUniFactory.sol";
+import {MockUniswapFactory} from "src/test_utils/MockUniswapFactory.sol";
 import {MockRamsesFactory} from "src/test_utils/MockRamsesFactory.sol";
 import {MockRamsesPool} from "src/test_utils/MockRamsesPool.sol";
-import {Maths} from "src/test_utils/Maths.sol";
 
 contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
     using SafeERC20 for IERC20;
@@ -28,18 +27,19 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
 
     function setUp() public virtual override {
         super.setUp();
- 
+
         UniProxyMock uniProxy = new UniProxyMock();
         MockSwapRouter ramsesRouter = new MockSwapRouter();
 
         {
             MockRamsesPool impl = new MockRamsesPool();
-            MockRamsesFactory fakeRamsesFactory = new MockRamsesFactory(address(impl));
-            ramsesRouter.setFactory(address(fakeRamsesFactory));
-            address pool = fakeRamsesFactory.deploy(address(usds), address(usdc));
+            MockRamsesFactory ramsesFactory = new MockRamsesFactory(address(impl));
+            ramsesRouter.setFactory(address(ramsesFactory));
+            address pool = ramsesFactory.deploy(address(usds), address(usdc));
             vm.label(pool, "USDC/USDs RamsesPool");
-            MockRamsesPool(pool).setPrice(calcSqrtX96(address(usds), address(usdc),1));
+            MockRamsesPool(pool).setPrice(calcSqrtX96(address(usds), address(usdc), 1));
         }
+
         // uni proxy ratios
         uniProxy.setRatio(address(usdsHypervisor), address(usdc), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
         uniProxy.setRatio(
@@ -67,8 +67,8 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         ramsesRouter.setRate(address(usds), address(usdc), 10 ** (18 + usdc.decimals() - usds.decimals())); // 1:1
         ramsesRouter.setRate(address(usdc), address(usds), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
         {
-            MockUniFactory fakeUniFactory = new MockUniFactory();
-            uniswapRouter.setFactory(address(fakeUniFactory));
+            MockUniswapFactory uniFactory = new MockUniswapFactory();
+            uniswapRouter.setFactory(address(uniFactory));
 
             // uniswap router rates: weth/wbtc/link <-> usdc
             uniswapRouter.setRate(
@@ -78,7 +78,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(usdc), address(weth), 10 ** (18 + weth.decimals() - usdc.decimals()) / DEFAULT_ETH_USD_PRICE
             ); // 400000000000000000000000000: 2500 USDC <-> 1 WETH ✅ exactInput/Output
 
-            address wethUsdcPool = fakeUniFactory.deploy(address(weth), address(usdc), RAMSES_FEE);
+            address wethUsdcPool = uniFactory.deploy(address(weth), address(usdc), RAMSES_FEE);
             IUniswapV3Pool(wethUsdcPool).initialize(calcSqrtX96(address(usdc), address(weth), DEFAULT_ETH_USD_PRICE));
 
             uniswapRouter.setRate(
@@ -91,8 +91,10 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(wbtc),
                 10 ** (18 + wbtc.decimals() - usdc.decimals()) / (DEFAULT_ETH_USD_PRICE * DEFAULT_WBTC_ETH_MULTIPLIER)
             ); // 1600000000000000: 62500 USDC <-> 1 WBTC ✅ exactInput/Output
-            address usdcWbtcPool = fakeUniFactory.deploy(address(usdc), address(wbtc), RAMSES_FEE);
-            IUniswapV3Pool(usdcWbtcPool).initialize(calcSqrtX96(address(usdc), address(wbtc), DEFAULT_ETH_USD_PRICE * DEFAULT_WBTC_ETH_MULTIPLIER));
+            address usdcWbtcPool = uniFactory.deploy(address(usdc), address(wbtc), RAMSES_FEE);
+            IUniswapV3Pool(usdcWbtcPool).initialize(
+                calcSqrtX96(address(usdc), address(wbtc), DEFAULT_ETH_USD_PRICE * DEFAULT_WBTC_ETH_MULTIPLIER)
+            );
 
             uniswapRouter.setRate(
                 address(link),
@@ -104,18 +106,26 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(link),
                 DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + link.decimals() - usdc.decimals()) / DEFAULT_ETH_USD_PRICE
             ); // 80000000000000000000000000000: 12.5 USDC <-> 1 LINK ✅ exactInput/Output
-            address usdcLinkPool = fakeUniFactory.deploy(address(usdc), address(link), RAMSES_FEE);
-            IUniswapV3Pool(usdcLinkPool).initialize(calcSqrtX96(address(usdc), address(link), DEFAULT_ETH_USD_PRICE / DEFAULT_LINK_ETH_DIVISOR));
+            address usdcLinkPool = uniFactory.deploy(address(usdc), address(link), RAMSES_FEE);
+            IUniswapV3Pool(usdcLinkPool).initialize(
+                calcSqrtX96(address(usdc), address(link), DEFAULT_ETH_USD_PRICE / DEFAULT_LINK_ETH_DIVISOR)
+            );
 
             // uniswap router rates: wbtc/link <-> weth
             uniswapRouter.setRate(
-                address(wbtc), address(weth), DEFAULT_WBTC_ETH_MULTIPLIER * 10 ** (18 + weth.decimals() - wbtc.decimals())
+                address(wbtc),
+                address(weth),
+                DEFAULT_WBTC_ETH_MULTIPLIER * 10 ** (18 + weth.decimals() - wbtc.decimals())
             ); // 250000000000000000000000000000: 1 WBTC <-> 25 WETH ✅ exactInput/Output
             uniswapRouter.setRate(
-                address(weth), address(wbtc), 10 ** (18 + wbtc.decimals() - weth.decimals()) / (DEFAULT_WBTC_ETH_MULTIPLIER)
+                address(weth),
+                address(wbtc),
+                10 ** (18 + wbtc.decimals() - weth.decimals()) / (DEFAULT_WBTC_ETH_MULTIPLIER)
             ); // 4000000: 25 WETH <-> 1 WBTC ✅ exactInput/Output
-            address wbtcWethPool = fakeUniFactory.deploy(address(wbtc), address(weth), RAMSES_FEE);
-            IUniswapV3Pool(wbtcWethPool).initialize(calcSqrtX96(address(weth), address(wbtc), DEFAULT_WBTC_ETH_MULTIPLIER));
+            address wbtcWethPool = uniFactory.deploy(address(wbtc), address(weth), RAMSES_FEE);
+            IUniswapV3Pool(wbtcWethPool).initialize(
+                calcSqrtX96(address(weth), address(wbtc), DEFAULT_WBTC_ETH_MULTIPLIER)
+            );
 
             uniswapRouter.setRate(
                 address(link), address(weth), 10 ** (18 + weth.decimals() - link.decimals()) / DEFAULT_LINK_ETH_DIVISOR
@@ -123,7 +133,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             uniswapRouter.setRate(
                 address(weth), address(link), DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + link.decimals() - weth.decimals())
             ); // 200000000000000000000: 1 WETH <-> 200 LINK ✅ exactInput/Output
-            address linkWethPool = fakeUniFactory.deploy(address(link), address(weth), RAMSES_FEE);
+            address linkWethPool = uniFactory.deploy(address(link), address(weth), RAMSES_FEE);
             IUniswapV3Pool(linkWethPool).initialize(calcSqrtX96(address(link), address(weth), DEFAULT_LINK_ETH_DIVISOR));
         }
         // mint tokens ($25M worth of each) to swap routers
@@ -211,15 +221,16 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         // set yield manager
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setYieldManager(address(yieldManager));
-     }
- 
+    }
+
     function calcSqrtX96(address tokenA, address tokenB, uint256 ratio) public view returns (uint160) {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         bool aIs0 = tokenA == token0;
 
-        uint256 price = aIs0 ? FullMath.mulDiv(ratio * 10 ** ERC20(token1).decimals(), 1 << 192, 10 ** ERC20(token0).decimals()) :
-                               FullMath.mulDiv(10 ** ERC20(token1).decimals(), 1 << 192, ratio * 10 ** ERC20(token0).decimals());
+        uint256 price = aIs0
+            ? FullMath.mulDiv(ratio * 10 ** ERC20(token1).decimals(), 1 << 192, 10 ** ERC20(token0).decimals())
+            : FullMath.mulDiv(10 ** ERC20(token1).decimals(), 1 << 192, ratio * 10 ** ERC20(token0).decimals());
 
-        return uint160(Maths.sqrt(price));
+        return uint160(FullMath.sqrt(price));
     }
 }
