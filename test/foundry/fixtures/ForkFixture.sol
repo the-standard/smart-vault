@@ -95,18 +95,18 @@ contract ForkFixture is Test {
         vm.label(LINK_ADDRESS, "LINK");
         vm.label(ARB_ADDRESS, "ARB");
         vm.label(GMX_ADDRESS, "GMX");
-        // vm.label(PAXG_ADDRESS, "PAXG");
+        vm.label(PAXG_ADDRESS, "PAXG");
         // vm.label(RDNT_ADDRESS, "RDNT");
-        // vm.label(SUSHI_ADDRESS, "SUSHI");
+        vm.label(SUSHI_ADDRESS, "SUSHI");
 
         vm.label(CL_NATIVE_USD_ADDRESS, "Chainlink ETH/USD");
         vm.label(CL_WBTC_USD_ADDRESS, "Chainlink WBTC/USD");
         vm.label(CL_LINK_USD_ADDRESS, "Chainlink LINK/USD");
         vm.label(CL_ARB_USD_ADDRESS, "Chainlink ARB/USD");
         vm.label(CL_GMX_USD_ADDRESS, "Chainlink GMX/USD");
-        // vm.label(CL_PAXG_USD_ADDRESS, "Chainlink PAXG/USD");
+        vm.label(CL_PAXG_USD_ADDRESS, "Chainlink PAXG/USD");
         // vm.label(CL_RDNT_USD_ADDRESS, "Chainlink RDNT/USD");
-        // vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
+        vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
         vm.label(RAMSES_ROUTER_ADDRESS, "Ramses Router");
@@ -129,9 +129,9 @@ contract ForkFixture is Test {
         collateralSymbols.push(LINK_SYMBOL);
         collateralSymbols.push(ARB_SYMBOL);
         collateralSymbols.push(GMX_SYMBOL);
-        // collateralSymbols.push(PAXG_SYMBOL);
+        collateralSymbols.push(PAXG_SYMBOL);
         // collateralSymbols.push(RDNT_SYMBOL);
-        // collateralSymbols.push(SUSHI_SYMBOL);
+        collateralSymbols.push(SUSHI_SYMBOL);
     }
 
     function _pushCollateralData() internal {
@@ -183,7 +183,23 @@ contract ForkFixture is Test {
             abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
         );
 
-        // TODO: PAXG, RDNT, SUSHI configurations not clear
+        collateralData[PAXG_SYMBOL] = CollateralData(
+            PAXG,
+            CL_PAXG_USD,
+            IHypervisor(address(0)),
+            new bytes(0),
+            new bytes(0)
+        );
+
+        collateralData[SUSHI_SYMBOL] = CollateralData(
+            SUSHI,
+            CL_SUSHI_USD,
+            IHypervisor(address(0)),
+            new bytes(0),
+            new bytes(0)
+        );
+
+        // TODO: RDNT configurations not clear
     }
 
     function _deployUsds() internal {
@@ -272,6 +288,8 @@ contract ForkFixture is Test {
             if (collateralSymbols[i] == NATIVE) continue;
 
             CollateralData memory collateral = collateralData[collateralSymbols[i]];
+            if(address(collateral.hypervisor) == address(0)) continue;
+
             vm.prank(YIELD_MANAGER_OWNER);
             yieldManager.addHypervisorData(
                 address(collateral.token),

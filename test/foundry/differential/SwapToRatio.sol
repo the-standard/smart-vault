@@ -12,7 +12,7 @@ import "contracts/interfaces/IUniProxy.sol";
 import "contracts/interfaces/IUniswapV3Pool.sol";
 
 import {console} from "forge-std/console.sol";
-import {Vm} from "forge-std/vm.sol";
+import {Vm} from "forge-std/Vm.sol";
 
 interface ISwapToRatio {
     error RatioError();
