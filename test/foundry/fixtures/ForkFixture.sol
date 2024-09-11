@@ -15,6 +15,7 @@ import {SmartVaultV4} from "src/SmartVaultV4.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {USDsMock} from "src/test_utils/USDsMock.sol";
+import "src/test_utils/BytecodeConstants.sol";
 
 import {FullMath} from "src/uniswap/FullMath.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
@@ -27,6 +28,7 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
 
 import "./ForkConstants.sol";
+import {HYPERVISOR_CODE} from "src/test_utils/BytecodeConstants.sol";
 
 contract ForkFixture is Test {
     // Actors

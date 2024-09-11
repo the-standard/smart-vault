@@ -525,6 +525,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         uint256 wethAmount = nativeAmount;
         uint256 wethValue = DEFAULT_ETH_USD_PRICE * wethAmount;
         weth.mint(address(smartVault), wethAmount);
+        vm.deal(address(weth), address(weth).balance + wethAmount);
         assertEq(weth.balanceOf(address(smartVault)), wethAmount);
         assertEq(_getVaultCollateralVaulue(smartVault), usdCollateral + wethValue);
 

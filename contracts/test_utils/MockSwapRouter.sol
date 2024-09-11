@@ -4,9 +4,11 @@ pragma solidity 0.8.17;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 
+import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
+
 import {console} from "forge-std/console.sol";
 
-contract MockSwapRouter is ISwapRouter {
+contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     address private tokenIn;
     address private tokenOut;
     uint24 private fee;
@@ -16,6 +18,8 @@ contract MockSwapRouter is ISwapRouter {
     uint256 private amountOutMinimum;
     uint160 private sqrtPriceLimitX96;
     uint256 private txValue;
+
+    address private _factory;
 
     mapping(address => mapping(address => uint256)) private rates;
 
@@ -91,5 +95,13 @@ contract MockSwapRouter is ISwapRouter {
 
     function getRate(address _tokenIn, address _tokenOut) external view returns (uint256) {
         return rates[_tokenIn][_tokenOut];
+    }
+
+    function setFactory(address __factory) external {
+        _factory = __factory;
+    }
+
+    function factory() external view override returns (address) {
+        return _factory;
     }
 }

@@ -90,25 +90,6 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
         uint160 _sqrtPriceX96;
         {
-            // NOTE: This workaround requires tokens to be deposited to the Hypervisor to begin with
-            // so they are minted during setup in SmartVaultYieldManagerFixture.
-            // Alternatively, sqrtPriceX96 can be calculated from the mock rates, but this requires additional mocking
-            // of the Gamma vaults.
-            // (uint256 token0Balance, uint256 token1Balance) = IHypervisor(_hypervisor).getTotalAmounts();
-            // _sqrtPriceX96 = (
-            //     FullMath.sqrt(
-            //         FullMath.mulDiv(
-            //             token0Balance * 10 ** (18 - ERC20(_token0).decimals()),
-            //             1e18,
-            //             token1Balance * 10 ** (18 - ERC20(_token1).decimals())
-            //         )
-            //     ) * (1 << 96)
-            // );
-            // TODO: we need the above logic for the mocked unit tests, but it shouldn't be added here,
-            // so we could use vm.mockCall on factory() to stop it reverting and return this calculation for slot()
-            // however that would require us to know which hypervisor we are calculating for, which we can't do unless
-            // we look at the token addresses, but at this rate we may as well just mock it properly and use the logic below.
-
             PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
             address factory = IPeripheryImmutableState(_swapRouter).factory();
             (_sqrtPriceX96,,,,,,) = _swapRouter == uniswapRouter
