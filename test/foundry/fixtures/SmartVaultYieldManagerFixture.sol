@@ -134,7 +134,9 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(weth), address(link), DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + link.decimals() - weth.decimals())
             ); // 200000000000000000000: 1 WETH <-> 200 LINK ✅ exactInput/Output
             address linkWethPool = uniFactory.deploy(address(link), address(weth), RAMSES_FEE);
-            IUniswapV3Pool(linkWethPool).initialize(_calcSqrtX96(address(link), address(weth), DEFAULT_LINK_ETH_DIVISOR));
+            IUniswapV3Pool(linkWethPool).initialize(
+                _calcSqrtX96(address(link), address(weth), DEFAULT_LINK_ETH_DIVISOR)
+            );
         }
         // mint tokens ($25M worth of each) to swap routers
         uint256 usdsAmount = 25_000_000 * 10 ** usds.decimals();

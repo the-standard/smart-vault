@@ -28,3 +28,6 @@ artifacts
 crytic-export/
 echidna/
 medusa/
+
+# python
+venv/

@@ -169,12 +169,14 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         bool found;
         uint256[] memory recipientIds = smartVaultManager.vaultIDs(recipient);
         for (uint256 i = 0; i < recipientIds.length; i++) {
-            if (recipientIds[i] == tokenId) {
-                found = true;
-                break;
+            for (uint256 i = 0; i < recipientIds.length; i++) {
+                if (recipientIds[i] == tokenId) {
+                    found = true;
+                    break;
+                }
             }
+            assertTrue(found);
         }
-        assertTrue(found);
     }
 
     function test_nftMetadata() public {

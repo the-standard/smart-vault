@@ -24,7 +24,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
     function test_defaultNative() public {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
-        assertEq(acceptedTokens.length, collateralSymbols.length); // collateralSymbols.length -1 + NATIVE
+        assertEq(acceptedTokens.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
 
         ITokenManager.Token memory token = acceptedTokens[0];
         assertEq(token.symbol, NATIVE);
@@ -35,7 +35,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
     function test_manageAcceptedTokens() public {
         ITokenManager.Token[] memory tokensBefore = tokenManager.getAcceptedTokens();
-        assertEq(tokensBefore.length, collateralSymbols.length); // collateralSymbols.length -1 + NATIVE
+        assertEq(tokensBefore.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
 
         // native cannot be removed
         vm.expectRevert("err-native-required");
