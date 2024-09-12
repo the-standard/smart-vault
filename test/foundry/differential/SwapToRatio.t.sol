@@ -7,6 +7,8 @@ import {HypervisorMock} from "src/test_utils/HypervisorMock.sol";
 import {UniProxyMock} from "src/test_utils/UniProxyMock.sol";
 import {MockSwapRouter, ISwapRouter} from "src/test_utils/MockSwapRouter.sol";
 
+import {TickMath} from "contracts/uniswap/TickMath.sol";
+
 import "contracts/uniswap/FullMath.sol";
 
 import {Test, console} from "forge-std/Test.sol";
@@ -19,14 +21,14 @@ contract SwapToRatioTest is Test {
     UniProxyMock uniProxy;
     HypervisorMock hypervisor;
     MockSwapRouter swapRouter;
-    ERC20Mock token0;
-    ERC20Mock token1;
+    ERC20Mock tokenA;
+    ERC20Mock tokenB;
 
     function setUp() public {
         uniProxy = new UniProxyMock();
-        token0 = new ERC20Mock("Token0", "TKN0", 18);
-        token1 = new ERC20Mock("Token1", "TKN1", 18);
-        hypervisor = new HypervisorMock("Token0-Token1", "TKN0-TKN1", address(token0), address(token1));
+        tokenA = new ERC20Mock("TokenA", "TKNA", 18);
+        tokenB = new ERC20Mock("TokenB", "TKNB", 18);
+        hypervisor = new HypervisorMock("TokenA-TokenB", "TKNA-TKNB", address(tokenA), address(tokenB));
         swapRouter = new MockSwapRouter();
         uint24 swapFee = 500;
 
@@ -35,70 +37,78 @@ contract SwapToRatioTest is Test {
         pythonImpl = new SwapToRatioPython(address(uniProxy), address(hypervisor), address(swapRouter), swapFee);
     }
 
-    function setUpState(bool _swapToken0, uint160 _sqrtPriceX96, uint256 _tokenABalance, uint256 _tokenBBalance)
+    function setUpState(uint160 _sqrtPriceX96, uint256 _tokenABalance, uint256 _tokenBBalance, uint256 _ratio)
         internal
-        returns (ERC20Mock _tokenA, ERC20Mock _tokenB, uint160 _boundedSqrtPriceX96)
+        returns (uint160 _boundedSqrtPriceX96)
     {
-        // Determine which token is token A and token B based on fuzzed input
-        (_tokenA, _tokenB) = _swapToken0 ? (token0, token1) : (token1, token0);
 
-        // Ensure _sqrtPriceX96 is within a reasonable range to avoid overflow when squared
-        _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), type(uint72).max, type(uint96).max));
+        // Ensure _sqrtPriceX96 is within uniswap limits
+        //_boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 1461446703485210103287273052203988822378723970342));
+        _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 3e37));
 
         // Calculate priceX192 based on _boundedSqrtPriceX96
         uint256 priceX192 = uint256(_boundedSqrtPriceX96) * uint256(_boundedSqrtPriceX96);
 
         // Calculate the price of token A in terms of token B using priceX192, normalized to 18 decimals
-        uint256 price18 = _swapToken0
-            ? FullMath.mulDiv((10 ** _tokenB.decimals()) * (10 ** (18 - _tokenA.decimals())), 1 << 192, priceX192)
-            : FullMath.mulDiv((10 ** _tokenA.decimals()) * (10 ** (18 - _tokenB.decimals())), priceX192, 1 << 192);
-
-        // Calculate the ratio between token A and token B
-        uint256 swapRouterBalanceA = type(uint96).max;
-        uint256 _ratio = FullMath.mulDiv(swapRouterBalanceA, 1e18, price18);
-
+        uint256 price18 = FullMath.mulDiv(1e18, priceX192, 1 << 192);
+        uint256 inversePrice18  = FullMath.mulDiv(1e18, 1 << 192, priceX192);
+        
         // Set the ratio in the proxy and router
-        uniProxy.setRatio(address(hypervisor), address(_tokenA), _ratio);
-        swapRouter.setRate(address(_tokenA), address(_tokenB), _ratio);
+        uniProxy.setRatio(address(hypervisor), address(tokenA), _ratio);
+        swapRouter.setRate(address(tokenA), address(tokenB), price18);
+        swapRouter.setRate(address(tokenB), address(tokenA), inversePrice18);
 
         // Mint balances for both tokens to swapRouter to facilitate swaps
-        _tokenA.mint(address(swapRouter), swapRouterBalanceA);
+        uint256 swapRouterBalanceA = type(uint96).max;
+        tokenA.mint(address(swapRouter), swapRouterBalanceA);
         // Adjust token B balances according to the derived ratio
-        _tokenB.mint(address(swapRouter), FullMath.mulDiv(swapRouterBalanceA, _ratio, 10 ** _tokenA.decimals()));
+        tokenB.mint(address(swapRouter), FullMath.mulDiv(swapRouterBalanceA, _ratio, 10 ** tokenA.decimals()));
 
         // Bound token balances to avoid swapping more than the swap router has available
-        uint256 _boundedTokenABalance = bound(_tokenABalance, 10 ** _tokenA.decimals(), type(uint88).max);
-        uint256 _boundedTokenBBalance = bound(_tokenBBalance, 10 ** _tokenB.decimals(), type(uint88).max);
+        uint256 _boundedTokenABalance = bound(_tokenABalance, 10 ** tokenA.decimals(), type(uint88).max);
+        uint256 _boundedTokenBBalance = bound(_tokenBBalance, 10 ** tokenB.decimals(), type(uint88).max);
 
         // Mint balances for both tokens to the old and new implementations
-        _tokenA.mint(address(oldImpl), _boundedTokenABalance);
-        _tokenB.mint(address(oldImpl), _boundedTokenBBalance);
-        _tokenA.mint(address(newImpl), _boundedTokenABalance);
-        _tokenB.mint(address(newImpl), _boundedTokenBBalance);
-        _tokenA.mint(address(pythonImpl), _boundedTokenABalance);
-        _tokenB.mint(address(pythonImpl), _boundedTokenBBalance);
+        tokenA.mint(address(oldImpl), _boundedTokenABalance);
+        tokenB.mint(address(oldImpl), _boundedTokenBBalance);
+        tokenA.mint(address(newImpl), _boundedTokenABalance);
+        tokenB.mint(address(newImpl), _boundedTokenBBalance);
+        tokenA.mint(address(pythonImpl), _boundedTokenABalance);
+        tokenB.mint(address(pythonImpl), _boundedTokenBBalance);
+    }
+
+    function getPriceAtTick(int24 tick) public pure returns (uint256) {
+        uint160 sqrtPrice = TickMath.getSqrtRatioAtTick(tick);
+        uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
+        return FullMath.mulDiv(1e18, priceX192, 1 << 192);
     }
 
     function test_swapToRatioFuzz(
-        bool _swapToken0,
-        uint160 _sqrtPriceX96,
+        uint256 tick,
+        uint256 ratioTick,
         uint256 _tokenABalance,
         uint256 _tokenBBalance
     ) public {
-        (ERC20Mock _tokenA, ERC20Mock _tokenB, uint160 _boundedSqrtPriceX96) =
-            setUpState(_swapToken0, _sqrtPriceX96, _tokenABalance, _tokenBBalance);
+        int24 boundedTick = int24(int256(bound(tick, 0, 400000*2))) - 400000;
+        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 200000*2))) - 200000;
+
+        console.log("max price: %s, min price: %s", getPriceAtTick(400000), getPriceAtTick(-400000));
+
+        uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedTick);
+        uint256 _ratio = TickMath.getSqrtRatioAtTick(boundedRatioTick);
+        uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, _ratio);
 
         // Snapshot the state of the VM to revert to after each call
         uint256 snapshotId = vm.snapshot();
 
         // Call the old implementation to swap to the ratio
-        (bool successOld, bytes memory returnDataOld) = swapToRatioOld(_tokenA, _tokenB);
+        (bool successOld, bytes memory returnDataOld) = swapToRatioOld(tokenA, tokenB);
 
         // Revert the state of the VM to the snapshot taken before the previous call
         vm.revertTo(snapshotId);
 
         // Call the new implementation to swap to the ratio
-        (bool successNew, bytes memory returnDataNew) = swapToRatioNew(_tokenA, _tokenB, _boundedSqrtPriceX96);
+        (bool successNew, bytes memory returnDataNew) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
 
         // Revert the state of the VM to the snapshot taken before both calls (this isn't strictly necessary)
         vm.revertTo(snapshotId);
@@ -118,9 +128,10 @@ contract SwapToRatioTest is Test {
             console.log("oldTokenBBalance", oldTokenBBalance);
             console.log("newTokenABalance", newTokenABalance);
             console.log("newTokenBBalance", newTokenBBalance);
-            // Assert more of tokenA was able to be swapped
-            assertLt(newTokenABalance, oldTokenABalance);
-            assertGt(newTokenBBalance, oldTokenBBalance);
+
+            // ratio passed in is reversed in uniProxy, hence B over A here
+            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance , (_ratio) / 10, "old wrong");
+            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 10, "new wrong");
         } else if (!successOld && successNew) {
             // this is fine – new implementation is more robust
             console.log("old implementation reverted when the new one did not");
@@ -134,36 +145,34 @@ contract SwapToRatioTest is Test {
     }
 
     // Run with forge test --mt test_swapToRatioFuzzPython -vvv --ffi
-    function test_swapToRatioFuzzPython(
-        bool _swapToken0,
+    function test_xxswapToRatioFuzzPython(
         uint160 _sqrtPriceX96,
         uint256 _tokenABalance,
         uint256 _tokenBBalance
     ) public {
-        (ERC20Mock _tokenA, ERC20Mock _tokenB, uint160 _boundedSqrtPriceX96) =
-            setUpState(_swapToken0, _sqrtPriceX96, _tokenABalance, _tokenBBalance);
+        uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, 0.5e18);
 
         // Snapshot the state of the VM to revert to after each call
         uint256 snapshotId = vm.snapshot();
 
         // Call the old implementation to swap to the ratio
-        swapToRatioOld(_tokenA, _tokenB);
+        swapToRatioOld(tokenA, tokenB);
 
         // Revert the state of the VM to the snapshot taken before the previous call
         vm.revertTo(snapshotId);
 
         // Cache the balances before calling the new implementation
-        uint256 cachedBalanceA = _tokenA.balanceOf(address(newImpl));
-        uint256 cachedBalanceB = _tokenB.balanceOf(address(newImpl));
+        uint256 cachedBalanceA = tokenA.balanceOf(address(newImpl));
+        uint256 cachedBalanceB = tokenB.balanceOf(address(newImpl));
 
         // Call the new implementation to swap to the ratio
-        (bool successNew,) = swapToRatioNew(_tokenA, _tokenB, _boundedSqrtPriceX96);
+        (bool successNew,) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
 
         // Revert the state of the VM to the snapshot taken before the previous call
         vm.revertTo(snapshotId);
 
         // Call the Python implementation to swap to the ratio
-        (bool successPython,) = swapToRatioPython(_tokenA, _boundedSqrtPriceX96);
+        (bool successPython,) = swapToRatioPython(tokenA, _boundedSqrtPriceX96);
 
         // Revert the state of the VM to the snapshot taken before the call (this isn't strictly necessary)
         vm.revertTo(snapshotId);

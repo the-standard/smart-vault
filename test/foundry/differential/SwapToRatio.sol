@@ -164,29 +164,28 @@ contract SwapToRatioNew is SwapToRatioBase {
 
         uint256 _amountIn;
         uint256 _amountOut;
-
         {
             uint256 aDec = ERC20(_tokenA).decimals();
             uint256 bDec = ERC20(_tokenB).decimals();
 
-            uint256 price18;
+            uint256 price36;
             {
                 uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
-                price18 = _tokenAIs0
-                    ? FullMath.mulDiv((10 ** bDec) * (10 ** (18 - aDec)), 1 << 192, priceX192)
-                    : FullMath.mulDiv((10 ** aDec) * (10 ** (18 - bDec)), priceX192, 1 << 192);
+                price36 = _tokenAIs0
+                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (36 - bDec)), 1 << 192, priceX192)
+                    : FullMath.mulDiv((10 ** bDec) * (10 ** (36 - aDec)), priceX192, 1 << 192);
             }
 
-            uint256 _a = _tokenABalance * (10 ** (18 - aDec));
-            uint256 _ratio = FullMath.mulDiv(_a, 1e18, _midRatio * (10 ** (18 - bDec)));
+            uint256 _a = _tokenABalance * (10 ** (36 - aDec));
+            uint256 _ratio = FullMath.mulDiv(_a, 1e36, _midRatio * (10 ** (36 - bDec)));
 
-            uint256 _denominator = 1e18 + FullMath.mulDiv(_ratio, 1e18, price18);
-            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (18 - bDec)), _ratio, 1e18);
+            uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio, 1e36, price36);
+            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
 
             if (_a > _rb) {
-                _amountIn = FullMath.mulDiv(_a - _rb, 1e18, _denominator) / 10 ** (18 - aDec);
+                _amountIn = FullMath.mulDiv(_a - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
             } else {
-                _amountOut = FullMath.mulDiv(_rb - _a, 1e18, _denominator) / 10 ** (18 - aDec);
+                _amountOut = FullMath.mulDiv(_rb - _a, 1e36, _denominator) / 10 ** (36 - aDec);
             }
         }
 
@@ -212,7 +211,7 @@ contract SwapToRatioNew is SwapToRatioBase {
             IERC20(_tokenIn).safeApprove(swapRouter, 0);
         } else {
             // we want more tokenA
-
+            
             address _tokenIn = _tokenAIs0 ? _token1 : _token0;
             address _tokenOut = _tokenAIs0 ? _token0 : _token1;
 
