@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
+import {FullMath} from "contracts/uniswap/FullMath.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -22,6 +23,7 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     address private _factory;
 
     mapping(address => mapping(address => uint256)) private rates;
+    mapping(address => mapping(address => uint160)) private sqrtRates;
 
     struct MockSwapData {
         address tokenIn;
@@ -35,6 +37,22 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         uint256 txValue;
     }
 
+    function getAmountOut(uint256 _amountIn, address _tokenIn, address _tokenOut) private view returns (uint256) {
+        uint160 sqrtPrice = sqrtRates[_tokenIn][_tokenOut];
+        if(sqrtPrice != 0) {
+            uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
+            return FullMath.mulDiv(_amountIn, priceX192, 1 << 192);
+        }
+
+        sqrtPrice = sqrtRates[_tokenOut][_tokenIn];
+        if(sqrtPrice != 0) {
+            uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
+            return FullMath.mulDiv(_amountIn, 1 << 192, priceX192);
+        }
+
+        return rates[_tokenIn][_tokenOut] * _amountIn / 1e18;
+    }
+
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 _amountOut) {
         tokenIn = params.tokenIn;
         tokenOut = params.tokenOut;
@@ -46,7 +64,11 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         txValue = msg.value;
 
-        _amountOut = rates[tokenIn][tokenOut] * amountIn / 1e18;
+        console.log("amountIn: %d", amountIn);
+
+        _amountOut = getAmountOut(amountIn, tokenIn, tokenOut);
+
+        console.log("amountOut: %d", _amountOut);
         require(_amountOut > amountOutMinimum);
         if (msg.value == 0) {
             IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
@@ -80,9 +102,32 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         IERC20(_tokenOut).transfer(params.recipient, params.amountOut);
     }
 
+
+    function getAmountIn(uint256 _amountOut, address _tokenIn, address _tokenOut) private view returns (uint256) {
+        uint160 sqrtPrice = sqrtRates[_tokenIn][_tokenOut];
+        if(sqrtPrice != 0) {
+            uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
+            uint256 _amountIn = FullMath.mulDiv(_amountOut, 1 << 192, priceX192);
+            console.log("normal _amountIn: %d, rate %s, out from rate %s", _amountIn, rates[_tokenIn][_tokenOut], _amountOut * 1e18 / rates[_tokenIn][_tokenOut]);
+            return _amountIn;
+        }
+
+        sqrtPrice = sqrtRates[_tokenOut][_tokenIn];
+        if(sqrtPrice != 0) {
+            uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
+            uint256 _amountIn = FullMath.mulDiv(_amountOut, priceX192, 1 << 192);
+            console.log("reversed _amountIn: %d, rate %s, out from rate %s", _amountIn, rates[_tokenIn][_tokenOut], _amountOut * 1e18 / rates[_tokenIn][_tokenOut]);
+            return _amountIn;
+        }
+
+        return _amountOut * 1e18 / rates[_tokenIn][_tokenOut];
+    }
+
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 _amountIn) {
-        _amountIn = params.amountOut * 1e18 / rates[params.tokenIn][params.tokenOut];
-        require(_amountIn < params.amountInMaximum);
+        console.log("params.amountOut: %d, rate %d", params.amountOut, rates[params.tokenIn][params.tokenOut]);
+        _amountIn = getAmountIn(params.amountOut, params.tokenIn, params.tokenOut);
+        console.log("_amountIn: %d", _amountIn);
+        require(_amountIn <= params.amountInMaximum,"price too high");
         if (msg.value == 0) {
             IERC20(params.tokenIn).transferFrom(msg.sender, address(this), _amountIn);
         }
@@ -91,6 +136,10 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
 
     function setRate(address _tokenIn, address _tokenOut, uint256 _rate) external {
         rates[_tokenIn][_tokenOut] = _rate;
+    }
+
+    function setSqrtRate(address _tokenIn, address _tokenOut, uint160 _rate) external {
+        sqrtRates[_tokenIn][_tokenOut] = _rate;
     }
 
     function getRate(address _tokenIn, address _tokenOut) external view returns (uint256) {

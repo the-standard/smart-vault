@@ -28,6 +28,9 @@ contract SwapToRatioTest is Test {
         uniProxy = new UniProxyMock();
         tokenA = new ERC20Mock("TokenA", "TKNA", 18);
         tokenB = new ERC20Mock("TokenB", "TKNB", 18);
+        vm.label(address(tokenA), "TokenA");
+        vm.label(address(tokenB), "TokenB");
+
         hypervisor = new HypervisorMock("TokenA-TokenB", "TKNA-TKNB", address(tokenA), address(tokenB));
         swapRouter = new MockSwapRouter();
         uint24 swapFee = 500;
@@ -46,20 +49,23 @@ contract SwapToRatioTest is Test {
         //_boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 1461446703485210103287273052203988822378723970342));
         _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 3e37));
 
+        uint256 priceX192 = uint256(_sqrtPriceX96) * uint256(_sqrtPriceX96);
+        console.log("price: %s, ratio %s", FullMath.mulDiv(1e18, priceX192, 1 << 192), _ratio);
+
         // Calculate priceX192 based on _boundedSqrtPriceX96
-        uint256 priceX192 = uint256(_boundedSqrtPriceX96) * uint256(_boundedSqrtPriceX96);
 
         // Calculate the price of token A in terms of token B using priceX192, normalized to 18 decimals
         uint256 price18 = FullMath.mulDiv(1e18, priceX192, 1 << 192);
         uint256 inversePrice18  = FullMath.mulDiv(1e18, 1 << 192, priceX192);
-        
+
         // Set the ratio in the proxy and router
         uniProxy.setRatio(address(hypervisor), address(tokenA), _ratio);
+        swapRouter.setSqrtRate(address(tokenA), address(tokenB), _boundedSqrtPriceX96);
         swapRouter.setRate(address(tokenA), address(tokenB), price18);
         swapRouter.setRate(address(tokenB), address(tokenA), inversePrice18);
 
         // Mint balances for both tokens to swapRouter to facilitate swaps
-        uint256 swapRouterBalanceA = type(uint96).max;
+        uint256 swapRouterBalanceA = type(uint128).max;
         tokenA.mint(address(swapRouter), swapRouterBalanceA);
         // Adjust token B balances according to the derived ratio
         tokenB.mint(address(swapRouter), FullMath.mulDiv(swapRouterBalanceA, _ratio, 10 ** tokenA.decimals()));
@@ -89,13 +95,17 @@ contract SwapToRatioTest is Test {
         uint256 _tokenABalance,
         uint256 _tokenBBalance
     ) public {
-        int24 boundedTick = int24(int256(bound(tick, 0, 400000*2))) - 400000;
-        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 200000*2))) - 200000;
+        int24 boundedTick = int24(int256(bound(tick, 0, 300_000*2))) - 300_000;
+        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 100_000*2))) - 100_000;
 
-        console.log("max price: %s, min price: %s", getPriceAtTick(400000), getPriceAtTick(-400000));
+        // int24 boundedTick = 0;
+        // int24 boundedRatioTick = 0;
+
+        console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
+        console.log("max ratio %s, min ratio: %s", getPriceAtTick(100_000), getPriceAtTick(-100_000));
 
         uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedTick);
-        uint256 _ratio = TickMath.getSqrtRatioAtTick(boundedRatioTick);
+        uint256 _ratio = getPriceAtTick(boundedRatioTick);
         uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, _ratio);
 
         // Snapshot the state of the VM to revert to after each call
@@ -130,11 +140,18 @@ contract SwapToRatioTest is Test {
             console.log("newTokenBBalance", newTokenBBalance);
 
             // ratio passed in is reversed in uniProxy, hence B over A here
-            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance , (_ratio) / 10, "old wrong");
-            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 10, "new wrong");
+            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance , (_ratio) / 1000, "old wrong");
+            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 1000, "new wrong");
         } else if (!successOld && successNew) {
-            // this is fine – new implementation is more robust
             console.log("old implementation reverted when the new one did not");
+            // this is fine – new implementation is more robust
+            (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
+                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
+            );
+            console.log("newTokenABalance", newTokenABalance);
+            console.log("newTokenBBalance", newTokenBBalance);
+
+            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 100, "new wrong");
         } else if (successOld && !successNew) {
             // this is bad – new implementation is less robust
             assertTrue(false, "new implementation should not revert when old one does not");
