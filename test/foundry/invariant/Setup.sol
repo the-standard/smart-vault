@@ -17,11 +17,9 @@ abstract contract Setup is BaseSetup, PropertiesConstants, SmartVaultFixture {
         users.push(USER1);
         users.push(USER2);
         users.push(USER3);
-        users.push(VAULT_OWNER);
-        users.push(VAULT_MANAGER_OWNER);
-        users.push(PROTOCOL);
+        // users.push(VAULT_OWNER);
+        // users.push(VAULT_MANAGER_OWNER);
+        // users.push(PROTOCOL);
         users.push(LIQUIDATOR);
-
-        // TODO: tokens, smartVaultYieldManager.addHypervisorData, etc
     }
 }

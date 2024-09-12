@@ -6,65 +6,109 @@ import {Properties} from "./Properties.sol";
 import {vm} from "@chimera/Hevm.sol";
 
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
+import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
 
 abstract contract TargetFunctions is ExpectedErrors {
-    function smartVaultV4_liquidate() public getMsgSender checkExpectedErrors(LIQUIDATE_VAULT_ERRORS) {
-        __before();
+    // NOTE: see smartVaultManagerV6_liquidateVault below
+    // but keep this here in case liquidation logic changes
+    // function smartVaultV4_liquidate(uint256 _tokenId)
+    //     public
+    //     getMsgSender
+    //     hasMintedUsds
+    //     checkExpectedErrors(LIQUIDATE_VAULT_ERRORS)
+    // {
+    //     (SmartVaultV4 smartVault, uint256 tokenId) = _getRandomSmartVault(_tokenId);
 
-        SmartVaultV4 smartVault = _getRandomSmartVault();
+    //     __before(tokenId);
 
-        vm.prank(msgSender);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.liquidate, ())); // TODO: smart vaults setup and get random vault helper
+    //     vm.prank(msgSender);
+    //     (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.liquidate, ()));
 
-        if (success) {
-            __after();
-        }
-    }
+    //     if (success) {
+    //         __after(tokenId);
 
-    function smartVaultV4_removeCollateralNative(uint256 amount, address payable to)
+    //         t(_before.undercollateralised, LIQUIDATE_01);
+    //         // TODO: BeforeAfter state variables
+    //         // gte(
+    //         //     _after.protocol.collateralTokenBalance,
+    //         //     _before.protocol.collateralTokenBalance,
+    //         //     LIQUIDATE_02
+    //         // );
+    //         eq(_after.minted, 0, LIQUIDATE_03);
+    //         t(_after.liquidated, LIQUIDATE_04);
+    //         eq(_after.maxMintable, 0, LIQUIDATE_05);
+    //     }
+    // }
+
+    // TODO: add a helper to add collateral, or just mint directly to a single smart vault during setup (since borrowing is isolated to a single vault)
+
+    function smartVaultV4_removeCollateralNative(uint256 amount, address payable to, uint256 _tokenId)
         public
         getMsgSender
         checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
     {
-        __before();
-
-        SmartVaultV4 smartVault = _getRandomSmartVault();
+        (SmartVaultV4 smartVault, uint256 tokenId) = _getRandomSmartVault(_tokenId);
+        
+        __before(tokenId);
+        uint256 _toBalanceBefore = to.balance;
 
         vm.prank(msgSender);
         (success, returnData) =
             address(smartVault).call(abi.encodeCall(smartVault.removeCollateralNative, (amount, to)));
 
         if (success) {
-            __after();
+            __after(tokenId);
+
+            gte(_before.status.totalCollateralValue, _after.status.totalCollateralValue, REMOVE_COLLATERAL_NATIVE_01);
+            eq(_before.nativeBalance - amount, _after.nativeBalance, REMOVE_COLLATERAL_NATIVE_02);
+            eq(_toBalanceBefore + amount, to.balance, REMOVE_COLLATERAL_NATIVE_03);
         }
     }
 
-    function smartVaultV4_removeCollateral(bytes32 symbol, uint256 amount, address to)
+    function smartVaultV4_removeCollateral(uint256 symbolIndex, uint256 amount, address to)
         public
         getMsgSender
         checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
     {
-        __before();
-
-        SmartVaultV4 smartVault = _getRandomSmartVault();
+        (SmartVaultV4 smartVault, uint256 tokenId) = _getRandomSmartVault(_tokenId);
+        (ERC20Mock collateral, bytes32 symbol) = _getRandomCollateral(symbolIndex);
+        
+        __before(tokenId);
+        
+        uint256 _toBalanceBefore = collateral.balanceOf(to);
 
         vm.prank(msgSender);
         (success, returnData) =
             address(smartVault).call(abi.encodeCall(smartVault.removeCollateral, (symbol, amount, to)));
 
         if (success) {
-            __after();
+            __after(tokenId);
+
+            gte(_before.status.totalCollateralValue, _after.status.totalCollateralValue, REMOVE_COLLATERAL_NATIVE_01);
+            for (uint256 i = 0; i < _before.status.collateral.length; i++) {
+                if (_before.status.collateral[i].token.symbol == symbol) {
+                    eq(
+                        _before.status.collateral[i].amount - amount,
+                        _after.status.collateral[i].amount,
+                        REMOVE_COLLATERAL_NATIVE_02
+                    );
+                }
+            }
+            eq(_toBalanceBefore + amount, collateral.balanceOf(to), REMOVE_COLLATERAL_NATIVE_03);
         }
     }
 
-    function smartVaultV4_removeAsset(address token, uint256 amount, address to)
+    function smartVaultV4_removeAsset(uint256 symbolIndex, uint256 amount, address to, uint256 tokenId)
         public
         getMsgSender
         checkExpectedErrors(REMOVE_VAULT_TOKEN_ERRORS)
     {
-        __before();
+        (SmartVaultV4 smartVault, uint256 tokenId) = _getRandomSmartVault(_tokenId);
+        (ERC20Mock collateral, bytes32 symbol) = _getRandomCollateral(symbolIndex); // TODO: get random asset (for now just test collateral)
 
-        SmartVaultV4 smartVault = _getRandomSmartVault();
+        __before(tokenId);
+
+        uint256 _toBalanceBefore = collateral.balanceOf(to);
 
         vm.prank(msgSender);
         (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.removeAsset, (token, amount, to)));
@@ -189,21 +233,32 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultManagerV6_liquidateVault(uint256 tokenId)
+    function smartVaultManagerV6_liquidateVault(uint256 _tokenId)
         public
         getMsgSender
         checkExpectedErrors(LIQUIDATE_VAULT_ERRORS)
     {
-        __before();
+        (SmartVaultV4 smartVault, uint256 tokenId) = _getRandomSmartVault(_tokenId);
 
-        SmartVaultV4 smartVault = _getRandomSmartVault();
+        __before(tokenId);
 
         vm.prank(msgSender);
         (success, returnData) =
             address(smartVaultManager).call(abi.encodeCall(smartVaultManager.liquidateVault, tokenId));
 
         if (success) {
-            __after();
+            __after(tokenId);
+
+            t(_before.undercollateralised, LIQUIDATE_01);
+            // TODO: BeforeAfter state variables
+            // gte(
+            //     _after.protocol.collateralTokenBalance,
+            //     _before.protocol.collateralTokenBalance,
+            //     LIQUIDATE_02
+            // );
+            eq(_after.minted, 0, LIQUIDATE_03);
+            t(_after.liquidated, LIQUIDATE_04);
+            eq(_after.maxMintable, 0, LIQUIDATE_05);
         }
     }
 }

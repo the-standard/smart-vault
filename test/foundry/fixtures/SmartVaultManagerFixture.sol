@@ -14,12 +14,13 @@ import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.
 
 contract SmartVaultManagerFixture is TokenManagerFixture {
     SmartVaultManagerV6 smartVaultManager;
+    SmartVaultIndex smartVaultIndex;
 
     function setUp() public virtual override {
         super.setUp();
 
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE);
-        SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
+        smartVaultIndex = new SmartVaultIndex();
 
         MockNFTMetadataGenerator nftMetadataGenerator = new MockNFTMetadataGenerator();
 
