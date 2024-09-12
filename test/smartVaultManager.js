@@ -19,7 +19,8 @@ describe('SmartVaultManager', async () => {
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
     const ClUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
     await ClUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
-    const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, ClUSDCUSD.address);
+    const sequencerFeed = await (await ethers.getContractFactory('ChainlinkMock')).deploy('L2 Sequencer Uptime Status Feed');
+    const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, ClUSDCUSD.address, sequencerFeed.address);
     SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();

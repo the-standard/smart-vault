@@ -5,7 +5,7 @@ const { ETH, DEFAULT_ETH_USD_PRICE } = require('./common');
 let PriceCalculator, Ethereum, WBTC;
 
 describe('PriceCalculator', async () => {
-  let clEthUsd;
+  let clEthUsd, sequencerFeed;
 
   beforeEach(async () => {
     clEthUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('ETH / USD');
@@ -14,7 +14,8 @@ describe('PriceCalculator', async () => {
     await clWBTCUsd.setPrice(DEFAULT_ETH_USD_PRICE.mul(20))
     const clUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
     await clUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
-    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, clUSDCUSD.address);
+    sequencerFeed = await (await ethers.getContractFactory('ChainlinkMock')).deploy('L2 Sequencer Uptime Status Feed');
+    PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, clUSDCUSD.address, sequencerFeed.address);
     Ethereum = {
       symbol: ETH,
       addr: ethers.constants.AddressZero,
@@ -83,6 +84,38 @@ describe('PriceCalculator', async () => {
     it('returns the USD 18 dec value of given USDC amount', async () => {
       const USDCAmount = 100_000_000 // $100
       expect(await PriceCalculator.USDCToUSD(USDCAmount, 6)).to.equal(ethers.utils.parseEther('100'));
-    })
+    });
+  });
+
+  describe('validateSequencerUp', async () => {
+    it('reverts if sequencer feed down', async () => {
+      await sequencerFeed.setPrice(1);
+
+      const USDCAmount = 100_000_000;
+      const ethValue = ethers.utils.parseEther('1');
+      await expect(PriceCalculator.USDCToUSD(USDCAmount, 6)).to.be.revertedWithCustomError(PriceCalculator, 'SequencerDown');
+      await expect(PriceCalculator.tokenToUSD(Ethereum, ethValue)).to.be.revertedWithCustomError(PriceCalculator, 'SequencerDown');
+
+      await sequencerFeed.setPrice(0);
+      // sequencer only start 30 mins ago ... not yet valid
+      const halfHour = 1800;
+      await sequencerFeed.setStartedAt((await ethers.provider.getBlock('latest')).timestamp - halfHour);
+    });
+  });
+
+  describe('setDataFeedTimeout', async () => {
+    it('allows owner to set timeout for given feed', async () => {
+      const other = (await ethers.getSigners())[1]
+      const hour = 60 * 60;
+      const ethValue = ethers.utils.parseEther('1');
+
+      await clEthUsd.setUpdatedAt((await ethers.provider.getBlock('latest')).timestamp - hour);
+      await expect(PriceCalculator.tokenToUSD(Ethereum, ethValue)).not.to.be.reverted;
+
+      await expect(PriceCalculator.connect(other).setDataFeedTimeout(clEthUsd.address, hour)).to.be.revertedWith('Ownable: caller is not the owner');
+      await expect(PriceCalculator.setDataFeedTimeout(clEthUsd.address, hour)).not.to.be.reverted;
+
+      await expect(PriceCalculator.tokenToUSD(Ethereum, ethValue)).to.be.revertedWithCustomError(PriceCalculator, 'StalePrice');
+    });
   });
 });

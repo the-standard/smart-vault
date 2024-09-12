@@ -8,12 +8,15 @@ contract ChainlinkMock is AggregatorV3Interface {
     string private desc;
     int256 private price;
     uint256 private updatedAt;
+    uint256 private startedAt;
     uint80 private roundID;
 
     struct PriceRound { uint256 timestamp; int256 price; }
 
     constructor (string memory _desc) {
         desc = _desc;
+        // fake old started at, to benefit l2 sequencer status feed for most tests
+        startedAt = block.timestamp - 1 hours;
         updatedAt = block.timestamp;
         roundID = 1;
     }
@@ -32,9 +35,14 @@ contract ChainlinkMock is AggregatorV3Interface {
         roundID = _roundID;
     }
 
-    function latestRoundData() external view returns (uint80 _roundID,int256 _answer,uint256,uint256 _updatedAt,uint80) {
+    function setStartedAt(uint256 _startedAt) external {
+        startedAt = _startedAt;
+    }
+
+    function latestRoundData() external view returns (uint80 _roundID,int256 _answer,uint256 _startedAt,uint256 _updatedAt,uint80) {
         _roundID = roundID;
         _answer = price;
+        _startedAt = startedAt;
         _updatedAt = updatedAt;
     }
 
