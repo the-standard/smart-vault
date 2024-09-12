@@ -164,11 +164,6 @@ contract SmartVaultV4 is ISmartVault {
         if (!undercollateralised()) revert NotUndercollateralised();
         liquidated = true;
         minted = 0;
-        // remove eth
-        if (address(this).balance != 0) {
-            (bool sent,) = payable(_liquidator).call{value: address(this).balance}("");
-            if (!sent) revert TransferError();
-        }
         // remove all erc20 collateral
         ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
@@ -181,6 +176,11 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < hypervisors.length; i++) {
             IERC20 _hypervisor = IERC20(hypervisors[i]);
             if (_hypervisor.balanceOf(address(this)) != 0) _hypervisor.safeTransfer(_liquidator, _hypervisor.balanceOf(address(this)));
+        }
+        // remove eth
+        if (address(this).balance != 0) {
+            (bool sent,) = payable(_liquidator).call{value: address(this).balance}("");
+            if (!sent) revert TransferError();
         }
     }
 
