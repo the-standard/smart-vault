@@ -238,16 +238,10 @@ contract SmartVaultV4 is ISmartVault {
         return _token.addr == address(0) ? ISmartVaultManagerV3(manager).weth() : _token.addr;
     }
 
-    function executeNativeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
-        (bool sent,) = payable(ISmartVaultManagerV3(manager).protocol()).call{value: _swapFee}("");
-        if (!sent) revert TransferError();
-        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle{value: _params.amountIn}(_params);
-    }
-
-    function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private {
+    function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private returns (uint256 _amountOut) {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
-        ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
+        _amountOut = ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
     }
 
@@ -265,10 +259,9 @@ contract SmartVaultV4 is ISmartVault {
                 amountOutMinimum: _minOut,
                 sqrtPriceLimitX96: 0
             });
-        executeSwapAndFee(params, swapFee);
+        uint256 _amountOut = executeSwapAndFee(params, swapFee);
         if (_outToken == NATIVE) {
-            IWETH _weth = IWETH(ISmartVaultManagerV3(manager).weth());
-            _weth.withdraw(_weth.balanceOf(address(this)));
+            IWETH(ISmartVaultManagerV3(manager).weth()).withdraw(_amountOut);
         }
     }
 

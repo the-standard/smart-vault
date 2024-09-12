@@ -5,8 +5,6 @@ import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol" as C
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 
-import "hardhat/console.sol";
-
 contract PriceCalculator is IPriceCalculator {
     uint256 private constant TIMEOUT = 24 hours;
     bytes32 private immutable NATIVE;
