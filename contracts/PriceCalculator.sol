@@ -45,6 +45,6 @@ contract PriceCalculator is IPriceCalculator {
         Chainlink.AggregatorV3Interface _clUSDCToUSD = Chainlink.AggregatorV3Interface(USDCToUSDAddr);
         (uint80 _roundId, int256 _USDCToUSDPrice, , uint256 _updatedAt, ) = _clUSDCToUSD.latestRoundData();
         validateData(_roundId, _USDCToUSDPrice, _updatedAt);
-        return _amount * uint256(_USDCToUSDPrice) * 10 ** (18 - _dec) / 1e8;
+        return _amount * uint256(_USDCToUSDPrice) * 10 ** (18 - _dec) / 10 ** _clUSDCToUSD.decimals();
     }
 }
