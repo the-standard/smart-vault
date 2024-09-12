@@ -46,23 +46,14 @@ contract SwapToRatioTest is Test {
     {
 
         // Ensure _sqrtPriceX96 is within uniswap limits
-        //_boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 1461446703485210103287273052203988822378723970342));
         _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 3e37));
 
         uint256 priceX192 = uint256(_sqrtPriceX96) * uint256(_sqrtPriceX96);
-        console.log("price: %s, ratio %s", FullMath.mulDiv(1e18, priceX192, 1 << 192), _ratio);
-
-        // Calculate priceX192 based on _boundedSqrtPriceX96
-
-        // Calculate the price of token A in terms of token B using priceX192, normalized to 18 decimals
-        uint256 price18 = FullMath.mulDiv(1e18, priceX192, 1 << 192);
-        uint256 inversePrice18  = FullMath.mulDiv(1e18, 1 << 192, priceX192);
+        console.log("using price: %s, and ratio: %s", FullMath.mulDiv(1e18, priceX192, 1 << 192), _ratio);
 
         // Set the ratio in the proxy and router
         uniProxy.setRatio(address(hypervisor), address(tokenA), _ratio);
         swapRouter.setSqrtRate(address(tokenA), address(tokenB), _boundedSqrtPriceX96);
-        swapRouter.setRate(address(tokenA), address(tokenB), price18);
-        swapRouter.setRate(address(tokenB), address(tokenA), inversePrice18);
 
         // Mint balances for both tokens to swapRouter to facilitate swaps
         uint256 swapRouterBalanceA = type(uint128).max;
@@ -97,9 +88,6 @@ contract SwapToRatioTest is Test {
     ) public {
         int24 boundedTick = int24(int256(bound(tick, 0, 300_000*2))) - 300_000;
         int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 100_000*2))) - 100_000;
-
-        // int24 boundedTick = 0;
-        // int24 boundedRatioTick = 0;
 
         console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
         console.log("max ratio %s, min ratio: %s", getPriceAtTick(100_000), getPriceAtTick(-100_000));
@@ -162,7 +150,7 @@ contract SwapToRatioTest is Test {
     }
 
     // Run with forge test --mt test_swapToRatioFuzzPython -vvv --ffi
-    function test_xxswapToRatioFuzzPython(
+    function test_swapToRatioFuzzPython(
         uint160 _sqrtPriceX96,
         uint256 _tokenABalance,
         uint256 _tokenBBalance

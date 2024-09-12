@@ -63,12 +63,7 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         amountOutMinimum = params.amountOutMinimum;
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         txValue = msg.value;
-
-        console.log("amountIn: %d", amountIn);
-
         _amountOut = getAmountOut(amountIn, tokenIn, tokenOut);
-
-        console.log("amountOut: %d", _amountOut);
         require(_amountOut > amountOutMinimum);
         if (msg.value == 0) {
             IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
@@ -107,26 +102,20 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         uint160 sqrtPrice = sqrtRates[_tokenIn][_tokenOut];
         if(sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
-            uint256 _amountIn = FullMath.mulDiv(_amountOut, 1 << 192, priceX192);
-            console.log("normal _amountIn: %d, rate %s, out from rate %s", _amountIn, rates[_tokenIn][_tokenOut], _amountOut * 1e18 / rates[_tokenIn][_tokenOut]);
-            return _amountIn;
+            return FullMath.mulDiv(_amountOut, 1 << 192, priceX192);
         }
 
         sqrtPrice = sqrtRates[_tokenOut][_tokenIn];
         if(sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
-            uint256 _amountIn = FullMath.mulDiv(_amountOut, priceX192, 1 << 192);
-            console.log("reversed _amountIn: %d, rate %s, out from rate %s", _amountIn, rates[_tokenIn][_tokenOut], _amountOut * 1e18 / rates[_tokenIn][_tokenOut]);
-            return _amountIn;
+            return FullMath.mulDiv(_amountOut, priceX192, 1 << 192);
         }
 
         return _amountOut * 1e18 / rates[_tokenIn][_tokenOut];
     }
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 _amountIn) {
-        console.log("params.amountOut: %d, rate %d", params.amountOut, rates[params.tokenIn][params.tokenOut]);
         _amountIn = getAmountIn(params.amountOut, params.tokenIn, params.tokenOut);
-        console.log("_amountIn: %d", _amountIn);
         require(_amountIn <= params.amountInMaximum,"price too high");
         if (msg.value == 0) {
             IERC20(params.tokenIn).transferFrom(msg.sender, address(this), _amountIn);
