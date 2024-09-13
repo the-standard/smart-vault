@@ -35,6 +35,7 @@ contract SmartVaultV4 is ISmartVault {
     event AssetRemoved(address token, uint256 amount, address to);
     event USDsMinted(address to, uint256 amount, uint256 fee);
     event USDsBurned(uint256 amount, uint256 fee);
+    event FailedTransfer(address token, uint256 amount);
 
     error InvalidUser();
     error VaultLiquidated();
@@ -169,7 +170,11 @@ contract SmartVaultV4 is ISmartVault {
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol != NATIVE) {
                 IERC20 _token = IERC20(tokens[i].addr);
-                if (_token.balanceOf(address(this)) != 0) _token.safeTransfer(_liquidator, _token.balanceOf(address(this)));
+                if (_token.balanceOf(address(this)) != 0) {
+                    try _token.transfer(_liquidator, _token.balanceOf(address(this))) returns (bool _done) {} catch {
+                        emit FailedTransfer(address(_token), _token.balanceOf(address(this)));
+                    }
+                }
             }
         }
         // remove all hypervisor tokens
