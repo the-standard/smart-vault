@@ -207,13 +207,12 @@ contract SmartVaultV4 is ISmartVault {
         emit AssetRemoved(_tokenAddr, _amount, _to);
     }
 
-    function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated {
+    function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated remainCollateralised {
         uint256 fee = _amount * ISmartVaultManagerV3(manager).mintFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         minted = minted + _amount + fee;
         USDs.mint(_to, _amount);
         USDs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
         emit USDsMinted(_to, _amount, fee);
-        if (undercollateralised()) revert Undercollateralised();
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
