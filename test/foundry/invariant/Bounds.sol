@@ -2,5 +2,6 @@
 pragma solidity ^0.8.0;
 
 abstract contract Bounds {
-    uint256 internal EXAMPLE_BOUND = type(uint128).max;
+    uint256 internal MIN_STABLE_PERCENTAGE = 1e4;
+    uint256 internal MAX_STABLE_PERCENTAGE = 1e5;
 }
