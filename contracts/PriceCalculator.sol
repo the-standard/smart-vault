@@ -42,6 +42,16 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         return _symbol == NATIVE ? 0 : 18 - ERC20(_tokenAddress).decimals();
     }
 
+    function scaledCollateral(ITokenManager.Token memory _token, uint256 _tokenValue) private view returns (uint256 _scaledValue) {
+        uint8 _dec = _token.symbol == NATIVE ? 18 : ERC20(_token.addr).decimals();
+        int256 _scale = 18 - int8(_dec);
+        if (_scale < 0) {
+            return _tokenValue / 10 ** uint256(-_scale);
+        } else {
+            return _tokenValue * 10 ** uint256(_scale);
+        }
+    }
+
     function getTimeout(address _dataFeed) private view returns (uint256 _timeout) {
         _timeout = dataFeedTimeouts[_dataFeed];
         return _timeout > 0 ? _timeout : DEFAULT_TIMEOUT;
@@ -57,10 +67,9 @@ contract PriceCalculator is IPriceCalculator, Ownable {
 
     function tokenToUSD(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
-        uint256 scaledCollateral = _tokenValue * 10 ** getTokenScaleDiff(_token.symbol, _token.addr);
         (uint80 _roundId, int256 _tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsdClFeed.latestRoundData();
         validateData(_roundId, _tokenUsdPrice, _updatedAt, _token.clAddr);
-        return scaledCollateral * uint256(_tokenUsdPrice) / 10 ** _token.clDec;
+        return scaledCollateral(_token, _tokenValue) * uint256(_tokenUsdPrice) / 10 ** _token.clDec;
     }
 
     function USDCToUSD(uint256 _amount, uint8 _dec) external view returns (uint256) {

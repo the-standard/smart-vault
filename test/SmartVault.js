@@ -122,6 +122,19 @@ describe('SmartVault', async () => {
       const maximumMint = usdCollateral.mul(HUNDRED_PC).div(DEFAULT_COLLATERAL_RATE);
       expect(maxMintable).to.equal(maximumMint);
     });
+
+    it('accepts 30 dec erc20s as collateral', async () => {
+      const usd30 = await (await ethers.getContractFactory('ERC20Mock')).deploy('30 dec usd', 'usd30', 30);
+      const ClUsdUsd = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USD / USD');
+      await ClUsdUsd.setPrice(100000000);
+      await TokenManager.addAcceptedToken(usd30.address, ClUsdUsd.address);
+
+      const value = ethers.utils.parseUnits('1000', 30);
+      await usd30.mint(Vault.address, value);
+      
+      const { totalCollateralValue } = await Vault.status();
+      expect(totalCollateralValue).to.equal(ethers.utils.parseEther('1000'));
+    });
   });
 
   describe('removing collateral', async () => {
