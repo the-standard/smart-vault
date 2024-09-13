@@ -233,6 +233,13 @@ describe('SmartVault', async () => {
       await expect(remove).to.emit(Vault, 'AssetRemoved').withArgs(SUSD18.address, part, user.address);
       expect(await SUSD18.balanceOf(Vault.address)).to.equal(SUSD18value.sub(part));
       expect(await SUSD18.balanceOf(user.address)).to.equal(part);
+
+      // also allows removal of ETH with remove asset
+      const value = ethers.utils.parseEther('1');
+      await user.sendTransaction({to: Vault.address, value});
+      const removeETH = Vault.connect(user).removeAsset(ethers.constants.AddressZero, value, user.address);
+      await expect(removeETH).not.to.be.reverted;
+      await expect(removeETH).to.changeEtherBalance(user, value);
     })
   });
 
