@@ -191,7 +191,7 @@ contract SmartVaultV4 is ISmartVault {
 
     receive() external payable {}
 
-    function removeCollateralNative(uint256 _amount, address payable _to) external onlyOwner {
+    function removeCollateralNative(uint256 _amount, address payable _to) public onlyOwner {
         if (minted > 0) {
             uint256 _usdValueToRemove = calculator.tokenToUSD(getToken(NATIVE), _amount);
             if (minted > maxMintable(usdCollateral() - _usdValueToRemove)) revert Undercollateralised();
@@ -208,6 +208,7 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function removeAsset(address _tokenAddr, uint256 _amount, address _to) external onlyOwner remainCollateralised {
+        if (_tokenAddr == address(0)) return removeCollateralNative(_amount, payable(_to));
         IERC20(_tokenAddr).safeTransfer(_to, _amount);
         emit AssetRemoved(_tokenAddr, _amount, _to);
     }
