@@ -171,7 +171,7 @@ contract SmartVaultV4 is ISmartVault {
             if (tokens[i].symbol != NATIVE) {
                 IERC20 _token = IERC20(tokens[i].addr);
                 if (_token.balanceOf(address(this)) != 0) {
-                    try _token.transfer(_liquidator, _token.balanceOf(address(this))) returns (bool _done) {} catch {
+                    try _token.transfer(_liquidator, _token.balanceOf(address(this))) {} catch {
                         emit FailedTransfer(address(_token), _token.balanceOf(address(this)));
                     }
                 }
