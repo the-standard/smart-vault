@@ -53,6 +53,7 @@ contract Common {
 
     bytes32[] collateralSymbols;
     mapping(bytes32 => CollateralData) collateralData;
+    address[] allTokens;
 
     function setUp() public virtual {
         usds = new USDsMock();
@@ -117,6 +118,17 @@ contract Common {
             abi.encode(address(usdc), RAMSES_FEE, address(link))
         );
 
+        // all tokens
+        allTokens.push(address(usds));
+        allTokens.push(address(usdc));
+        allTokens.push(address(0));
+        allTokens.push(address(weth));
+        allTokens.push(address(wbtc));
+        allTokens.push(address(link));
+        allTokens.push(address(usdsHypervisor));
+        allTokens.push(address(wbtcHypervisor));
+        allTokens.push(address(linkHypervisor));
+
         // swap router
         uniswapRouter = new MockSwapRouter();
     }
@@ -124,6 +136,6 @@ contract Common {
     // create our own version of this forge-std cheat to avoid linearization issues in invariant scaffolding
     function _makeAddr(string memory name) internal virtual returns (address addr) {
         addr = vm.addr(uint256(keccak256(abi.encodePacked(name))));
-        vm.label(addr, name);
+        // vm.label(addr, name); // TODO: investigate why medusa doesn't like this
     }
 }

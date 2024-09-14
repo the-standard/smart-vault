@@ -36,7 +36,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             MockRamsesFactory ramsesFactory = new MockRamsesFactory(address(impl));
             ramsesRouter.setFactory(address(ramsesFactory));
             address pool = ramsesFactory.deploy(address(usds), address(usdc));
-            vm.label(pool, "USDs/USDC Ramses Pool");
+            // vm.label(pool, "USDs/USDC Ramses Pool"); // TODO: investigate why medusa doesn't like this
             MockRamsesPool(pool).setPrice(_calcSqrtX96(address(usds), address(usdc), 1));
         }
 
@@ -225,7 +225,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         smartVaultManager.setYieldManager(address(yieldManager));
     }
 
-    function _calcSqrtX96(address tokenA, address tokenB, uint256 ratio) public view returns (uint160) {
+    function _calcSqrtX96(address tokenA, address tokenB, uint256 ratio) internal view returns (uint160) {
         (address token0, address token1) = tokenA < tokenB ? (tokenA, tokenB) : (tokenB, tokenA);
         bool aIs0 = tokenA == token0;
 

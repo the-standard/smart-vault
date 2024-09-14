@@ -4,7 +4,9 @@ coverage: true
 corpusDir: "echidna/corpus-property"
 cryticArgs:
   [
-    "--foundry-compile-all"
+    "--foundry-compile-all",
+    "--foundry-out-directory",
+    "./artifacts/"
   ]
 deployContracts:
   []

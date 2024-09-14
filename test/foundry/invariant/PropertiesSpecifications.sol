@@ -38,6 +38,7 @@ abstract contract PropertiesSpecifications {
     string internal constant LIQUIDATE_03 = "LIQUIDATE_03: Liquidate clears the Smart Vault's minted USDs state";
     string internal constant LIQUIDATE_04 = "LIQUIDATE_04: Liquidate marks the Smart Vault as liquidated";
     string internal constant LIQUIDATE_05 = "LIQUIDATE_05: Liquidate decreases the Smart Vault's max mintable to zero";
+    string internal constant LIQUIDATE_06 = "LIQUIDATE_06: Liquidate decreases the Smart Vault's total collateral value to zero";
 
     string internal constant DEPOSIT_YIELD_01 = "DEPOSIT_YIELD_01: Deposits cannot leave the Smart Vault undercollateralised";
 

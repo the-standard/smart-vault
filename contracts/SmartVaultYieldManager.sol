@@ -311,7 +311,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function _otherDeposit(address _collateralToken, HypervisorData memory _hypervisorData) private {
-        _swapToRatio(_collateralToken, _hypervisorData.hypervisor, uniswapRouter, _hypervisorData.poolFee);
+        _swapToRatio(_collateralToken, _hypervisorData.hypervisor, uniswapRouter, _hypervisorData.poolFee); // TODO: for some reason, this is messing up the invariant tests – uniswap slot0 reverts
         _deposit(_hypervisorData.hypervisor);
     }
 

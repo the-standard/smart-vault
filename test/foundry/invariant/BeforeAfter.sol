@@ -8,6 +8,7 @@ import {Helper} from "./Helper.sol";
 // ghost variables for tracking state variable values before and after function calls
 abstract contract BeforeAfter is Helper {
     struct Vars {
+        bytes4 sig;
         uint256 minted;
         uint256 maxMintable;
         uint256 totalCollateralValue;
@@ -34,6 +35,7 @@ abstract contract BeforeAfter is Helper {
     }
 
     function __snapshot(Vars storage vars, SmartVaultV4 vault) internal {
+        vars.sig = msg.sig;
         // NOTE: use vault token ids for multiple SmartVaults
         // SmartVaultV4 vault = _tokenIdToSmartVault(tokenId);
         vars.minted = vault.status().minted;
