@@ -182,16 +182,21 @@ abstract contract TargetFunctions is ExpectedErrors {
         public
         checkExpectedErrors(SWAP_COLLATERAL_ERRORS)
     {
-        bytes32 inToken = _getRandomSymbol(inTokenIndex);
-        bytes32 outToken = _getRandomSymbol(outTokenIndex);
-        amount = between(amount, 0, type(uint96).max);
-        requestedMinOut = between(requestedMinOut, 0, amount);
+        (ERC20Mock inToken, bytes32 inSymbol) = _getRandomCollateral(inTokenIndex);
+        (ERC20Mock outToken, bytes32 outSymbol) = _getRandomCollateral(outTokenIndex);
+
+        uint256 maxIn = inToken.balanceOf(address(uniswapRouter)) > inToken.balanceOf(address(smartVault))
+            ? inToken.balanceOf(address(smartVault))
+            : inToken.balanceOf(address(uniswapRouter));
+        amount = between(amount, 0, maxIn);
+
+        requestedMinOut = between(requestedMinOut, 0, outToken.balanceOf(address(uniswapRouter)));
 
         __before(smartVault);
 
         vm.prank(VAULT_OWNER);
         (success, returnData) =
-            address(smartVault).call(abi.encodeCall(smartVault.swap, (inToken, outToken, amount, requestedMinOut)));
+            address(smartVault).call(abi.encodeCall(smartVault.swap, (inSymbol, outSymbol, amount, requestedMinOut)));
 
         if (success) {
             __after(smartVault);
@@ -236,7 +241,7 @@ abstract contract TargetFunctions is ExpectedErrors {
 
             _addHypervisor(address(usdsHypervisor));
             if (stablePercentage < MAX_STABLE_PERCENTAGE) {
-                _addHypervisor(address(collateralData[symbol].hypervisor));
+                _addHypervisor(address(collateralData[symbol].hypervisor)); // TODO: for some reason, uniswap pool slot0 reverts within _swapToRatio
             }
 
             t(!_after.undercollateralised, DEPOSIT_YIELD_01);

@@ -39,13 +39,13 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
 
     function getAmountOut(uint256 _amountIn, address _tokenIn, address _tokenOut) private view returns (uint256) {
         uint160 sqrtPrice = sqrtRates[_tokenIn][_tokenOut];
-        if(sqrtPrice != 0) {
+        if (sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
             return FullMath.mulDiv(_amountIn, priceX192, 1 << 192);
         }
 
         sqrtPrice = sqrtRates[_tokenOut][_tokenIn];
-        if(sqrtPrice != 0) {
+        if (sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
             return FullMath.mulDiv(_amountIn, 1 << 192, priceX192);
         }
@@ -100,16 +100,15 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         IERC20(_tokenOut).transfer(params.recipient, params.amountOut);
     }
 
-
     function getAmountIn(uint256 _amountOut, address _tokenIn, address _tokenOut) private view returns (uint256) {
         uint160 sqrtPrice = sqrtRates[_tokenIn][_tokenOut];
-        if(sqrtPrice != 0) {
+        if (sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
             return FullMath.mulDiv(_amountOut, 1 << 192, priceX192);
         }
 
         sqrtPrice = sqrtRates[_tokenOut][_tokenIn];
-        if(sqrtPrice != 0) {
+        if (sqrtPrice != 0) {
             uint256 priceX192 = uint256(sqrtPrice) * uint256(sqrtPrice);
             return FullMath.mulDiv(_amountOut, priceX192, 1 << 192);
         }
@@ -120,8 +119,8 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 _amountIn) {
         _amountIn = getAmountIn(params.amountOut, params.tokenIn, params.tokenOut);
 
-        uint256 amountInWithFee = _amountIn  + (_amountIn * params.fee / 1e6);
-        require(amountInWithFee <= params.amountInMaximum,"price too high");
+        uint256 amountInWithFee = _amountIn + (_amountIn * params.fee / 1e6);
+        require(amountInWithFee <= params.amountInMaximum, "price too high");
         if (msg.value == 0) {
             IERC20(params.tokenIn).transferFrom(msg.sender, address(this), amountInWithFee);
         }

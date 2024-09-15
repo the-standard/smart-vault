@@ -133,21 +133,26 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     : FullMath.mulDiv((10 ** bDec) * (10 ** (36 - aDec)), priceX192, 1 << 192);
             }
 
-            uint256 _ratio = FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)), 1e36, _midRatio * (10 ** (36 - bDec)));
+            uint256 _ratio =
+                FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)), 1e36, _midRatio * (10 ** (36 - bDec)));
             uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
 
             if (_tokenABalance * (10 ** (36 - aDec)) > _rb) {
                 // a -> b
 
-                uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, _fee, 1e6), 1e36, price36);
+                uint256 _denominator =
+                    1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, _fee, 1e6), 1e36, price36);
                 // a - rb / (1 + (1-f) * ratio / price)
-                _amountIn = FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
+                _amountIn =
+                    FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
             } else {
                 // b -> a
-                
-                uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio, 1e36, price36 + FullMath.mulDiv(price36, _fee, 1e6));
+
+                uint256 _denominator =
+                    1e36 + FullMath.mulDiv(_ratio, 1e36, price36 + FullMath.mulDiv(price36, _fee, 1e6));
                 // rb - a / (1 + ratio / ((1+f) * price))
-                _amountOut = FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
+                _amountOut =
+                    FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
             }
         }
 
@@ -253,7 +258,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     }
 
     function _otherDeposit(address _collateralToken, HypervisorData memory _hypervisorData) private {
-        _swapToRatio(_collateralToken, _hypervisorData.hypervisor, uniswapRouter, _hypervisorData.poolFee); // TODO: for some reason, this is messing up the invariant tests – uniswap slot0 reverts
+        _swapToRatio(_collateralToken, _hypervisorData.hypervisor, uniswapRouter, _hypervisorData.poolFee);
         _deposit(_hypervisorData.hypervisor);
     }
 

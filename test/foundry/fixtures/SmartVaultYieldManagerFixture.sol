@@ -80,7 +80,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(usdc), address(weth), 10 ** (18 + weth.decimals() - usdc.decimals()) / DEFAULT_ETH_USD_PRICE
             ); // 400000000000000000000000000: 2500 USDC <-> 1 WETH ✅ exactInput/Output
 
-            address wethUsdcPool = uniFactory.deploy(address(weth), address(usdc), RAMSES_FEE);
+            address wethUsdcPool = uniFactory.deploy(address(weth), address(usdc), UNISWAP_FEE);
             IUniswapV3Pool(wethUsdcPool).initialize(_calcSqrtX96(address(usdc), address(weth), DEFAULT_ETH_USD_PRICE));
 
             uniswapRouter.setRate(
@@ -93,7 +93,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(wbtc),
                 10 ** (18 + wbtc.decimals() - usdc.decimals()) / (DEFAULT_ETH_USD_PRICE * DEFAULT_WBTC_ETH_MULTIPLIER)
             ); // 1600000000000000: 62500 USDC <-> 1 WBTC ✅ exactInput/Output
-            address usdcWbtcPool = uniFactory.deploy(address(usdc), address(wbtc), RAMSES_FEE);
+            address usdcWbtcPool = uniFactory.deploy(address(usdc), address(wbtc), UNISWAP_FEE);
             IUniswapV3Pool(usdcWbtcPool).initialize(
                 _calcSqrtX96(address(usdc), address(wbtc), DEFAULT_ETH_USD_PRICE * DEFAULT_WBTC_ETH_MULTIPLIER)
             );
@@ -108,7 +108,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(link),
                 DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + link.decimals() - usdc.decimals()) / DEFAULT_ETH_USD_PRICE
             ); // 80000000000000000000000000000: 12.5 USDC <-> 1 LINK ✅ exactInput/Output
-            address usdcLinkPool = uniFactory.deploy(address(usdc), address(link), RAMSES_FEE);
+            address usdcLinkPool = uniFactory.deploy(address(usdc), address(link), UNISWAP_FEE);
             IUniswapV3Pool(usdcLinkPool).initialize(
                 _calcSqrtX96(address(usdc), address(link), DEFAULT_ETH_USD_PRICE / DEFAULT_LINK_ETH_DIVISOR)
             );
@@ -124,7 +124,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
                 address(wbtc),
                 10 ** (18 + wbtc.decimals() - weth.decimals()) / (DEFAULT_WBTC_ETH_MULTIPLIER)
             ); // 4000000: 25 WETH <-> 1 WBTC ✅ exactInput/Output
-            address wbtcWethPool = uniFactory.deploy(address(wbtc), address(weth), RAMSES_FEE);
+            address wbtcWethPool = uniFactory.deploy(address(wbtc), address(weth), UNISWAP_FEE);
             IUniswapV3Pool(wbtcWethPool).initialize(
                 _calcSqrtX96(address(weth), address(wbtc), DEFAULT_WBTC_ETH_MULTIPLIER)
             );
@@ -135,7 +135,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             uniswapRouter.setRate(
                 address(weth), address(link), DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + link.decimals() - weth.decimals())
             ); // 200000000000000000000: 1 WETH <-> 200 LINK ✅ exactInput/Output
-            address linkWethPool = uniFactory.deploy(address(link), address(weth), RAMSES_FEE);
+            address linkWethPool = uniFactory.deploy(address(link), address(weth), UNISWAP_FEE);
             IUniswapV3Pool(linkWethPool).initialize(
                 _calcSqrtX96(address(link), address(weth), DEFAULT_LINK_ETH_DIVISOR)
             );

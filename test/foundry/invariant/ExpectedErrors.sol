@@ -26,108 +26,68 @@ abstract contract ExpectedErrors is Properties {
         LIQUIDATE_VAULT_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         LIQUIDATE_VAULT_ERRORS.push(SmartVaultV4.NotUndercollateralised.selector);
         LIQUIDATE_VAULT_ERRORS.push(SmartVaultV4.TransferError.selector);
-        LIQUIDATE_VAULT_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: low-level call failed")))
-        );
-        LIQUIDATE_VAULT_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: ERC20 operation did not succeed")))
-        );
-        LIQUIDATE_VAULT_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "err-invalid-liquidator")))
-        );
-        LIQUIDATE_VAULT_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "vault-not-undercollateralised")))
-        );
-        LIQUIDATE_VAULT_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "other-liquidation-error")))
-        );
+        LIQUIDATE_VAULT_ERRORS.push(_encodeError("SafeERC20: low-level call failed"));
+        LIQUIDATE_VAULT_ERRORS.push(_encodeError("SafeERC20: ERC20 operation did not succeed"));
+        LIQUIDATE_VAULT_ERRORS.push(_encodeError("err-invalid-liquidator"));
+        LIQUIDATE_VAULT_ERRORS.push(_encodeError("vault-not-undercollateralised"));
+        LIQUIDATE_VAULT_ERRORS.push(_encodeError("other-liquidation-error"));
 
         // REMOVE_VAULT_TOKEN_ERRORS
         REMOVE_VAULT_TOKEN_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         REMOVE_VAULT_TOKEN_ERRORS.push(SmartVaultV4.Undercollateralised.selector);
         REMOVE_VAULT_TOKEN_ERRORS.push(SmartVaultV4.TransferError.selector);
-        REMOVE_VAULT_TOKEN_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: low-level call failed")))
-        );
-        REMOVE_VAULT_TOKEN_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: ERC20 operation did not succeed")))
-        );
-        REMOVE_VAULT_TOKEN_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "Address: call to non-contract")))
-        );
+        REMOVE_VAULT_TOKEN_ERRORS.push(_encodeError("SafeERC20: low-level call failed"));
+        REMOVE_VAULT_TOKEN_ERRORS.push(_encodeError("SafeERC20: ERC20 operation did not succeed"));
+        REMOVE_VAULT_TOKEN_ERRORS.push(_encodeError("Address: call to non-contract"));
 
         // MINT_DEBT_ERRORS
         MINT_DEBT_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         MINT_DEBT_ERRORS.push(SmartVaultV4.VaultLiquidated.selector);
         MINT_DEBT_ERRORS.push(SmartVaultV4.Undercollateralised.selector);
+        MINT_DEBT_ERRORS.push(_encodeError("ERC20: mint to the zero address"));
 
         // BURN_DEBT_ERRORS
         BURN_DEBT_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         BURN_DEBT_ERRORS.push(SmartVaultV4.Overrepay.selector);
+        BURN_DEBT_ERRORS.push(_encodeError("ERC20: burn amount exceeds balance"));
 
         // SWAP_COLLATERAL_ERRORS
         SWAP_COLLATERAL_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         SWAP_COLLATERAL_ERRORS.push(SmartVaultV4.InvalidToken.selector);
         SWAP_COLLATERAL_ERRORS.push(SmartVaultV4.TransferError.selector);
-        SWAP_COLLATERAL_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: low-level call failed")))
-        );
-        SWAP_COLLATERAL_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: ERC20 operation did not succeed")))
-        );
-        SWAP_COLLATERAL_ERRORS.push(
-            bytes4(
-                keccak256(
-                    abi.encodeWithSignature("Error(string)", "SafeERC20: approve from non-zero to non-zero allowance")
-                )
-            )
-        );
+        SWAP_COLLATERAL_ERRORS.push(_encodeError("SafeERC20: low-level call failed"));
+        SWAP_COLLATERAL_ERRORS.push(_encodeError("SafeERC20: ERC20 operation did not succeed"));
+        SWAP_COLLATERAL_ERRORS.push(_encodeError("SafeERC20: approve from non-zero to non-zero allowance"));
         SWAP_COLLATERAL_ERRORS.push(bytes4(keccak256(stdError.arithmeticError)));
-        SWAP_COLLATERAL_ERRORS.push(bytes4(keccak256(abi.encodeWithSignature("Error(string)", ""))));
+        SWAP_COLLATERAL_ERRORS.push(_encodeError(""));
 
         // DEPOSIT_YIELD_ERRORS
         DEPOSIT_YIELD_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         DEPOSIT_YIELD_ERRORS.push(SmartVaultV4.InvalidToken.selector);
         DEPOSIT_YIELD_ERRORS.push(SmartVaultV4.Undercollateralised.selector);
-        DEPOSIT_YIELD_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: low-level call failed")))
-        );
-        DEPOSIT_YIELD_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: ERC20 operation did not succeed")))
-        );
-        DEPOSIT_YIELD_ERRORS.push(
-            bytes4(
-                keccak256(
-                    abi.encodeWithSignature("Error(string)", "SafeERC20: approve from non-zero to non-zero allowance")
-                )
-            )
-        );
+        DEPOSIT_YIELD_ERRORS.push(_encodeError("SafeERC20: low-level call failed"));
+        DEPOSIT_YIELD_ERRORS.push(_encodeError("SafeERC20: ERC20 operation did not succeed"));
+        DEPOSIT_YIELD_ERRORS.push(_encodeError("SafeERC20: approve from non-zero to non-zero allowance"));
         DEPOSIT_YIELD_ERRORS.push(SmartVaultYieldManager.StablePoolPercentageError.selector);
         DEPOSIT_YIELD_ERRORS.push(SmartVaultYieldManager.HypervisorDataError.selector);
         DEPOSIT_YIELD_ERRORS.push(SmartVaultYieldManager.RatioError.selector);
         DEPOSIT_YIELD_ERRORS.push(bytes4(keccak256(stdError.arithmeticError)));
-        DEPOSIT_YIELD_ERRORS.push(bytes4(keccak256(abi.encodeWithSignature("Error(string)", ""))));
+        DEPOSIT_YIELD_ERRORS.push(_encodeError(""));
 
         // WITHDRAW_YIELD_ERRORS
         WITHDRAW_YIELD_ERRORS.push(SmartVaultV4.InvalidUser.selector);
         WITHDRAW_YIELD_ERRORS.push(SmartVaultV4.InvalidToken.selector);
         WITHDRAW_YIELD_ERRORS.push(SmartVaultV4.Undercollateralised.selector);
-        WITHDRAW_YIELD_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: low-level call failed")))
-        );
-        WITHDRAW_YIELD_ERRORS.push(
-            bytes4(keccak256(abi.encodeWithSignature("Error(string)", "SafeERC20: ERC20 operation did not succeed")))
-        );
-        WITHDRAW_YIELD_ERRORS.push(
-            bytes4(
-                keccak256(
-                    abi.encodeWithSignature("Error(string)", "SafeERC20: approve from non-zero to non-zero allowance")
-                )
-            )
-        );
+        WITHDRAW_YIELD_ERRORS.push(_encodeError("SafeERC20: low-level call failed"));
+        WITHDRAW_YIELD_ERRORS.push(_encodeError("SafeERC20: ERC20 operation did not succeed"));
+        WITHDRAW_YIELD_ERRORS.push(_encodeError("SafeERC20: approve from non-zero to non-zero allowance"));
         WITHDRAW_YIELD_ERRORS.push(SmartVaultYieldManager.IncompatibleHypervisor.selector);
         WITHDRAW_YIELD_ERRORS.push(bytes4(keccak256(stdError.arithmeticError)));
-        WITHDRAW_YIELD_ERRORS.push(bytes4(keccak256(abi.encodeWithSignature("Error(string)", ""))));
+        WITHDRAW_YIELD_ERRORS.push(_encodeError(""));
+    }
+
+    function _encodeError(string memory errorString) internal pure returns (bytes4) {
+        return bytes4(keccak256(abi.encodeWithSignature("Error(string)", errorString)));
     }
 
     modifier checkExpectedErrors(bytes4[] storage errors) {

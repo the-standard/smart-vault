@@ -103,29 +103,29 @@ contract Common {
             ERC20Mock(address(0)),
             clNativeUsd,
             wbtcHypervisor,
-            abi.encode(address(weth), RAMSES_FEE, address(usdc)),
-            abi.encode(address(usdc), RAMSES_FEE, address(weth))
+            abi.encode(address(weth), UNISWAP_FEE, address(usdc)),
+            abi.encode(address(usdc), UNISWAP_FEE, address(weth))
         ); // wbtcHypervisor because all native token gets converted to its wrapped equivalent.
         collateralData[bytes32(bytes(weth.symbol()))] = CollateralData(
             ERC20Mock(address(weth)),
             clNativeUsd,
             wbtcHypervisor,
-            abi.encode(address(weth), RAMSES_FEE, address(usdc)),
-            abi.encode(address(usdc), RAMSES_FEE, address(weth))
+            abi.encode(address(weth), UNISWAP_FEE, address(usdc)),
+            abi.encode(address(usdc), UNISWAP_FEE, address(weth))
         );
         collateralData[bytes32(bytes(wbtcSymbol))] = CollateralData(
             wbtc,
             clWbtcUsd,
             wbtcHypervisor,
-            abi.encode(address(wbtc), RAMSES_FEE, address(usdc)),
-            abi.encode(address(usdc), RAMSES_FEE, address(wbtc))
+            abi.encode(address(wbtc), UNISWAP_FEE, address(usdc)),
+            abi.encode(address(usdc), UNISWAP_FEE, address(wbtc))
         );
         collateralData[bytes32(bytes(linkSymbol))] = CollateralData(
             link,
             clLinkUsd,
             linkHypervisor,
-            abi.encode(address(link), RAMSES_FEE, address(usdc)),
-            abi.encode(address(usdc), RAMSES_FEE, address(link))
+            abi.encode(address(link), UNISWAP_FEE, address(usdc)),
+            abi.encode(address(usdc), UNISWAP_FEE, address(link))
         );
 
         // all tokens

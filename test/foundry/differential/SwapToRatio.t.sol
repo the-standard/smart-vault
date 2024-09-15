@@ -44,7 +44,6 @@ contract SwapToRatioTest is Test {
         internal
         returns (uint160 _boundedSqrtPriceX96)
     {
-
         // Ensure _sqrtPriceX96 is within uniswap limits
         _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 3e37));
 
@@ -80,14 +79,11 @@ contract SwapToRatioTest is Test {
         return FullMath.mulDiv(1e18, priceX192, 1 << 192);
     }
 
-    function test_swapToRatioFuzz(
-        uint256 priceTick,
-        uint256 ratioTick,
-        uint256 _tokenABalance,
-        uint256 _tokenBBalance
-    ) public {
-        int24 boundedPriceTick = int24(int256(bound(priceTick, 0, 300_000*2))) - 300_000;
-        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 80_000*2))) - 80_000;
+    function test_swapToRatioFuzz(uint256 priceTick, uint256 ratioTick, uint256 _tokenABalance, uint256 _tokenBBalance)
+        public
+    {
+        int24 boundedPriceTick = int24(int256(bound(priceTick, 0, 300_000 * 2))) - 300_000;
+        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 80_000 * 2))) - 80_000;
 
         console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
         console.log("max ratio %s, min ratio: %s", getPriceAtTick(80_000), getPriceAtTick(-80_000));
@@ -128,8 +124,8 @@ contract SwapToRatioTest is Test {
             console.log("newTokenBBalance", newTokenBBalance);
 
             // ratio passed in is reversed in uniProxy, hence B over A here
-            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance , (_ratio) / 1000, "old wrong");
-            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 3000, "new wrong");
+            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance, (_ratio) / 1000, "old wrong");
+            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance, (_ratio) / 3000, "new wrong");
         } else if (!successOld && successNew) {
             console.log("old implementation reverted when the new one did not");
         } else if (successOld && !successNew) {
@@ -142,11 +138,7 @@ contract SwapToRatioTest is Test {
     }
 
     // Run with forge test --mt test_swapToRatioFuzzPython -vvv --ffi
-    function test_xxswapToRatioFuzzPython(
-        uint160 _sqrtPriceX96,
-        uint256 _tokenABalance,
-        uint256 _tokenBBalance
-    ) public {
+    function test_swapToRatioFuzzPython(uint160 _sqrtPriceX96, uint256 _tokenABalance, uint256 _tokenBBalance) public {
         uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, 0.5e18);
 
         // Snapshot the state of the VM to revert to after each call
