@@ -10,7 +10,12 @@ import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
 import {HypervisorMock} from "src/test_utils/HypervisorMock.sol";
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 
+import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 contract Common {
+    using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
+
     // Actors
     address VAULT_OWNER = _makeAddr("Vault owner");
     address VAULT_MANAGER_OWNER = _makeAddr("Vault manager owner");
@@ -51,27 +56,32 @@ contract Common {
         bytes pathFromUsdc;
     }
 
-    bytes32[] collateralSymbols;
     mapping(bytes32 => CollateralData) collateralData;
-    address[] allTokens;
+    EnumerableSet.Bytes32Set collateralSymbols;
+    EnumerableSet.AddressSet collateralTokens;
+    EnumerableSet.AddressSet allTokens;
 
     function setUp() public virtual {
         usds = new USDsMock();
         usdc = new ERC20Mock("USD Coin", "USDC", 6); // NOTE: USDC cannot be a collateral token due to being paired with USDs
 
         // collateral tokens
-        collateralSymbols.push(NATIVE);
+        collateralSymbols.add(NATIVE);
+        collateralTokens.add(address(0));
 
         weth = new MockWETH();
-        collateralSymbols.push(bytes32(bytes(weth.symbol())));
+        collateralSymbols.add(bytes32(bytes(weth.symbol())));
+        collateralTokens.add(address(weth));
 
         string memory wbtcSymbol = "WBTC";
         wbtc = new ERC20Mock("Wrapped Bitcoin", wbtcSymbol, 8);
-        collateralSymbols.push(bytes32(bytes(wbtcSymbol)));
+        collateralSymbols.add(bytes32(bytes(wbtcSymbol)));
+        collateralTokens.add(address(wbtc));
 
         string memory linkSymbol = "LINK";
         link = new ERC20Mock("Chainlink", linkSymbol, 18);
-        collateralSymbols.push(bytes32(bytes(linkSymbol)));
+        collateralSymbols.add(bytes32(bytes(linkSymbol)));
+        collateralTokens.add(address(link));
 
         // chainlink feeds
         clNativeUsd = new ChainlinkMock("ETH/USD");
@@ -119,15 +129,15 @@ contract Common {
         );
 
         // all tokens
-        allTokens.push(address(usds));
-        allTokens.push(address(usdc));
-        allTokens.push(address(0));
-        allTokens.push(address(weth));
-        allTokens.push(address(wbtc));
-        allTokens.push(address(link));
-        allTokens.push(address(usdsHypervisor));
-        allTokens.push(address(wbtcHypervisor));
-        allTokens.push(address(linkHypervisor));
+        allTokens.add(address(usds));
+        allTokens.add(address(usdc));
+        allTokens.add(address(0));
+        allTokens.add(address(weth));
+        allTokens.add(address(wbtc));
+        allTokens.add(address(link));
+        allTokens.add(address(usdsHypervisor));
+        allTokens.add(address(wbtcHypervisor));
+        allTokens.add(address(linkHypervisor));
 
         // swap router
         uniswapRouter = new MockSwapRouter();

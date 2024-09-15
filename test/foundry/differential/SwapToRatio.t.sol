@@ -261,7 +261,8 @@ contract SwapToRatioTest is Test {
     function _resetJSON() internal {
         string memory path = "test/foundry/differential/balances.json";
         assertTrue(vm.exists(path));
-        string memory initialContent = '{"oldImpl":{"tokenA":"0","tokenB":"0"},"newImpl":{"tokenA":"0","tokenB":"0"},"pythonImpl":{"tokenA":"0","tokenB":"0"}}';
+        string memory initialContent =
+            '{"oldImpl":{"tokenA":"0","tokenB":"0"},"newImpl":{"tokenA":"0","tokenB":"0"},"pythonImpl":{"tokenA":"0","tokenB":"0"}}';
         vm.writeFile(path, initialContent);
     }
 }

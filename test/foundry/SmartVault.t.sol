@@ -392,7 +392,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         uint256 wethAmount = weth.balanceOf(address(smartVault));
         uint256 stablePercentage = 1e5;
 
-        // revert invalid oener
+        // revert invalid owner
         vm.expectRevert(SmartVaultV4.InvalidUser.selector);
         smartVault.depositYield(NATIVE, stablePercentage);
 

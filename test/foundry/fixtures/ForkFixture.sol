@@ -183,21 +183,11 @@ contract ForkFixture is Test {
             abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
         );
 
-        collateralData[PAXG_SYMBOL] = CollateralData(
-            PAXG,
-            CL_PAXG_USD,
-            IHypervisor(address(0)),
-            new bytes(0),
-            new bytes(0)
-        );
+        collateralData[PAXG_SYMBOL] =
+            CollateralData(PAXG, CL_PAXG_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
 
-        collateralData[SUSHI_SYMBOL] = CollateralData(
-            SUSHI,
-            CL_SUSHI_USD,
-            IHypervisor(address(0)),
-            new bytes(0),
-            new bytes(0)
-        );
+        collateralData[SUSHI_SYMBOL] =
+            CollateralData(SUSHI, CL_SUSHI_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
 
         // TODO: RDNT configurations not clear
     }
@@ -288,7 +278,7 @@ contract ForkFixture is Test {
             if (collateralSymbols[i] == NATIVE) continue;
 
             CollateralData memory collateral = collateralData[collateralSymbols[i]];
-            if(address(collateral.hypervisor) == address(0)) continue;
+            if (address(collateral.hypervisor) == address(0)) continue;
 
             vm.prank(YIELD_MANAGER_OWNER);
             yieldManager.addHypervisorData(

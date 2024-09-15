@@ -3,6 +3,8 @@ pragma solidity 0.8.17;
 
 import {Test} from "forge-std/Test.sol";
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
 import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
 
@@ -10,6 +12,8 @@ import {TokenManagerFixture, TokenManager} from "./fixtures/TokenManagerFixture.
 import {ITokenManager} from "src/interfaces/ITokenManager.sol";
 
 contract TokenManagerTest is TokenManagerFixture, Test {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
+
     event TokenAdded(bytes32 symbol, address token);
     event TokenRemoved(bytes32 symbol);
 
@@ -24,7 +28,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
     function test_defaultNative() public {
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
-        assertEq(acceptedTokens.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
+        assertEq(acceptedTokens.length, collateralSymbols.length()); // collateralSymbols.length - 1 + NATIVE
 
         ITokenManager.Token memory token = acceptedTokens[0];
         assertEq(token.symbol, NATIVE);
@@ -35,7 +39,7 @@ contract TokenManagerTest is TokenManagerFixture, Test {
 
     function test_manageAcceptedTokens() public {
         ITokenManager.Token[] memory tokensBefore = tokenManager.getAcceptedTokens();
-        assertEq(tokensBefore.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
+        assertEq(tokensBefore.length, collateralSymbols.length()); // collateralSymbols.length - 1 + NATIVE
 
         // native cannot be removed
         vm.expectRevert("err-native-required");

@@ -231,7 +231,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             IERC20(_tokenIn).safeApprove(_swapRouter, 0);
         } else {
             // we want more tokenA
-            
+
             address _tokenIn = _tokenAIs0 ? _token1 : _token0;
             address _tokenOut = _tokenAIs0 ? _token0 : _token1;
 

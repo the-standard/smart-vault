@@ -10,6 +10,7 @@ import {SmartVaultYieldManager} from "src/SmartVaultYieldManager.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 import {FullMath} from "src/uniswap/FullMath.sol";
 import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
@@ -21,6 +22,7 @@ import {MockRamsesFactory} from "src/test_utils/MockRamsesFactory.sol";
 import {MockRamsesPool} from "src/test_utils/MockRamsesPool.sol";
 
 contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
     using SafeERC20 for IERC20;
 
     SmartVaultYieldManager yieldManager;
@@ -204,10 +206,10 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         );
 
         // add hypervisor data
-        for (uint256 i; i < collateralSymbols.length; i++) {
-            if (collateralSymbols[i] == NATIVE) continue;
+        for (uint256 i; i < collateralSymbols.length(); i++) {
+            if (collateralSymbols.at(i) == NATIVE) continue;
 
-            CollateralData memory collateral = collateralData[collateralSymbols[i]];
+            CollateralData memory collateral = collateralData[collateralSymbols.at(i)];
             yieldManager.addHypervisorData(
                 address(collateral.token),
                 address(collateral.hypervisor),

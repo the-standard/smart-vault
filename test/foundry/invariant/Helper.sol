@@ -13,6 +13,7 @@ import "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
 
 abstract contract Helper is Asserts, Bounds, Setup {
     using EnumerableSet for EnumerableSet.AddressSet;
+    using EnumerableSet for EnumerableSet.Bytes32Set;
 
     address internal msgSender;
     EnumerableSet.AddressSet internal hypervisors;
@@ -41,14 +42,8 @@ abstract contract Helper is Asserts, Bounds, Setup {
     //     return SmartVaultV4(smartVaultIndex.getVaultAddress(tokenId));
     // }
 
-    function _collateralContains(address token) internal returns (bool) {
-        for (uint256 i = 0; i < collateralSymbols.length; i++) {
-            if (address(collateralData[collateralSymbols[i]].token) == token) return true; // TODO: this is a bit cursed – maybe change to enumerable set
-        }
-    }
-
     function _getRandomToken(uint256 index) internal returns (address) {
-        return allTokens[between(index, 0, allTokens.length)];
+        return allTokens.at(between(index, 0, allTokens.length()));
     }
 
     function _getRandomCollateral(uint256 symbolIndex) internal returns (ERC20Mock, bytes32) {
@@ -57,18 +52,13 @@ abstract contract Helper is Asserts, Bounds, Setup {
     }
 
     function _getRandomSymbol(uint256 symbolIndex) internal returns (bytes32) {
-        return collateralSymbols[between(symbolIndex, 0, collateralSymbols.length)];
+        return collateralSymbols.at(between(symbolIndex, 0, collateralSymbols.length()));
     }
 
     function _symbolToToken(bytes32 symbol) internal returns (ERC20Mock) {
         return collateralData[symbol].token;
     }
 
-    // TODO: finish implementing this using Bounds.sol and probably reworking the common setup
-    // function _getRandomPriceFeed(uint256 index) internal returns (ChainlinkMock, uint256, uint256) {
-    //     return (collateralData[_getRandomSymbol(index)].clFeed, ,);
-    // }
-    
     function _getRandomPriceFeed(uint256 index) internal returns (ChainlinkMock) {
         return collateralData[_getRandomSymbol(index)].clFeed;
     }

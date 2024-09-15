@@ -14,12 +14,12 @@ abstract contract Properties is BeforeAfter, PropertiesSpecifications {
 
         return true;
     }
-    
+
     function invariant_FEES() public returns (bool) {
         if (
             _before.sig == ITargetFunctions.smartVaultV4_mint.selector
-            || _before.sig == ITargetFunctions.smartVaultV4_burn.selector
-            || _before.sig == ITargetFunctions.smartVaultV4_withdrawYield.selector
+                || _before.sig == ITargetFunctions.smartVaultV4_burn.selector
+                || _before.sig == ITargetFunctions.smartVaultV4_withdrawYield.selector
         ) {
             // TODO: implement ghosts – usds/token balance of protocol after >= before
         }

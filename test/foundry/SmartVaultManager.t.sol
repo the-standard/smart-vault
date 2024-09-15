@@ -4,11 +4,15 @@ pragma solidity 0.8.17;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 
+import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet.sol";
+
 import {SmartVaultManagerFixture, SmartVaultManagerV6} from "./fixtures/SmartVaultManagerFixture.sol";
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {ISmartVault} from "src/interfaces/ISmartVault.sol";
 
 contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
+    using EnumerableSet for EnumerableSet.Bytes32Set;
+
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
     event VaultTransferred(uint256 indexed tokenId, address from, address to);
@@ -33,7 +37,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         assertEq(status.minted, 0);
         assertEq(status.maxMintable, 0);
         assertEq(status.totalCollateralValue, 0);
-        assertEq(status.collateral.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
+        assertEq(status.collateral.length, collateralSymbols.length()); // collateralSymbols.length - 1 + NATIVE
         assertEq(status.liquidated, false);
         assertEq(status.version, 4);
         assertEq(status.vaultType, bytes32("USDs"));
@@ -107,7 +111,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         assertEq(statusAfter.minted, 0);
         assertEq(statusAfter.maxMintable, 0);
         assertEq(statusAfter.totalCollateralValue, 0);
-        assertEq(statusAfter.collateral.length, collateralSymbols.length); // collateralSymbols.length - 1 + NATIVE
+        assertEq(statusAfter.collateral.length, collateralSymbols.length()); // collateralSymbols.length - 1 + NATIVE
         for (uint256 i = 0; i < statusAfter.collateral.length; i++) {
             assertEq(statusAfter.collateral[i].amount, 0);
         }
