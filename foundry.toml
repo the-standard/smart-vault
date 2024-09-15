@@ -20,6 +20,9 @@ fs_permissions = [{ access = "read-write", path = "test/foundry/differential/bal
 no_match_path = "test/foundry/invariant/*"
 no_match_contract = "CryticTester|CryticToFoundry|FoundryHandler"
 
+# [fuzz]
+# runs = 10000
+
 [invariant]
 no_match_path = "a^"
 match_contract = "FoundryTester"
