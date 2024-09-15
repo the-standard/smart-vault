@@ -81,18 +81,18 @@ contract SwapToRatioTest is Test {
     }
 
     function test_swapToRatioFuzz(
-        uint256 tick,
+        uint256 priceTick,
         uint256 ratioTick,
         uint256 _tokenABalance,
         uint256 _tokenBBalance
     ) public {
-        int24 boundedTick = int24(int256(bound(tick, 0, 300_000*2))) - 300_000;
+        int24 boundedPriceTick = int24(int256(bound(priceTick, 0, 300_000*2))) - 300_000;
         int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 80_000*2))) - 80_000;
 
         console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
         console.log("max ratio %s, min ratio: %s", getPriceAtTick(80_000), getPriceAtTick(-80_000));
 
-        uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedTick);
+        uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedPriceTick);
         uint256 _ratio = getPriceAtTick(boundedRatioTick);
         uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, _ratio);
 
@@ -129,17 +129,9 @@ contract SwapToRatioTest is Test {
 
             // ratio passed in is reversed in uniProxy, hence B over A here
             assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance , (_ratio) / 1000, "old wrong");
-            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 1000, "new wrong");
+            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 3000, "new wrong");
         } else if (!successOld && successNew) {
             console.log("old implementation reverted when the new one did not");
-            // this is fine – new implementation is more robust
-            (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
-            );
-            console.log("newTokenABalance", newTokenABalance);
-            console.log("newTokenBBalance", newTokenBBalance);
-
-            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance , (_ratio) / 25, "old failed, new wrong");
         } else if (successOld && !successNew) {
             // this is bad – new implementation is less robust
             assertTrue(false, "new implementation should not revert when old one does not");

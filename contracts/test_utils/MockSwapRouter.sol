@@ -63,7 +63,10 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         amountOutMinimum = params.amountOutMinimum;
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
         txValue = msg.value;
-        _amountOut = getAmountOut(amountIn, tokenIn, tokenOut);
+
+        uint256 amountInAfterFee = amountIn * (1e6 - fee) / 1e6;
+
+        _amountOut = getAmountOut(amountInAfterFee, tokenIn, tokenOut);
         require(_amountOut > amountOutMinimum);
         if (msg.value == 0) {
             IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
@@ -116,9 +119,11 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
 
     function exactOutputSingle(ExactOutputSingleParams calldata params) external payable returns (uint256 _amountIn) {
         _amountIn = getAmountIn(params.amountOut, params.tokenIn, params.tokenOut);
-        require(_amountIn <= params.amountInMaximum,"price too high");
+
+        uint256 amountInWithFee = _amountIn  + (_amountIn * params.fee / 1e6);
+        require(amountInWithFee <= params.amountInMaximum,"price too high");
         if (msg.value == 0) {
-            IERC20(params.tokenIn).transferFrom(msg.sender, address(this), _amountIn);
+            IERC20(params.tokenIn).transferFrom(msg.sender, address(this), amountInWithFee);
         }
         IERC20(params.tokenOut).transfer(params.recipient, params.amountOut);
     }

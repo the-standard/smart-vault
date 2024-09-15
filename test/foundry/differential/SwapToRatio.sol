@@ -176,19 +176,19 @@ contract SwapToRatioNew is SwapToRatioBase {
                     : FullMath.mulDiv((10 ** bDec) * (10 ** (36 - aDec)), priceX192, 1 << 192);
             }
 
-            uint256 _a = _tokenABalance * (10 ** (36 - aDec));
-            uint256 _ratio = FullMath.mulDiv(_a, 1e36, _midRatio * (10 ** (36 - bDec)));
-
-            uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio, 1e36, price36);
+            uint256 _ratio = FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)), 1e36, _midRatio * (10 ** (36 - bDec)));
             uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
 
-            if (_a > _rb) {
-                _amountIn = FullMath.mulDiv(_a - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
+            if (_tokenABalance * (10 ** (36 - aDec)) > _rb) {
+                // a -> b
+                uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, swapFee, 1e6), 1e36, price36);
+                _amountIn = FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
             } else {
-                _amountOut = FullMath.mulDiv(_rb - _a, 1e36, _denominator) / 10 ** (36 - aDec);
+                // b -> a
+                uint256 _denominator = 1e36 + FullMath.mulDiv(_ratio, 1e36, price36 - FullMath.mulDivRoundingUp(price36, swapFee, 1e6));
+                _amountOut = FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
             }
         }
-
         if (_tokenBBalance < _midRatio) {
             // we want more tokenB
 
