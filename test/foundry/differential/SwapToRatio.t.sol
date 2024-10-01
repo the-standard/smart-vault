@@ -47,7 +47,7 @@ contract SwapToRatioTest is Test {
         // Ensure _sqrtPriceX96 is within uniswap limits
         _boundedSqrtPriceX96 = uint160(bound(uint256(_sqrtPriceX96), 4295128739, 3e37));
 
-        uint256 priceX192 = uint256(_sqrtPriceX96) * uint256(_sqrtPriceX96);
+        uint256 priceX192 = uint256(_boundedSqrtPriceX96) * uint256(_boundedSqrtPriceX96);
         console.log("using price: %s, and ratio: %s", FullMath.mulDiv(1e18, priceX192, 1 << 192), _ratio);
 
         // Set the ratio in the proxy and router
