@@ -474,11 +474,9 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         SmartVaultV4.Status memory status = smartVault.status();
         smartVault.mint(VAULT_OWNER, status.maxMintable * 90 / 100);
         smartVault.depositYield(NATIVE, 1e5, 5e4, block.timestamp + 60);
-        status = smartVault.status();
         SmartVaultV4.YieldPair[] memory yieldPairs = smartVault.yieldAssets();
         assertEq(yieldPairs.length, 1);
         address hypervisor = yieldPairs[0].hypervisor;
-        status = smartVault.status();
         yieldPairs = smartVault.yieldAssets();
 
         uint256 hypervisorBalance = IHypervisor(hypervisor).balanceOf(address(smartVault));

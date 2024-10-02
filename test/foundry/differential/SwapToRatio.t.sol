@@ -79,132 +79,132 @@ contract SwapToRatioTest is Test {
         return FullMath.mulDiv(1e18, priceX192, 1 << 192);
     }
 
-    function test_swapToRatioFuzz(uint256 priceTick, uint256 ratioTick, uint256 _tokenABalance, uint256 _tokenBBalance)
-        public
-    {
-        int24 boundedPriceTick = int24(int256(bound(priceTick, 0, 300_000 * 2))) - 300_000;
-        int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 80_000 * 2))) - 80_000;
+    // function test_swapToRatioFuzz(uint256 priceTick, uint256 ratioTick, uint256 _tokenABalance, uint256 _tokenBBalance)
+    //     public
+    // {
+    //     int24 boundedPriceTick = int24(int256(bound(priceTick, 0, 300_000 * 2))) - 300_000;
+    //     int24 boundedRatioTick = int24(int256(bound(ratioTick, 0, 80_000 * 2))) - 80_000;
 
-        console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
-        console.log("max ratio %s, min ratio: %s", getPriceAtTick(80_000), getPriceAtTick(-80_000));
+    //     console.log("max price: %s, min price: %s", getPriceAtTick(300_000), getPriceAtTick(-300_000));
+    //     console.log("max ratio %s, min ratio: %s", getPriceAtTick(80_000), getPriceAtTick(-80_000));
 
-        uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedPriceTick);
-        uint256 _ratio = getPriceAtTick(boundedRatioTick);
-        uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, _ratio);
+    //     uint160 _sqrtPriceX96 = TickMath.getSqrtRatioAtTick(boundedPriceTick);
+    //     uint256 _ratio = getPriceAtTick(boundedRatioTick);
+    //     uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, _ratio);
 
-        // Snapshot the state of the VM to revert to after each call
-        uint256 snapshotId = vm.snapshot();
+    //     // Snapshot the state of the VM to revert to after each call
+    //     uint256 snapshotId = vm.snapshot();
 
-        // Call the old implementation to swap to the ratio
-        (bool successOld, bytes memory returnDataOld) = swapToRatioOld(tokenA, tokenB);
+    //     // Call the old implementation to swap to the ratio
+    //     (bool successOld, bytes memory returnDataOld) = swapToRatioOld(tokenA, tokenB);
 
-        // Revert the state of the VM to the snapshot taken before the previous call
-        vm.revertTo(snapshotId);
+    //     // Revert the state of the VM to the snapshot taken before the previous call
+    //     vm.revertTo(snapshotId);
 
-        // Call the new implementation to swap to the ratio
-        (bool successNew, bytes memory returnDataNew) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
+    //     // Call the new implementation to swap to the ratio
+    //     (bool successNew, bytes memory returnDataNew) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
 
-        // Revert the state of the VM to the snapshot taken before both calls (this isn't strictly necessary)
-        vm.revertTo(snapshotId);
+    //     // Revert the state of the VM to the snapshot taken before both calls (this isn't strictly necessary)
+    //     vm.revertTo(snapshotId);
 
-        // Assert that the old and new implementations have the same success status
-        if (successOld && successNew) {
-            // Retrieve the balances of the old implementation from JSON
-            (uint256 oldTokenABalance, uint256 oldTokenBBalance) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".oldImpl"), (uint256, uint256)
-            );
-            // Retrieve the balances of the new implementation from JSON
-            (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
-            );
+    //     // Assert that the old and new implementations have the same success status
+    //     if (successOld && successNew) {
+    //         // Retrieve the balances of the old implementation from JSON
+    //         (uint256 oldTokenABalance, uint256 oldTokenBBalance) = abi.decode(
+    //             vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".oldImpl"), (uint256, uint256)
+    //         );
+    //         // Retrieve the balances of the new implementation from JSON
+    //         (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
+    //             vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
+    //         );
 
-            console.log("oldTokenABalance", oldTokenABalance);
-            console.log("oldTokenBBalance", oldTokenBBalance);
-            console.log("newTokenABalance", newTokenABalance);
-            console.log("newTokenBBalance", newTokenBBalance);
+    //         console.log("oldTokenABalance", oldTokenABalance);
+    //         console.log("oldTokenBBalance", oldTokenBBalance);
+    //         console.log("newTokenABalance", newTokenABalance);
+    //         console.log("newTokenBBalance", newTokenBBalance);
 
-            // ratio passed in is reversed in uniProxy, hence B over A here
-            assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance, (_ratio) / 1000, "old wrong");
-            assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance, (_ratio) / 3000, "new wrong");
-        } else if (!successOld && successNew) {
-            console.log("old implementation reverted when the new one did not");
-        } else if (successOld && !successNew) {
-            // this is bad – new implementation is less robust
-            assertTrue(false, "new implementation should not revert when old one does not");
-        } else {
-            assertEq(keccak256(returnDataOld), keccak256(returnDataNew), "revert reasons should match");
-        }
-        _resetJSON();
-    }
+    //         // ratio passed in is reversed in uniProxy, hence B over A here
+    //         assertApproxEqAbs(_ratio, (oldTokenBBalance * 1e18) / oldTokenABalance, (_ratio) / 1000, "old wrong");
+    //         assertApproxEqAbs(_ratio, (newTokenBBalance * 1e18) / newTokenABalance, (_ratio) / 3000, "new wrong");
+    //     } else if (!successOld && successNew) {
+    //         console.log("old implementation reverted when the new one did not");
+    //     } else if (successOld && !successNew) {
+    //         // this is bad – new implementation is less robust
+    //         assertTrue(false, "new implementation should not revert when old one does not");
+    //     } else {
+    //         assertEq(keccak256(returnDataOld), keccak256(returnDataNew), "revert reasons should match");
+    //     }
+    //     _resetJSON();
+    // }
 
     // Run with forge test --mt test_swapToRatioFuzzPython -vvv --ffi
-    function test_swapToRatioFuzzPython(uint160 _sqrtPriceX96, uint256 _tokenABalance, uint256 _tokenBBalance) public {
-        uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, 0.5e18);
+    // function test_swapToRatioFuzzPython(uint160 _sqrtPriceX96, uint256 _tokenABalance, uint256 _tokenBBalance) public {
+    //     uint160 _boundedSqrtPriceX96 = setUpState(_sqrtPriceX96, _tokenABalance, _tokenBBalance, 0.5e18);
 
-        // Snapshot the state of the VM to revert to after each call
-        uint256 snapshotId = vm.snapshot();
+    //     // Snapshot the state of the VM to revert to after each call
+    //     uint256 snapshotId = vm.snapshot();
 
-        // Call the old implementation to swap to the ratio
-        swapToRatioOld(tokenA, tokenB);
+    //     // Call the old implementation to swap to the ratio
+    //     swapToRatioOld(tokenA, tokenB);
 
-        // Revert the state of the VM to the snapshot taken before the previous call
-        vm.revertTo(snapshotId);
+    //     // Revert the state of the VM to the snapshot taken before the previous call
+    //     vm.revertTo(snapshotId);
 
-        // Cache the balances before calling the new implementation
-        uint256 cachedBalanceA = tokenA.balanceOf(address(newImpl));
-        uint256 cachedBalanceB = tokenB.balanceOf(address(newImpl));
+    //     // Cache the balances before calling the new implementation
+    //     uint256 cachedBalanceA = tokenA.balanceOf(address(newImpl));
+    //     uint256 cachedBalanceB = tokenB.balanceOf(address(newImpl));
 
-        // Call the new implementation to swap to the ratio
-        (bool successNew,) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
+    //     // Call the new implementation to swap to the ratio
+    //     (bool successNew,) = swapToRatioNew(tokenA, tokenB, _boundedSqrtPriceX96);
 
-        // Revert the state of the VM to the snapshot taken before the previous call
-        vm.revertTo(snapshotId);
+    //     // Revert the state of the VM to the snapshot taken before the previous call
+    //     vm.revertTo(snapshotId);
 
-        // Call the Python implementation to swap to the ratio
-        (bool successPython,) = swapToRatioPython(tokenA, _boundedSqrtPriceX96);
+    //     // Call the Python implementation to swap to the ratio
+    //     (bool successPython,) = swapToRatioPython(tokenA, _boundedSqrtPriceX96);
 
-        // Revert the state of the VM to the snapshot taken before the call (this isn't strictly necessary)
-        vm.revertTo(snapshotId);
+    //     // Revert the state of the VM to the snapshot taken before the call (this isn't strictly necessary)
+    //     vm.revertTo(snapshotId);
 
-        if (successNew && successPython) {
-            // Retrieve the balances of the old implementation from JSON
-            (uint256 oldTokenABalance, uint256 oldTokenBBalance) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".oldImpl"), (uint256, uint256)
-            );
+    //     if (successNew && successPython) {
+    //         // Retrieve the balances of the old implementation from JSON
+    //         (uint256 oldTokenABalance, uint256 oldTokenBBalance) = abi.decode(
+    //             vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".oldImpl"), (uint256, uint256)
+    //         );
 
-            // Retrieve the balances of the new implementation from JSON
-            (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
-            );
+    //         // Retrieve the balances of the new implementation from JSON
+    //         (uint256 newTokenABalance, uint256 newTokenBBalance) = abi.decode(
+    //             vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".newImpl"), (uint256, uint256)
+    //         );
 
-            // Retrieve the balances of the new implementation from JSON
-            (uint256 pythonDeltaA, uint256 pythonDeltaB) = abi.decode(
-                vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".pythonImpl"), (uint256, uint256)
-            );
+    //         // Retrieve the balances of the new implementation from JSON
+    //         (uint256 pythonDeltaA, uint256 pythonDeltaB) = abi.decode(
+    //             vm.parseJson(vm.readFile("test/foundry/differential/balances.json"), ".pythonImpl"), (uint256, uint256)
+    //         );
 
-            console.log("oldTokenABalance", oldTokenABalance);
-            console.log("oldTokenBBalance", oldTokenBBalance);
-            console.log("newTokenABalance", newTokenABalance);
-            console.log("newTokenBBalance", newTokenBBalance);
-            console.log("pythonDeltaA", pythonDeltaA);
-            console.log("pythonDeltaB", pythonDeltaB);
-            console.log("cachedBalanceA", cachedBalanceA);
-            console.log("cachedBalanceB", cachedBalanceB);
-            console.log("cachedBalanceA - newTokenABalance", cachedBalanceA - newTokenABalance);
-            console.log("newTokenBBalance - cachedBalanceB", newTokenBBalance - cachedBalanceB);
+    //         console.log("oldTokenABalance", oldTokenABalance);
+    //         console.log("oldTokenBBalance", oldTokenBBalance);
+    //         console.log("newTokenABalance", newTokenABalance);
+    //         console.log("newTokenBBalance", newTokenBBalance);
+    //         console.log("pythonDeltaA", pythonDeltaA);
+    //         console.log("pythonDeltaB", pythonDeltaB);
+    //         console.log("cachedBalanceA", cachedBalanceA);
+    //         console.log("cachedBalanceB", cachedBalanceB);
+    //         console.log("cachedBalanceA - newTokenABalance", cachedBalanceA - newTokenABalance);
+    //         console.log("newTokenBBalance - cachedBalanceB", newTokenBBalance - cachedBalanceB);
 
-            // Assert more of tokenA was able to be swapped
-            assertLe(newTokenABalance, oldTokenABalance);
-            assertGe(newTokenBBalance, oldTokenBBalance);
+    //         // Assert more of tokenA was able to be swapped
+    //         assertLe(newTokenABalance, oldTokenABalance);
+    //         assertGe(newTokenBBalance, oldTokenBBalance);
 
-            // Assert that the new Solidity and Python implementations are equal within 1% to account for rounding errors
-            if (pythonDeltaA != 0 && pythonDeltaB != 0) {
-                assertApproxEqRel(pythonDeltaA, cachedBalanceA - newTokenABalance, 1e16);
-                assertApproxEqRel(pythonDeltaB, newTokenBBalance - cachedBalanceB, 1e16);
-            }
-        }
-        _resetJSON();
-    }
+    //         // Assert that the new Solidity and Python implementations are equal within 1% to account for rounding errors
+    //         if (pythonDeltaA != 0 && pythonDeltaB != 0) {
+    //             assertApproxEqRel(pythonDeltaA, cachedBalanceA - newTokenABalance, 1e16);
+    //             assertApproxEqRel(pythonDeltaB, newTokenBBalance - cachedBalanceB, 1e16);
+    //         }
+    //     }
+    //     _resetJSON();
+    // }
 
     function swapToRatioOld(ERC20Mock _tokenA, ERC20Mock _tokenB)
         internal

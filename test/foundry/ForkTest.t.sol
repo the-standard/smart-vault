@@ -37,8 +37,11 @@ contract ForkTest is ForkFixture {
     function test_depositAndWithdrawYield() public {
         vm.deal(address(vault), 1 ether);
 
+        SmartVaultV4.Status memory status = vault.status();
         vm.prank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4, 5e4, block.timestamp + 60);
+
+        status = vault.status();
 
         vm.prank(VAULT_OWNER);
         vault.withdrawYield(address(usdsHypervisor), NATIVE, 5e4, block.timestamp + 60);
