@@ -7,8 +7,6 @@ import "contracts/interfaces/ISwapRouter.sol";
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
 import {FullMath} from "contracts/uniswap/FullMath.sol";
 
-import {console} from "forge-std/console.sol";
-
 contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     address private tokenIn;
     address private tokenOut;

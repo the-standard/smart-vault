@@ -198,10 +198,10 @@ contract ForkFixture is Test {
         usds = new USDsMock();
         vm.label(address(usds), "USDs");
 
-        // deploy USDs Ramses pool
-        IUniswapV3Factory factory = IUniswapV3Factory(IPeripheryImmutableState(RAMSES_ROUTER_ADDRESS).factory());
+        // deploy USDs Uniswap pool
+        IUniswapV3Factory factory = IUniswapV3Factory(IPeripheryImmutableState(UNISWAP_ROUTER_ADDRESS).factory());
         usdsPool = IUniswapV3Pool(factory.createPool(USDC_ADDRESS, address(usds), UNISWAP_FEE));
-        vm.label(address(usdsPool), "USDs/USDC Ramses Pool");
+        vm.label(address(usdsPool), "USDs/USDC Uniswap Pool");
 
         // deal tokens to this contract
         usds.grantRole(usds.MINTER_ROLE(), address(this));
@@ -320,8 +320,8 @@ contract ForkFixture is Test {
 
         IUniswapV3Pool(usdsPool).initialize(sqrtPriceX96);
 
-        int24 tickLower = tick - 10 - tick % IUniswapV3Pool(usdsPool).tickSpacing();
-        int24 tickUpper = tick + 10 + tick % IUniswapV3Pool(usdsPool).tickSpacing();
+        int24 tickLower = tick - 100 - tick % IUniswapV3Pool(usdsPool).tickSpacing();
+        int24 tickUpper = tick + 100 + tick % IUniswapV3Pool(usdsPool).tickSpacing();
 
         uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
             sqrtPriceX96,
@@ -335,7 +335,7 @@ contract ForkFixture is Test {
         IUniswapV3Pool(usdsPool).increaseObservationCardinalityNext(100);
     }
 
-    function ramsesV2MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata) external {
+    function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata) external {
         usds.transfer(msg.sender, amount0Owed);
         USDC.transfer(msg.sender, amount1Owed);
     }
