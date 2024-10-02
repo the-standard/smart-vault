@@ -43,7 +43,11 @@ contract ChainlinkMock is AggregatorV3Interface {
         startedAt = _startedAt;
     }
 
-    function latestRoundData() external view returns (uint80 _roundID,int256 _answer,uint256 _startedAt,uint256 _updatedAt,uint80) {
+    function latestRoundData()
+        external
+        view
+        returns (uint80 _roundID, int256 _answer, uint256 _startedAt, uint256 _updatedAt, uint80)
+    {
         _roundID = roundID;
         _answer = price;
         _startedAt = startedAt;

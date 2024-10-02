@@ -70,9 +70,7 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     }
 
     function receivedSwap() external view returns (MockSwapData memory) {
-        return MockSwapData(
-            tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96
-        );
+        return MockSwapData(tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96);
     }
 
     function exactInput(ExactInputParams calldata params) external payable returns (uint256 _amountOut) {

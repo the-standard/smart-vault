@@ -232,7 +232,8 @@ contract ForkFixture is Test {
     function _deployVaultManager() internal {
         // deploy SmartVaultManager
         smartVaultManager = new SmartVaultManagerV6();
-        PriceCalculator priceCalculator = new PriceCalculator(NATIVE, CL_USDC_USD_ADDRESS, CL_L2_SEQUENCER_UPTIME_FEED_ADDRESS);
+        PriceCalculator priceCalculator =
+            new PriceCalculator(NATIVE, CL_USDC_USD_ADDRESS, CL_L2_SEQUENCER_UPTIME_FEED_ADDRESS);
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE, address(priceCalculator));
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
         MockNFTMetadataGenerator nftMetadataGenerator = new MockNFTMetadataGenerator();

@@ -178,10 +178,14 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_swap(uint256 inTokenIndex, uint256 outTokenIndex, uint256 amount, uint256 requestedMinOut, uint24 fee, uint256 deadline)
-        public
-        checkExpectedErrors(SWAP_COLLATERAL_ERRORS)
-    {
+    function smartVaultV4_swap(
+        uint256 inTokenIndex,
+        uint256 outTokenIndex,
+        uint256 amount,
+        uint256 requestedMinOut,
+        uint24 fee,
+        uint256 deadline
+    ) public checkExpectedErrors(SWAP_COLLATERAL_ERRORS) {
         (ERC20Mock inToken, bytes32 inSymbol) = _getRandomCollateral(inTokenIndex);
         (ERC20Mock outToken, bytes32 outSymbol) = _getRandomCollateral(outTokenIndex);
 
@@ -195,8 +199,9 @@ abstract contract TargetFunctions is ExpectedErrors {
         __before(smartVault);
 
         vm.prank(VAULT_OWNER);
-        (success, returnData) =
-            address(smartVault).call(abi.encodeCall(smartVault.swap, (inSymbol, outSymbol, amount, requestedMinOut, fee, deadline)));
+        (success, returnData) = address(smartVault).call(
+            abi.encodeCall(smartVault.swap, (inSymbol, outSymbol, amount, requestedMinOut, fee, deadline))
+        );
 
         if (success) {
             __after(smartVault);
@@ -223,18 +228,21 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_depositYield(uint256 symbolIndex, uint256 stablePercentage, uint256 minCollateralPercentage, uint256 deadline)
-        public
-        checkExpectedErrors(DEPOSIT_YIELD_ERRORS)
-    {
+    function smartVaultV4_depositYield(
+        uint256 symbolIndex,
+        uint256 stablePercentage,
+        uint256 minCollateralPercentage,
+        uint256 deadline
+    ) public checkExpectedErrors(DEPOSIT_YIELD_ERRORS) {
         (, bytes32 symbol) = _getRandomCollateral(symbolIndex);
         stablePercentage = between(stablePercentage, MIN_STABLE_PERCENTAGE, MAX_STABLE_PERCENTAGE);
 
         __before(smartVault);
 
         vm.prank(VAULT_OWNER);
-        (success, returnData) =
-            address(smartVault).call(abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage, minCollateralPercentage, deadline)));
+        (success, returnData) = address(smartVault).call(
+            abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage, minCollateralPercentage, deadline))
+        );
 
         if (success) {
             __after(smartVault);
@@ -248,10 +256,12 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_withdrawYield(uint256 hypervisorIndex, uint256 symbolIndex, uint256 minCollateralPercentage, uint256 deadline)
-        public
-        checkExpectedErrors(WITHDRAW_YIELD_ERRORS)
-    {
+    function smartVaultV4_withdrawYield(
+        uint256 hypervisorIndex,
+        uint256 symbolIndex,
+        uint256 minCollateralPercentage,
+        uint256 deadline
+    ) public checkExpectedErrors(WITHDRAW_YIELD_ERRORS) {
         (, bytes32 symbol) = _getRandomCollateral(symbolIndex);
         address hypervisor = _getRandomHypervisor(hypervisorIndex);
 
@@ -262,7 +272,9 @@ abstract contract TargetFunctions is ExpectedErrors {
         __before(smartVault);
 
         vm.prank(VAULT_OWNER);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.withdrawYield, (hypervisor, symbol, minCollateralPercentage, deadline)));
+        (success, returnData) = address(smartVault).call(
+            abi.encodeCall(smartVault.withdrawYield, (hypervisor, symbol, minCollateralPercentage, deadline))
+        );
 
         if (success) {
             __after(smartVault);

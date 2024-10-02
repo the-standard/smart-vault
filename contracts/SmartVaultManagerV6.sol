@@ -66,10 +66,7 @@ contract SmartVaultManagerV6 is
         address _smartVaultIndex,
         address _nftMetadataGenerator,
         uint16 _userVaultLimit
-    )
-        public
-        initializer
-    {
+    ) public initializer {
         __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
         __Ownable_init();
         collateralRate = _collateralRate;

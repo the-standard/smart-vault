@@ -91,7 +91,7 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         // Attempt to liquidate without USDs to burn
         vm.expectRevert("ERC20: burn amount exceeds balance");
         smartVaultManager.liquidateVault(tokenId);
-        
+
         // mint extra because of outstanding fees in vault debt
         usds.mint(liquidator, mintValue * 2);
 

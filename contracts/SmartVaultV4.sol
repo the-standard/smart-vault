@@ -80,7 +80,7 @@ contract SmartVaultV4 is ISmartVault {
         _;
     }
 
-    modifier remainCollateralised {
+    modifier remainCollateralised() {
         _;
         if (undercollateralised()) revert Undercollateralised();
     }
@@ -121,7 +121,7 @@ contract SmartVaultV4 is ISmartVault {
             }
         }
     }
- 
+
     function usdCollateral() private view returns (uint256 _usd) {
         ITokenManager tokenManager = ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
@@ -173,12 +173,14 @@ contract SmartVaultV4 is ISmartVault {
         liquidated = true;
         minted = 0;
         // remove all erc20 collateral
-        ITokenManager.Token[] memory tokens = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
+        ITokenManager.Token[] memory tokens =
+            ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol != NATIVE) {
                 IERC20 _token = IERC20(tokens[i].addr);
                 if (_token.balanceOf(address(this)) != 0) {
-                    try _token.transfer(_liquidator, _token.balanceOf(address(this))) {} catch {
+                    try _token.transfer(_liquidator, _token.balanceOf(address(this))) {}
+                    catch {
                         emit FailedTransfer(address(_token), _token.balanceOf(address(this)));
                     }
                 }
@@ -187,7 +189,9 @@ contract SmartVaultV4 is ISmartVault {
         // remove all hypervisor tokens
         for (uint256 i = 0; i < hypervisors.length; i++) {
             IERC20 _hypervisor = IERC20(hypervisors[i]);
-            if (_hypervisor.balanceOf(address(this)) != 0) _hypervisor.safeTransfer(_liquidator, _hypervisor.balanceOf(address(this)));
+            if (_hypervisor.balanceOf(address(this)) != 0) {
+                _hypervisor.safeTransfer(_liquidator, _hypervisor.balanceOf(address(this)));
+            }
         }
         // remove eth
         if (address(this).balance != 0) {
@@ -250,27 +254,35 @@ contract SmartVaultV4 is ISmartVault {
         return _token.addr == address(0) ? ISmartVaultManagerV3(manager).weth() : _token.addr;
     }
 
-    function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee) private returns (uint256 _amountOut) {
+    function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee)
+        private
+        returns (uint256 _amountOut)
+    {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
         _amountOut = ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
         IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
     }
 
-    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline) external onlyOwner remainCollateralised {
-        uint256 swapFee = _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
+    function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline)
+        external
+        onlyOwner
+        remainCollateralised
+    {
+        uint256 swapFee =
+            _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
-        if (_inToken == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{ value: _amount }();
+        if (_inToken == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: _amount}();
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-                tokenIn: inToken,
-                tokenOut: getTokenisedAddr(_outToken),
-                fee: _fee,
-                recipient: address(this),
-                deadline: _deadline,
-                amountIn: _amount - swapFee,
-                amountOutMinimum: _minOut,
-                sqrtPriceLimitX96: 0
-            });
+            tokenIn: inToken,
+            tokenOut: getTokenisedAddr(_outToken),
+            fee: _fee,
+            recipient: address(this),
+            deadline: _deadline,
+            amountIn: _amount - swapFee,
+            amountOutMinimum: _minOut,
+            sqrtPriceLimitX96: 0
+        });
         uint256 _amountOut = executeSwapAndFee(params, swapFee);
         if (_outToken == NATIVE) {
             IWETH(ISmartVaultManagerV3(manager).weth()).withdraw(_amountOut);
@@ -293,11 +305,21 @@ contract SmartVaultV4 is ISmartVault {
         }
     }
 
-    function significantCollateralDrop(uint256 _preCollateralValue, uint256 _postCollateralValue, uint256 _minCollateralPercentage) private view returns (bool) {
-        return _postCollateralValue < _minCollateralPercentage * _preCollateralValue / ISmartVaultManagerV3(manager).HUNDRED_PC();
+    function significantCollateralDrop(
+        uint256 _preCollateralValue,
+        uint256 _postCollateralValue,
+        uint256 _minCollateralPercentage
+    ) private view returns (bool) {
+        return _postCollateralValue
+            < _minCollateralPercentage * _preCollateralValue / ISmartVaultManagerV3(manager).HUNDRED_PC();
     }
 
-    function depositYield(bytes32 _symbol, uint256 _stablePercentage, uint256 _minCollateralPercentage, uint256 _deadline) external onlyOwner withinTimestamp(_deadline) {
+    function depositYield(
+        bytes32 _symbol,
+        uint256 _stablePercentage,
+        uint256 _minCollateralPercentage,
+        uint256 _deadline
+    ) external onlyOwner withinTimestamp(_deadline) {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
@@ -309,11 +331,17 @@ contract SmartVaultV4 is ISmartVault {
         addUniqueHypervisor(_hypervisor1);
         if (_hypervisor2 != address(0)) addUniqueHypervisor(_hypervisor2);
         uint256 _postDepositCollateral = usdCollateral();
-        if (_undercollateralised(_postDepositCollateral) || 
-            significantCollateralDrop(_preDepositCollateral, _postDepositCollateral, _minCollateralPercentage)) revert Undercollateralised();
+        if (
+            _undercollateralised(_postDepositCollateral)
+                || significantCollateralDrop(_preDepositCollateral, _postDepositCollateral, _minCollateralPercentage)
+        ) revert Undercollateralised();
     }
 
-    function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage, uint256 _deadline) external onlyOwner withinTimestamp(_deadline) {
+    function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage, uint256 _deadline)
+        external
+        onlyOwner
+        withinTimestamp(_deadline)
+    {
         address _token = getTokenisedAddr(_symbol);
         IERC20(_hypervisor).safeApprove(
             ISmartVaultManagerV3(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this))
@@ -325,8 +353,10 @@ contract SmartVaultV4 is ISmartVault {
             IWETH(_token).withdraw(getAssetBalance(_token));
         }
         uint256 _postWithdrawCollateral = usdCollateral();
-        if (_undercollateralised(_postWithdrawCollateral) ||
-            significantCollateralDrop(_preWithdrawCollateral, _postWithdrawCollateral, _minCollateralPercentage)) revert Undercollateralised();
+        if (
+            _undercollateralised(_postWithdrawCollateral)
+                || significantCollateralDrop(_preWithdrawCollateral, _postWithdrawCollateral, _minCollateralPercentage)
+        ) revert Undercollateralised();
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {

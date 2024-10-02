@@ -20,14 +20,14 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     error SequencerDown();
     error GracePeriodNotOver();
 
-    constructor (bytes32 _native, address _USDCToUSDAddr, address _sequencerUptimeFeed) {
+    constructor(bytes32 _native, address _USDCToUSDAddr, address _sequencerUptimeFeed) {
         NATIVE = _native;
         USDCToUSDAddr = _USDCToUSDAddr;
         sequencerUptimeFeed = Chainlink.AggregatorV3Interface(_sequencerUptimeFeed);
     }
 
     function validateSequencerUp() private view {
-        (,int256 answer,uint256 startedAt,,) = sequencerUptimeFeed.latestRoundData();
+        (, int256 answer, uint256 startedAt,,) = sequencerUptimeFeed.latestRoundData();
         bool isSequencerUp = answer == 0;
         if (!isSequencerUp) {
             revert SequencerDown();
@@ -38,7 +38,11 @@ contract PriceCalculator is IPriceCalculator, Ownable {
         }
     }
 
-    function overscaledCollateral(ITokenManager.Token memory _token, uint256 _tokenValue) private view returns (uint256 _scaledValue) {
+    function overscaledCollateral(ITokenManager.Token memory _token, uint256 _tokenValue)
+        private
+        view
+        returns (uint256 _scaledValue)
+    {
         uint8 _dec = _token.symbol == NATIVE ? 18 : ERC20(_token.addr).decimals();
         return _tokenValue * 10 ** (36 - _dec);
     }
@@ -50,22 +54,22 @@ contract PriceCalculator is IPriceCalculator, Ownable {
 
     function validateData(uint80 _roundId, int256 _answer, uint256 _updatedAt, address _dataFeed) private view {
         validateSequencerUp();
-        if(_roundId == 0) revert InvalidRoundId();
-        if(_answer == 0) revert InvalidPrice();
-        if(_updatedAt == 0 || _updatedAt > block.timestamp) revert InvalidUpdate();
-        if(block.timestamp - _updatedAt > getTimeout(_dataFeed)) revert StalePrice();
+        if (_roundId == 0) revert InvalidRoundId();
+        if (_answer == 0) revert InvalidPrice();
+        if (_updatedAt == 0 || _updatedAt > block.timestamp) revert InvalidUpdate();
+        if (block.timestamp - _updatedAt > getTimeout(_dataFeed)) revert StalePrice();
     }
 
     function tokenToUSD(ITokenManager.Token memory _token, uint256 _tokenValue) external view returns (uint256) {
         Chainlink.AggregatorV3Interface tokenUsdClFeed = Chainlink.AggregatorV3Interface(_token.clAddr);
-        (uint80 _roundId, int256 _tokenUsdPrice, , uint256 _updatedAt, ) = tokenUsdClFeed.latestRoundData();
+        (uint80 _roundId, int256 _tokenUsdPrice,, uint256 _updatedAt,) = tokenUsdClFeed.latestRoundData();
         validateData(_roundId, _tokenUsdPrice, _updatedAt, _token.clAddr);
         return overscaledCollateral(_token, _tokenValue) * uint256(_tokenUsdPrice) / 10 ** _token.clDec / 1e18;
     }
 
     function USDCToUSD(uint256 _amount, uint8 _dec) external view returns (uint256) {
         Chainlink.AggregatorV3Interface _clUSDCToUSD = Chainlink.AggregatorV3Interface(USDCToUSDAddr);
-        (uint80 _roundId, int256 _USDCToUSDPrice, , uint256 _updatedAt, ) = _clUSDCToUSD.latestRoundData();
+        (uint80 _roundId, int256 _USDCToUSDPrice,, uint256 _updatedAt,) = _clUSDCToUSD.latestRoundData();
         validateData(_roundId, _USDCToUSDPrice, _updatedAt, USDCToUSDAddr);
         return _amount * uint256(_USDCToUSDPrice) * 10 ** (18 - _dec) / 10 ** _clUSDCToUSD.decimals();
     }

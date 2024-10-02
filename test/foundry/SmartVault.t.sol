@@ -483,9 +483,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
         uint256 hypervisorBalance = IHypervisor(hypervisor).balanceOf(address(smartVault));
         vm.expectRevert(SmartVaultV4.Undercollateralised.selector);
-        smartVault.removeAsset(
-            yieldPairs[0].hypervisor, hypervisorBalance, VAULT_OWNER
-        );
+        smartVault.removeAsset(yieldPairs[0].hypervisor, hypervisorBalance, VAULT_OWNER);
     }
 
     // Helper functions
