@@ -291,20 +291,30 @@ contract SmartVaultV4 is ISmartVault {
         }
     }
 
-    function autoRedemption(address _swapRouterAddress, address _collateralAddr, bytes memory _swapPath, uint256 _collateralAmount) external onlyVaultManager returns (uint256 _amountOut) {
+    function autoRedemption(
+        address _swapRouterAddress,
+        address _collateralAddr,
+        bytes memory _swapPath,
+        uint256 _collateralAmount
+    ) external onlyVaultManager returns (uint256 _amountOut) {
         if (_collateralAddr == address(0)) {
             _collateralAddr = ISmartVaultManagerV3(manager).weth();
             IWETH(_collateralAddr).deposit{value: _collateralAmount}();
         }
         IERC20(_collateralAddr).safeApprove(_swapRouterAddress, _collateralAmount);
-        _amountOut = ISwapRouter(_swapRouterAddress).exactInput(ISwapRouter.ExactInputParams({
-            path: _swapPath,
-            recipient: address(this),
-            deadline: block.timestamp+3600,
-            amountIn: _collateralAmount,
-            // minimum amount out should be at least usd value of collateral being swapped in
-            amountOutMinimum: calculator.tokenToUSD(ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralAddr), _collateralAmount)
-        }));
+        _amountOut = ISwapRouter(_swapRouterAddress).exactInput(
+            ISwapRouter.ExactInputParams({
+                path: _swapPath,
+                recipient: address(this),
+                deadline: block.timestamp + 3600,
+                amountIn: _collateralAmount,
+                // minimum amount out should be at least usd value of collateral being swapped in
+                amountOutMinimum: calculator.tokenToUSD(
+                    ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralAddr),
+                    _collateralAmount
+                )
+            })
+        );
         uint256 _usdsBalance = USDs.balanceOf(address(this));
         minted -= _usdsBalance;
         USDs.burn(address(this), _usdsBalance);

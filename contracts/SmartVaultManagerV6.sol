@@ -116,8 +116,16 @@ contract SmartVaultManagerV6 is
         emit VaultLiquidated(address(vault));
     }
 
-    function vaultAutoRedemption(uint256 _tokenID, address _swapRouterAddress, address _collateralAddr, bytes memory _swapPath, uint256 _collateralAmount) external onlyOwner returns (uint256 _amountOut) {
-        return ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).autoRedemption(_swapRouterAddress, _collateralAddr, _swapPath, _collateralAmount);
+    function vaultAutoRedemption(
+        uint256 _tokenID,
+        address _swapRouterAddress,
+        address _collateralAddr,
+        bytes memory _swapPath,
+        uint256 _collateralAmount
+    ) external onlyOwner returns (uint256 _amountOut) {
+        return ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).autoRedemption(
+            _swapRouterAddress, _collateralAddr, _swapPath, _collateralAmount
+        );
     }
 
     // TODO maintain vault liquidations with old vault liquidate interface for EUROs
