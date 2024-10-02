@@ -1,0 +1,12 @@
+testMode: "property"
+prefix: "invariant_"
+coverage: true
+corpusDir: "echidna/corpus-property"
+cryticArgs:
+  [
+    "--foundry-compile-all",
+    "--foundry-out-directory",
+    "./artifacts/"
+  ]
+deployContracts:
+  []

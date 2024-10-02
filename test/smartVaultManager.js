@@ -27,7 +27,7 @@ describe('SmartVaultManager', async () => {
     NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocol.address,
-      liquidator.address, TokenManager.address, SmartVaultDeployer.address,
+      TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
       MockSwapRouter.address, TEST_VAULT_LIMIT, ethers.constants.AddressZero
     );
@@ -61,7 +61,6 @@ describe('SmartVaultManager', async () => {
       await expect(VaultManager.connect(user).setWethAddress(newWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSmartVaultDeployer(deployerV2.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setProtocolAddress(LiquidationPoolManager.address)).to.be.revertedWith('Ownable: caller is not the owner');
-      await expect(VaultManager.connect(user).setLiquidatorAddress(LiquidationPoolManager.address)).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(VaultManager.setMintFeeRate(newMintFeeRate)).not.to.be.reverted;
       await expect(VaultManager.setBurnFeeRate(newBurnFeeRate)).not.to.be.reverted;
@@ -71,7 +70,6 @@ describe('SmartVaultManager', async () => {
       await expect(VaultManager.setWethAddress(newWeth.address)).not.to.be.reverted;
       await expect(VaultManager.setSmartVaultDeployer(deployerV2.address)).not.to.be.reverted;
       await expect(VaultManager.setProtocolAddress(LiquidationPoolManager.address)).not.to.be.reverted;
-      await expect(VaultManager.setLiquidatorAddress(LiquidationPoolManager.address)).not.to.be.reverted;
 
       expect(await VaultManager.mintFeeRate()).to.equal(newMintFeeRate);
       expect(await VaultManager.burnFeeRate()).to.equal(newBurnFeeRate);
@@ -81,7 +79,6 @@ describe('SmartVaultManager', async () => {
       expect(await VaultManager.weth()).to.equal(newWeth.address);
       expect(await VaultManager.smartVaultDeployer()).to.equal(deployerV2.address);
       expect(await VaultManager.protocol()).to.equal(LiquidationPoolManager.address);
-      expect(await VaultManager.liquidator()).to.equal(LiquidationPoolManager.address);
     });
   });
 

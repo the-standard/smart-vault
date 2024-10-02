@@ -9,7 +9,7 @@ contract SmartVaultIndex is ISmartVaultIndex, Ownable {
     mapping(address => uint256[]) private tokenIds;
     mapping(uint256 => address payable) private vaultAddresses;
 
-    modifier onlyManager {
+    modifier onlyManager() {
         require(msg.sender == manager, "err-unauthorised");
         _;
     }

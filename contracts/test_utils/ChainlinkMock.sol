@@ -4,24 +4,28 @@ pragma solidity 0.8.17;
 import "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 contract ChainlinkMock is AggregatorV3Interface {
-
     string private desc;
     int256 private price;
     uint256 private updatedAt;
     uint256 private startedAt;
     uint80 private roundID;
 
-    struct PriceRound { uint256 timestamp; int256 price; }
+    struct PriceRound {
+        uint256 timestamp;
+        int256 price;
+    }
 
-    constructor (string memory _desc) {
+    constructor(string memory _desc) {
         desc = _desc;
         // fake old started at, to benefit l2 sequencer status feed for most tests
-        startedAt = block.timestamp - 1 hours;
+        startedAt = block.timestamp;
         updatedAt = block.timestamp;
         roundID = 1;
     }
 
-    function decimals() external pure returns (uint8) { return 8; }
+    function decimals() external pure returns (uint8) {
+        return 8;
+    }
 
     function setPrice(int256 _price) external {
         price = _price;
@@ -39,14 +43,18 @@ contract ChainlinkMock is AggregatorV3Interface {
         startedAt = _startedAt;
     }
 
-    function latestRoundData() external view returns (uint80 _roundID,int256 _answer,uint256 _startedAt,uint256 _updatedAt,uint80) {
+    function latestRoundData()
+        external
+        view
+        returns (uint80 _roundID, int256 _answer, uint256 _startedAt, uint256 _updatedAt, uint80)
+    {
         _roundID = roundID;
         _answer = price;
         _startedAt = startedAt;
         _updatedAt = updatedAt;
     }
 
-    function getRoundData(uint80 _roundId) external view returns (uint80,int256 answer,uint256,uint256,uint80) {
+    function getRoundData(uint80 _roundId) external view returns (uint80, int256 answer, uint256, uint256, uint80) {
         answer = price;
     }
 

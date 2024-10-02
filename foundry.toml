@@ -1,0 +1,32 @@
+[profile.default]
+src = "contracts"
+out = "artifacts"
+libs = ["node_modules", "lib"]
+script = "scripts"
+remappings = [
+    "@chainlink/=node_modules/@chainlink/",
+    "@openzeppelin/=node_modules/@openzeppelin/",
+    "forge-std/=lib/forge-std/src/",
+    "@chimera/=lib/chimera/src/",
+    "@crytic/=lib/properties/contracts/",
+    "src/=contracts/",
+]
+# via_ir = true
+optimizer = true
+optimizer_runs = 200
+
+fs_permissions = [{ access = "read-write", path = "test/foundry/differential/balances.json"}]
+
+no_match_path = "test/foundry/invariant/*"
+no_match_contract = "CryticTester|CryticToFoundry|FoundryHandler"
+
+# [fuzz]
+# runs = 10000
+
+[invariant]
+no_match_path = "a^"
+match_contract = "FoundryTester"
+fail_on_revert = false
+show_progress = true
+
+# See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
