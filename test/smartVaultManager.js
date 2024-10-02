@@ -17,18 +17,23 @@ describe('SmartVaultManager', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     USDs = await (await ethers.getContractFactory('USDsMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+    const ClUSDCUSD = await (await ethers.getContractFactory('ChainlinkMock')).deploy('USDC / USD');
+    await ClUSDCUSD.setPrice(ethers.utils.parseUnits('1', 8));
+    const sequencerFeed = await (await ethers.getContractFactory('ChainlinkMock')).deploy('L2 Sequencer Uptime Status Feed');
+    const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH, ClUSDCUSD.address, sequencerFeed.address);
+    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
     VaultManager = await fullyUpgradedSmartVaultManager(
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocol.address,
-      liquidator.address, TokenManager.address, SmartVaultDeployer.address,
+      TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
       MockSwapRouter.address, TEST_VAULT_LIMIT, ethers.constants.AddressZero
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await USDs.grantRole(await USDs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
+    await USDs.grantRole(await USDs.BURNER_ROLE(), VaultManager.address);
   });
 
   describe('setting admin data', async () => {
@@ -47,7 +52,7 @@ describe('SmartVaultManager', async () => {
       const newGenerator = await (await getNFTMetadataContract()).deploy();
       const newSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
       const newWeth = await (await ethers.getContractFactory('ERC20Mock')).deploy('Wrapped Ether', 'WETH', 18);
-      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH);
+      const deployerV2 = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ethers.constants.AddressZero);
       await expect(VaultManager.connect(user).setMintFeeRate(newMintFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setBurnFeeRate(newBurnFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSwapFeeRate(newSwapFeeRate)).to.be.revertedWith('Ownable: caller is not the owner');
@@ -56,7 +61,6 @@ describe('SmartVaultManager', async () => {
       await expect(VaultManager.connect(user).setWethAddress(newWeth.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setSmartVaultDeployer(deployerV2.address)).to.be.revertedWith('Ownable: caller is not the owner');
       await expect(VaultManager.connect(user).setProtocolAddress(LiquidationPoolManager.address)).to.be.revertedWith('Ownable: caller is not the owner');
-      await expect(VaultManager.connect(user).setLiquidatorAddress(LiquidationPoolManager.address)).to.be.revertedWith('Ownable: caller is not the owner');
 
       await expect(VaultManager.setMintFeeRate(newMintFeeRate)).not.to.be.reverted;
       await expect(VaultManager.setBurnFeeRate(newBurnFeeRate)).not.to.be.reverted;
@@ -66,7 +70,6 @@ describe('SmartVaultManager', async () => {
       await expect(VaultManager.setWethAddress(newWeth.address)).not.to.be.reverted;
       await expect(VaultManager.setSmartVaultDeployer(deployerV2.address)).not.to.be.reverted;
       await expect(VaultManager.setProtocolAddress(LiquidationPoolManager.address)).not.to.be.reverted;
-      await expect(VaultManager.setLiquidatorAddress(LiquidationPoolManager.address)).not.to.be.reverted;
 
       expect(await VaultManager.mintFeeRate()).to.equal(newMintFeeRate);
       expect(await VaultManager.burnFeeRate()).to.equal(newBurnFeeRate);
@@ -76,7 +79,6 @@ describe('SmartVaultManager', async () => {
       expect(await VaultManager.weth()).to.equal(newWeth.address);
       expect(await VaultManager.smartVaultDeployer()).to.equal(deployerV2.address);
       expect(await VaultManager.protocol()).to.equal(LiquidationPoolManager.address);
-      expect(await VaultManager.liquidator()).to.equal(LiquidationPoolManager.address);
     });
   });
 
@@ -143,21 +145,22 @@ describe('SmartVaultManager', async () => {
         const vault = await ethers.getContractAt('SmartVaultV4', vaultAddress);
         await vault.connect(user).mint(user.address, mintValue)
 
-        let liquidate = VaultManager.connect(admin).liquidateVault(1);
-        await expect(liquidate).to.be.revertedWith('err-invalid-liquidator');
+        let liquidate = VaultManager.connect(liquidator).liquidateVault(1);
+        await expect(liquidate).to.be.revertedWith('ERC20: burn amount exceeds balance');
 
+        await USDs.connect(admin).mint(liquidator.address, status.maxMintable);
         // shouldn't liquidate any vaults, as both are sufficiently collateralised, should revert so no gas fees paid
         liquidate = VaultManager.connect(liquidator).liquidateVault(1);
-        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
+        await expect(liquidate).to.be.revertedWithCustomError(vault, 'NotUndercollateralised');
         liquidate = VaultManager.connect(liquidator).liquidateVault(2);
-        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
+        await expect(liquidate).to.be.revertedWithCustomError(vault, 'NotUndercollateralised');
 
         // drop price of eth to $1000, first vault becomes undercollateralised
         await ClEthUsd.setPrice(100000000000);
 
         
         liquidate = VaultManager.connect(liquidator).liquidateVault(2);
-        await expect(liquidate).to.be.revertedWith('vault-not-undercollateralised');
+        await expect(liquidate).to.be.revertedWithCustomError(vault, 'NotUndercollateralised');
         // first user's vault should be liquidated
         liquidate = VaultManager.connect(liquidator).liquidateVault(1);
         await expect(liquidate).not.to.be.reverted;
@@ -174,8 +177,8 @@ describe('SmartVaultManager', async () => {
         userVault.status.collateral.forEach(asset => {
           expect(asset.amount).to.equal(0);
         });
-        expect(await Tether.balanceOf(protocol.address)).to.equal(protocolUSDTBalance.add(tetherValue));
-        expect(await protocol.getBalance()).to.equal(protocolETHBalance.add(ethValue));
+        expect(await Tether.balanceOf(liquidator.address)).to.equal(tetherValue);
+        await expect(liquidate).to.changeEtherBalance(liquidator, ethValue);
       });
     });
 

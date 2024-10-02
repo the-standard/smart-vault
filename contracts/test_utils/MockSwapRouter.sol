@@ -18,7 +18,6 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
     uint256 private amountIn;
     uint256 private amountOutMinimum;
     uint160 private sqrtPriceLimitX96;
-    uint256 private txValue;
 
     address private _factory;
 
@@ -34,7 +33,6 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         uint256 amountIn;
         uint256 amountOutMinimum;
         uint160 sqrtPriceLimitX96;
-        uint256 txValue;
     }
 
     function getAmountOut(uint256 _amountIn, address _tokenIn, address _tokenOut) private view returns (uint256) {
@@ -62,21 +60,18 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         amountIn = params.amountIn;
         amountOutMinimum = params.amountOutMinimum;
         sqrtPriceLimitX96 = params.sqrtPriceLimitX96;
-        txValue = msg.value;
 
         uint256 amountInAfterFee = amountIn * (1e6 - fee) / 1e6;
 
         _amountOut = getAmountOut(amountInAfterFee, tokenIn, tokenOut);
         require(_amountOut > amountOutMinimum);
-        if (msg.value == 0) {
-            IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        }
+        IERC20(tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         IERC20(tokenOut).transfer(recipient, _amountOut);
     }
 
     function receivedSwap() external view returns (MockSwapData memory) {
         return MockSwapData(
-            tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96, txValue
+            tokenIn, tokenOut, fee, recipient, deadline, amountIn, amountOutMinimum, sqrtPriceLimitX96
         );
     }
 
@@ -84,9 +79,7 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         (address _tokenIn,, address _tokenOut) = abi.decode(params.path, (address, uint24, address));
         _amountOut = rates[_tokenIn][_tokenOut] * params.amountIn / 1e18;
         require(_amountOut > params.amountOutMinimum);
-        if (msg.value == 0) {
-            IERC20(_tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
-        }
+        IERC20(_tokenIn).transferFrom(msg.sender, address(this), params.amountIn);
         IERC20(_tokenOut).transfer(params.recipient, _amountOut);
     }
 
@@ -94,9 +87,7 @@ contract MockSwapRouter is ISwapRouter, IPeripheryImmutableState {
         (address _tokenOut,, address _tokenIn) = abi.decode(params.path, (address, uint24, address));
         _amountIn = params.amountOut * 1e18 / rates[_tokenIn][_tokenOut];
         require(_amountIn < params.amountInMaximum);
-        if (msg.value == 0) {
-            IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
-        }
+        IERC20(_tokenIn).transferFrom(msg.sender, address(this), _amountIn);
         IERC20(_tokenOut).transfer(params.recipient, params.amountOut);
     }
 

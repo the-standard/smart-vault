@@ -3,16 +3,17 @@ const { ethers, upgrades } = require("hardhat");
 async function main() {
   const [ user ] = await ethers.getSigners();
 
-  const vault = '0x318034a72b000FE38798355e295Aa2faBE275EaE';
+  const vault = '0x33a04e11ce8c16e92ec9be2ec4848e9dd583408a';
   const native = ethers.utils.formatBytes32String('ETH');
   const owner = user.address;
-  const euros = '0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b'
-  const calculator = '0x0f0De637F96deb10dF6f556A1DE26C041f22f923'
+  const usds = '0x0173184A51CF807Cc386B3F5Dc5689Cae09B81fb'
+  const calculator = '0x90dE8F1691403f599A4E5E2eb73AeD66e20F918E'
+  const manager = '0xf752AD9dBacCA40f771164ca03b68844DBB93BF7'
 
   await run(`verify:verify`, {
     address: vault,
     constructorArguments: [
-      native, '0xBbB704f184E716410a9c00435530eA055CfAD187', owner, euros, calculator
+      native, manager, owner, usds, calculator
     ],
   });
 }

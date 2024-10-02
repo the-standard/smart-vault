@@ -12,6 +12,7 @@ import {SmartVaultDeployerV4} from "src/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 import {SmartVaultYieldManager} from "src/SmartVaultYieldManager.sol";
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
+import {PriceCalculator} from "src/PriceCalculator.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {USDsMock} from "src/test_utils/USDsMock.sol";
@@ -29,6 +30,7 @@ import {IUniswapV3Factory} from "src/interfaces/IUniswapV3Factory.sol";
 
 import "./ForkConstants.sol";
 import {HYPERVISOR_CODE} from "src/test_utils/BytecodeConstants.sol";
+import {console} from "forge-std/console.sol";
 
 contract ForkFixture is Test {
     // Actors
@@ -36,7 +38,6 @@ contract ForkFixture is Test {
     address VAULT_MANAGER_OWNER = _makeAddr("Vault manager owner");
     address YIELD_MANAGER_OWNER = _makeAddr("Yield manager owner");
     address PROTOCOL = _makeAddr("Protocol");
-    address LIQUIDATOR = _makeAddr("Liquidator");
     address HYPERVISOR_FEE_RECIPIENT = _makeAddr("Hypervisor fee recipient");
 
     // Protocol deployments
@@ -231,7 +232,8 @@ contract ForkFixture is Test {
     function _deployVaultManager() internal {
         // deploy SmartVaultManager
         smartVaultManager = new SmartVaultManagerV6();
-        SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE);
+        PriceCalculator priceCalculator = new PriceCalculator(NATIVE, CL_USDC_USD_ADDRESS, CL_L2_SEQUENCER_UPTIME_FEED_ADDRESS);
+        SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE, address(priceCalculator));
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();
         MockNFTMetadataGenerator nftMetadataGenerator = new MockNFTMetadataGenerator();
 
@@ -242,7 +244,6 @@ contract ForkFixture is Test {
             PROTOCOL_FEE_RATE,
             address(usds),
             PROTOCOL,
-            LIQUIDATOR,
             address(tokenManager),
             address(smartVaultDeployer),
             address(smartVaultIndex),
@@ -258,6 +259,7 @@ contract ForkFixture is Test {
 
         smartVaultIndex.setVaultManager(address(smartVaultManager));
         usds.grantRole(usds.DEFAULT_ADMIN_ROLE(), address(smartVaultManager));
+        usds.grantRole(usds.BURNER_ROLE(), address(smartVaultManager));
     }
 
     function _deployYieldManager() internal {

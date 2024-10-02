@@ -15,7 +15,7 @@ contract ForkTest is ForkFixture {
         vm.assertFalse(vault.undercollateralised());
 
         vm.prank(VAULT_OWNER);
-        vault.swap(NATIVE, WBTC_SYMBOL, 0.5 ether, 0);
+        vault.swap(NATIVE, WBTC_SYMBOL, 0.5 ether, 0, 500, block.timestamp + 60);
     }
 
     function test_wethSwap() public {
@@ -31,20 +31,19 @@ contract ForkTest is ForkFixture {
         vm.deal(address(vault), 0.0025 ether); // to cover fee
 
         vm.prank(VAULT_OWNER);
-        vm.expectRevert();
-        vault.swap(WETH_SYMBOL, WBTC_SYMBOL, 0.5 ether, 0);
+        vault.swap(WETH_SYMBOL, WBTC_SYMBOL, 0.5 ether, 0, 500, block.timestamp + 60);
     }
 
     function test_depositAndWithdrawYield() public {
         vm.deal(address(vault), 1 ether);
 
         vm.prank(VAULT_OWNER);
-        vault.depositYield(NATIVE, 1e4);
+        vault.depositYield(NATIVE, 1e4, 5e4, block.timestamp + 60);
 
         vm.prank(VAULT_OWNER);
-        vault.withdrawYield(address(usdsHypervisor), NATIVE);
+        vault.withdrawYield(address(usdsHypervisor), NATIVE, 5e4, block.timestamp + 60);
 
         vm.prank(VAULT_OWNER);
-        vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, NATIVE);
+        vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, NATIVE, 5e4, block.timestamp + 60);
     }
 }

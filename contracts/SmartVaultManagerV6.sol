@@ -29,7 +29,6 @@ contract SmartVaultManagerV6 is
     uint256 public constant HUNDRED_PC = 1e5;
 
     address public protocol;
-    address public liquidator;
     address public usds;
     uint256 public collateralRate;
     address public tokenManager;
@@ -62,16 +61,12 @@ contract SmartVaultManagerV6 is
         uint256 _feeRate,
         address _usds,
         address _protocol,
-        address _liquidator,
         address _tokenManager,
         address _smartVaultDeployer,
         address _smartVaultIndex,
         address _nftMetadataGenerator,
-        // address _yieldManager,
         uint16 _userVaultLimit
     )
-        // address _swapRouter,
-        // address _weth
         public
         initializer
     {
@@ -83,20 +78,11 @@ contract SmartVaultManagerV6 is
         burnFeeRate = _feeRate;
         swapFeeRate = _feeRate;
         protocol = _protocol;
-        liquidator = _liquidator;
         tokenManager = _tokenManager;
         smartVaultDeployer = _smartVaultDeployer;
         smartVaultIndex = ISmartVaultIndex(_smartVaultIndex);
         nftMetadataGenerator = _nftMetadataGenerator;
-        // yieldManager = _yieldManager;
         userVaultLimit = _userVaultLimit;
-        // swapRouter = _swapRouter;
-        // weth = _weth;
-    }
-
-    modifier onlyLiquidator() {
-        require(msg.sender == liquidator, "err-invalid-liquidator");
-        _;
     }
 
     function vaultIDs(address _holder) public view returns (uint256[] memory) {
@@ -124,18 +110,16 @@ contract SmartVaultManagerV6 is
         emit VaultDeployed(vault, msg.sender, usds, tokenId);
     }
 
-    function liquidateVault(uint256 _tokenId) external onlyLiquidator {
+    function liquidateVault(uint256 _tokenId) external {
         ISmartVault vault = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId));
-        try vault.undercollateralised() returns (bool _undercollateralised) {
-            require(_undercollateralised, "vault-not-undercollateralised");
-            vault.liquidate();
-            IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
-            IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
-            emit VaultLiquidated(address(vault));
-        } catch {
-            revert("other-liquidation-error");
-        }
+        IUSDs(usds).burn(msg.sender, vault.status().minted);
+        IUSDs(usds).revokeRole(IUSDs(usds).MINTER_ROLE(), address(vault));
+        IUSDs(usds).revokeRole(IUSDs(usds).BURNER_ROLE(), address(vault));
+        vault.liquidate(msg.sender);
+        emit VaultLiquidated(address(vault));
     }
+
+    // TODO maintain vault liquidations with old vault liquidate interface for EUROs
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         ISmartVault.Status memory vaultStatus = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).status();
@@ -176,10 +160,6 @@ contract SmartVaultManagerV6 is
 
     function setProtocolAddress(address _protocol) external onlyOwner {
         protocol = _protocol;
-    }
-
-    function setLiquidatorAddress(address _liquidator) external onlyOwner {
-        liquidator = _liquidator;
     }
 
     function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner {

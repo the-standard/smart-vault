@@ -22,7 +22,6 @@ abstract contract Setup is BaseSetup, PropertiesConstants, SmartVaultFixture {
         // users.push(VAULT_OWNER);
         // users.push(VAULT_MANAGER_OWNER);
         // users.push(PROTOCOL);
-        // users.push(LIQUIDATOR);
 
         // create a SmartVaultV4 instance
         smartVault = _createSmartVaultViaManager(VAULT_OWNER);

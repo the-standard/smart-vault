@@ -11,6 +11,8 @@ contract USDsMock is IUSDs, ERC20, AccessControl {
 
     constructor() ERC20("The Standard USD", "USDs") {
         _grantRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _grantRole(MINTER_ROLE, msg.sender);
+        _grantRole(BURNER_ROLE, msg.sender);
     }
 
     function mint(address to, uint256 amount) public onlyRole(MINTER_ROLE) {

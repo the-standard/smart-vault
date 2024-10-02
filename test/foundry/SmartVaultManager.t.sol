@@ -60,12 +60,14 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         vm.prank(VAULT_OWNER);
         (address vault, uint256 tokenId) = smartVaultManager.mint();
 
-        // PROTOCOL balances before
-        uint256 protocolETHBalance = PROTOCOL.balance;
-        uint256 protocolWETHBalance = weth.balanceOf(PROTOCOL);
+        // liquidator balances before
+        address liquidator = makeAddr("liquidator");
 
-        assertEq(protocolETHBalance, 0);
-        assertEq(protocolWETHBalance, 0);
+        uint256 liquidatorETHBalance = liquidator.balance;
+        uint256 liquidatorWETHBalance = weth.balanceOf(liquidator);
+
+        assertEq(liquidatorETHBalance, 0);
+        assertEq(liquidatorWETHBalance, 0);
 
         // Mint collateral to the vault
         uint256 wethAmount = 1 ether;
@@ -85,25 +87,27 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         vm.prank(VAULT_OWNER);
         SmartVaultV4(payable(vault)).mint(VAULT_OWNER, mintValue);
 
-        // Attempt to liquidate with invalid liquidator
-        vm.expectRevert("err-invalid-liquidator");
+        vm.prank(liquidator);
+        // Attempt to liquidate without USDs to burn
+        vm.expectRevert("ERC20: burn amount exceeds balance");
         smartVaultManager.liquidateVault(tokenId);
+        
+        // mint extra because of outstanding fees in vault debt
+        usds.mint(liquidator, mintValue * 2);
 
         // Attempt to liquidate with valid liquidator
-        vm.startPrank(LIQUIDATOR);
-        vm.expectRevert("vault-not-undercollateralised");
+        vm.prank(liquidator);
+        vm.expectRevert(SmartVaultV4.NotUndercollateralised.selector);
         smartVaultManager.liquidateVault(tokenId);
-        vm.stopPrank();
 
         // Drop the price of ETH to $1000
         clNativeUsd.setPrice(1000_0000_0000);
 
         // Liquidate undercollateralized vault
-        vm.startPrank(LIQUIDATOR);
+        vm.prank(liquidator);
         vm.expectEmit(true, false, false, false);
         emit VaultLiquidated(vault);
         smartVaultManager.liquidateVault(tokenId);
-        vm.stopPrank();
 
         // Assert vault is liquidated
         ISmartVault.Status memory statusAfter = smartVaultManager.vaultData(tokenId).status;
@@ -116,9 +120,9 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
             assertEq(statusAfter.collateral[i].amount, 0);
         }
 
-        // Assert PROTOCOL balances
-        assertEq(weth.balanceOf(PROTOCOL), protocolWETHBalance + wethAmount);
-        assertEq(PROTOCOL.balance, protocolETHBalance + nativeAmount);
+        // Assert liquidator balances
+        assertEq(weth.balanceOf(liquidator), liquidatorWETHBalance + wethAmount);
+        assertEq(liquidator.balance, liquidatorETHBalance + nativeAmount);
     }
 
     function test_transferVault() public {

@@ -20,7 +20,6 @@ contract Common {
     address VAULT_OWNER = _makeAddr("Vault owner");
     address VAULT_MANAGER_OWNER = _makeAddr("Vault manager owner");
     address PROTOCOL = _makeAddr("Protocol");
-    address LIQUIDATOR = _makeAddr("Liquidator");
 
     // Constants
     bytes32 constant NATIVE = "ETH";
@@ -62,6 +61,8 @@ contract Common {
     EnumerableSet.AddressSet allTokens;
 
     function setUp() public virtual {
+        // push chain forward 2 hours so uptime feed is valid
+        vm.warp(2 hours);
         usds = new USDsMock();
         usdc = new ERC20Mock("USD Coin", "USDC", 6); // NOTE: USDC cannot be a collateral token due to being paired with USDs
 

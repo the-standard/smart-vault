@@ -23,8 +23,6 @@ import {FullMath} from "contracts/uniswap/FullMath.sol";
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 
-import {console} from "forge-std/console.sol";
-
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 
@@ -201,8 +199,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function _swapToSingleAsset(address _hypervisor, address _wantedToken, address _swapRouter, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
-        address _unwantedToken =
-            IHypervisor(_hypervisor).token0() == _wantedToken ? IHypervisor(_hypervisor).token1() : _token0;
+        address _unwantedToken = _token0 == _wantedToken ?
+            IHypervisor(_hypervisor).token1() :
+            _token0;
         uint256 _balance = _thisBalanceOf(_unwantedToken);
         IERC20(_unwantedToken).safeApprove(_swapRouter, _balance);
         ISwapRouter(_swapRouter).exactInputSingle(
@@ -218,6 +217,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             })
         );
         IERC20(_unwantedToken).safeApprove(_swapRouter, 0);
+        // transfer any dust amounts of unwanted token to smart vault
+        IERC20(_unwantedToken).safeTransfer(msg.sender, _thisBalanceOf(_unwantedToken));
     }
 
     function _swapToUSDC(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
@@ -267,7 +268,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         returns (address _hypervisor0, address _hypervisor1)
     {
         if (_usdPercentage < MIN_USDS_PERCENTAGE) revert StablePoolPercentageError();
-        uint256 _balance = IERC20(_collateralToken).balanceOf(address(msg.sender));
+        uint256 _balance = IERC20(_collateralToken).balanceOf(msg.sender);
         IERC20(_collateralToken).safeTransferFrom(msg.sender, address(this), _balance);
         HypervisorData memory _hypervisorData = hypervisorData[_collateralToken];
         if (_hypervisorData.hypervisor == address(0)) revert HypervisorDataError();
@@ -284,22 +285,18 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         bytes memory _pathFromUSDC = hypervisorData[_token].pathFromUSDC;
         uint256 _balance = _thisBalanceOf(USDC);
         IERC20(USDC).safeApprove(uniswapRouter, _balance);
-        ISwapRouter(uniswapRouter).exactInput(
-            ISwapRouter.ExactInputParams({
-                path: _pathFromUSDC,
-                recipient: address(this),
-                deadline: block.timestamp + 60,
-                amountIn: _balance,
-                amountOutMinimum: 0
-            })
-        );
-        IERC20(USDs).safeApprove(uniswapRouter, 0);
+        ISwapRouter(uniswapRouter).exactInput(ISwapRouter.ExactInputParams({
+            path: _pathFromUSDC,
+            recipient: address(this),
+            deadline: block.timestamp + 60,
+            amountIn: _balance,
+            amountOutMinimum: 0
+        }));
+        IERC20(USDC).safeApprove(uniswapRouter, 0);
     }
 
-    function _withdrawUSDsDeposit(address _hypervisor, address _token) private {
-        IHypervisor(_hypervisor).withdraw(
-            _thisBalanceOf(_hypervisor), address(this), address(this), [uint256(0), uint256(0), uint256(0), uint256(0)]
-        );
+    function _withdrawUSDsDeposit(address _token) private {
+        IHypervisor(usdsHypervisor).withdraw(_thisBalanceOf(usdsHypervisor), address(this), address(this), [uint256(0),uint256(0),uint256(0),uint256(0)]);
         _swapToSingleAsset(usdsHypervisor, USDC, ramsesRouter, 500);
         _sellUSDC(_token);
     }
@@ -315,9 +312,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function withdraw(address _hypervisor, address _token) external {
         IERC20(_hypervisor).safeTransferFrom(msg.sender, address(this), IERC20(_hypervisor).balanceOf(msg.sender));
-        _hypervisor == usdsHypervisor
-            ? _withdrawUSDsDeposit(_hypervisor, _token)
-            : _withdrawOtherDeposit(_hypervisor, _token);
+        _hypervisor == usdsHypervisor ? 
+            _withdrawUSDsDeposit(_token) :
+            _withdrawOtherDeposit(_hypervisor, _token);
         uint256 _withdrawn = _thisBalanceOf(_token);
         uint256 _fee = _withdrawn * feeRate / HUNDRED_PC;
         _withdrawn = _withdrawn - _fee;

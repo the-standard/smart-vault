@@ -11,7 +11,7 @@ import {IHypervisor} from "src/interfaces/IHypervisor.sol";
 
 // Fork constants
 string constant ENV_RPC_URL = "ARBITRUM_RPC_URL";
-string constant DEFAULT_RPC_URL = "https://arbitrum.llamarpc.com";
+string constant DEFAULT_RPC_URL = "https://rpc.ankr.com/arbitrum";
 
 // Token constants
 address constant USDC_ADDRESS = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
@@ -63,6 +63,8 @@ address constant CL_GMX_USD_ADDRESS = 0xDB98056FecFff59D032aB628337A4887110df3dB
 address constant CL_PAXG_USD_ADDRESS = 0x2BA975D4D7922cD264267Af16F3bD177F206FE3c;
 address constant CL_RDNT_USD_ADDRESS = 0x20d0Fcab0ECFD078B036b6CAf1FaC69A6453b352;
 address constant CL_SUSHI_USD_ADDRESS = 0xb2A8BA74cbca38508BA1632761b56C897060147C;
+address constant CL_USDC_USD_ADDRESS = 0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3;
+address constant CL_L2_SEQUENCER_UPTIME_FEED_ADDRESS = 0xFdB631F5EE196F0ed6FAa767959853A9F217697D;
 
 AggregatorV3Interface constant CL_NATIVE_USD = AggregatorV3Interface(CL_NATIVE_USD_ADDRESS);
 AggregatorV3Interface constant CL_WBTC_USD = AggregatorV3Interface(CL_WBTC_USD_ADDRESS);

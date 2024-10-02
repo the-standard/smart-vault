@@ -1,57 +1,72 @@
 const { ethers } = require("hardhat");
-const { ETH, DEFAULT_ETH_USD_PRICE, DEFAULT_EUR_USD_PRICE, DEFAULT_COLLATERAL_RATE, getNFTMetadataContract } = require("../test/common");
+const { ETH, DEFAULT_COLLATERAL_RATE, getNFTMetadataContract } = require("../test/common");
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
 
-  const CL_ETH_USD = '0x639Fe6ab55C921f74e7fac1ee960C0B6293ba612';
-  const CL_EUR_USD = '0xA14d53bC1F1c0F31B4aA3BD109344E5009051a84';
-  const PROTOCOL_ADDRESS = '0x99d5D7C8F40Deba9d0075E8Fff2fB13Da787996a';
-  const LIQUIDATOR_ADDRESS = deployer.address;
-  const EUROs = await (await ethers.getContractAt('AccessControl', '0x643b34980e635719c15a2d4ce69571a258f940e9'));
-  console.log(await EUROs.hasRole(await EUROs.DEFAULT_ADMIN_ROLE(),deployer.address))
-  console.log('EUROs', EUROs.address)
-  const TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, CL_ETH_USD);
-  await TokenManager.deployed();
-  console.log('TokenManager', TokenManager.address)
-  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployer')).deploy(ETH, CL_EUR_USD);
+  const USDs = await ethers.getContractAt('IUSDs', '0x...'); // TODO replace this address after USDs deployment
+  const USDC = '0xaf88d065e77c8cC2239327C5EDb3A432268e5831';
+  const WETH = '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1';
+  const uniproxy = '0x82FcEB07a4D01051519663f6c1c919aF21C27845';
+  const ramsesRouter = '0xAA23611badAFB62D37E7295A682D21960ac85A90';
+  const usdHypervisor = '0x...'; // TODO replace this once deployed
+  const uniswapRouter = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
+  const protocolGateway = '0x'; // TODO replace this once deployed
+  const tokenManager = '0x33c5A816382760b6E5fb50d8854a61b3383a32a0';
+
+
+  const YieldManager = await (await ethers.getContractFactory('SmartVaultYieldManager')).deploy(
+    USDs.address, USDC, WETH, uniproxy, ramsesRouter, usdHypervisor, uniswapRouter
+  );
+  await YieldManager.deployed();
+
+  const PriceCalculator = await (await ethers.getContractFactory('PriceCalculator')).deploy(ETH);
+  await PriceCalculator.deployed();
+
+  const SmartVaultSwapper = await (await ethers.getContractFactory('SmartVaultSwapper')).deploy();
+
+  const Deployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, PriceCalculator.address, SmartVaultSwapper.address);
   await Deployer.deployed();
-  console.log('Deployer', Deployer.address)
+
   const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
   await SmartVaultIndex.deployed();
-  console.log('SmartVaultIndex', SmartVaultIndex.address)
-  const NFTMetadataGenerator = await (getNFTMetadataContract()).deploy();
+
+  const NFTUtils = await (await ethers.getContractFactory('NFTUtils')).deploy();
+  await NFTUtils.deployed();
+
+
+  const NFTMetadataGenerator = await (await ethers.getContractFactory('NFTMetadataGenerator', {
+    libraries: {
+      NFTUtils: NFTUtils.address,
+    },
+  })).deploy();
   await NFTMetadataGenerator.deployed();
-  console.log('NFTMetadataGenerator', NFTMetadataGenerator.address)
-  const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManager'), [
-    '110000', 500, EUROs.address, TokenManager.address,
-    Deployer.address, SmartVaultIndex.address, NFTMetadataGenerator.address
+
+  const SmartVaultManager = await upgrades.deployProxy(await ethers.getContractFactory('SmartVaultManagerV6', admin), [
+    DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, USDs.address, protocolGateway,
+    protocolGateway, tokenManager, Deployer.address, SmartVaultIndex.address,
+    NFTMetadataGenerator.address, 1000
   ]);
-  await SmartVaultManager.deployed();
-  console.log('SmartVaultManager', SmartVaultManager.address)
 
   await (await SmartVaultIndex.setVaultManager(SmartVaultManager.address)).wait();
-  await (await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), SmartVaultManager.address));
+  await (await SmartVaultManager.setYieldManager(YieldManager.address)).wait();
+  await (await SmartVaultManager.setSwapRouter(uniswapRouter)).wait();
+  await (await SmartVaultManager.setWethAddress(WETH)).wait();
+
 
   console.log({
-    EUROs: EUROs.address,
-    TokenManager: TokenManager.address,
     Deployer: Deployer.address,
     SmartVaultIndex: SmartVaultIndex.address,
     NFTMetadataGenerator: NFTMetadataGenerator.address,
     SmartVaultManager: SmartVaultManager.address,
+    YieldManager: YieldManager.address,
+    PriceCalculator: PriceCalculator.address
   });
 
   await new Promise(resolve => setTimeout(resolve, 60000));
 
   await run(`verify:verify`, {
-    address: TokenManager.address,
-    constructorArguments: [ETH, CL_ETH_USD],
-  });
-
-  await run(`verify:verify`, {
     address: Deployer.address,
-    constructorArguments: [ETH, CL_EUR_USD],
+    constructorArguments: [ETH, PriceCalculator.address, Swapper.address],
   });
 
   await run(`verify:verify`, {
@@ -67,6 +82,11 @@ async function main() {
   await run(`verify:verify`, {
     address: SmartVaultIndex.address,
     constructorArguments: [],
+  });
+
+  await run(`verify:verify`, {
+    address: PriceCalculator.address,
+    constructorArguments: [ETH],
   });
 }
 

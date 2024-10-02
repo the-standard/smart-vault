@@ -178,7 +178,7 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_swap(uint256 inTokenIndex, uint256 outTokenIndex, uint256 amount, uint256 requestedMinOut)
+    function smartVaultV4_swap(uint256 inTokenIndex, uint256 outTokenIndex, uint256 amount, uint256 requestedMinOut, uint24 fee, uint256 deadline)
         public
         checkExpectedErrors(SWAP_COLLATERAL_ERRORS)
     {
@@ -196,7 +196,7 @@ abstract contract TargetFunctions is ExpectedErrors {
 
         vm.prank(VAULT_OWNER);
         (success, returnData) =
-            address(smartVault).call(abi.encodeCall(smartVault.swap, (inSymbol, outSymbol, amount, requestedMinOut)));
+            address(smartVault).call(abi.encodeCall(smartVault.swap, (inSymbol, outSymbol, amount, requestedMinOut, fee, deadline)));
 
         if (success) {
             __after(smartVault);
@@ -223,7 +223,7 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_depositYield(uint256 symbolIndex, uint256 stablePercentage)
+    function smartVaultV4_depositYield(uint256 symbolIndex, uint256 stablePercentage, uint256 minCollateralPercentage, uint256 deadline)
         public
         checkExpectedErrors(DEPOSIT_YIELD_ERRORS)
     {
@@ -234,7 +234,7 @@ abstract contract TargetFunctions is ExpectedErrors {
 
         vm.prank(VAULT_OWNER);
         (success, returnData) =
-            address(smartVault).call(abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage)));
+            address(smartVault).call(abi.encodeCall(smartVault.depositYield, (symbol, stablePercentage, minCollateralPercentage, deadline)));
 
         if (success) {
             __after(smartVault);
@@ -248,7 +248,7 @@ abstract contract TargetFunctions is ExpectedErrors {
         }
     }
 
-    function smartVaultV4_withdrawYield(uint256 hypervisorIndex, uint256 symbolIndex)
+    function smartVaultV4_withdrawYield(uint256 hypervisorIndex, uint256 symbolIndex, uint256 minCollateralPercentage, uint256 deadline)
         public
         checkExpectedErrors(WITHDRAW_YIELD_ERRORS)
     {
@@ -262,7 +262,7 @@ abstract contract TargetFunctions is ExpectedErrors {
         __before(smartVault);
 
         vm.prank(VAULT_OWNER);
-        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.withdrawYield, (hypervisor, symbol)));
+        (success, returnData) = address(smartVault).call(abi.encodeCall(smartVault.withdrawYield, (hypervisor, symbol, minCollateralPercentage, deadline)));
 
         if (success) {
             __after(smartVault);
@@ -284,7 +284,6 @@ abstract contract TargetFunctions is ExpectedErrors {
 
         __before(smartVault);
 
-        vm.prank(LIQUIDATOR);
         (success, returnData) =
             address(smartVaultManager).call(abi.encodeCall(smartVaultManager.liquidateVault, tokenIds[0]));
 
