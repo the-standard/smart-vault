@@ -17,7 +17,6 @@ contract ChainlinkMock is AggregatorV3Interface {
 
     constructor(string memory _desc) {
         desc = _desc;
-        // fake old started at, to benefit l2 sequencer status feed for most tests
         startedAt = block.timestamp;
         updatedAt = block.timestamp;
         roundID = 1;

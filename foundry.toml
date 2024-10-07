@@ -20,6 +20,12 @@ fs_permissions = [{ access = "read-write", path = "test/foundry/differential/bal
 no_match_path = "test/foundry/invariant/*"
 no_match_contract = "CryticTester|CryticToFoundry|FoundryHandler"
 
+[rpc_endpoints]
+arbitrum_sepolia = "${ARBITRUM_SEPOLIA_RPC_URL}"
+
+[etherscan]
+arbitrum_sepolia = { key = "${ARBISCAN_KEY}" }
+
 # [fuzz]
 # runs = 10000
 
