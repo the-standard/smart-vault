@@ -9,7 +9,7 @@ import {PriceCalculator} from "../contracts/PriceCalculator.sol";
 import {SmartVaultDeployerV4} from "../contracts/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "../contracts/SmartVaultIndex.sol";
 import {SmartVaultManagerV6} from "../contracts/SmartVaultManagerV6.sol";
-import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {Upgrades} from "lib/openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract MyScript is Script {
     function run() external {
