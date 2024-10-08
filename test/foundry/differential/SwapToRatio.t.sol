@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import {ISwapToRatio, SwapToRatioOld, SwapToRatioNew, SwapToRatioPython} from "./SwapToRatio.sol";
 import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";

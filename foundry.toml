@@ -15,7 +15,7 @@ remappings = [
     "@crytic/=lib/properties/contracts/",
     "src/=contracts/",
     "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
-    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/"
+    "@openzeppelin/contracts-upgradeable/=lib/openzeppelin-contracts-upgradeable/contracts/",
 ]
 # via_ir = true
 optimizer = true

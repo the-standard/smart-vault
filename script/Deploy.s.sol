@@ -1,15 +1,16 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.17;
+pragma solidity 0.8.20;
 
 import {Script} from "forge-std/Script.sol";
 import {ChainlinkMock} from "../contracts/test_utils/ChainlinkMock.sol";
 import {IUSDs} from "../contracts/interfaces/IUSDs.sol";
-import {NFTMetadataGenerator} from "../contracts/NFTMetadataGenerator.sol";
+import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {PriceCalculator} from "../contracts/PriceCalculator.sol";
 import {SmartVaultDeployerV4} from "../contracts/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "../contracts/SmartVaultIndex.sol";
 import {SmartVaultManagerV6} from "../contracts/SmartVaultManagerV6.sol";
-import {Upgrades} from "lib/openzeppelin-foundry-upgrades/Upgrades.sol";
+// import {Upgrades} from "lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract MyScript is Script {
     function run() external {
@@ -23,13 +24,13 @@ contract MyScript is Script {
         PriceCalculator calculator = new PriceCalculator(bytes32("ETH"), address(clUsdcUsd), address(uptimeFeed));
         SmartVaultDeployerV4 deployer = new SmartVaultDeployerV4(bytes32("ETH"), address(calculator));
         SmartVaultIndex index = new SmartVaultIndex();
-        NFTMetadataGenerator generator = new NFTMetadataGenerator();
+        MockNFTMetadataGenerator generator = new MockNFTMetadataGenerator();
         IUSDs usds = IUSDs(0x0173184A51CF807Cc386B3F5Dc5689Cae09B81fb);
 
         address proxy = Upgrades.deployTransparentProxy(
             "SmartVaultManagerV6.sol",
             msg.sender,
-            abi.encodeCall(MyContract.initialize, (
+            abi.encodeCall(SmartVaultManagerV6.initialize, (
                 110000,
                 500,
                 address(usds), // usds
