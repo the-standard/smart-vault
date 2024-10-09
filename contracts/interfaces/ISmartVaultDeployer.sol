@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.20;
+pragma solidity 0.8.21;
 
 interface ISmartVaultDeployer {
     function deploy(address _manager, address _owner, address _usds) external returns (address);

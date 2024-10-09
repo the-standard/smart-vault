@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity 0.8.20;
+pragma solidity 0.8.21;
 
-import {Script} from "forge-std/Script.sol";
+import {Script,console} from "forge-std/Script.sol";
 import {ChainlinkMock} from "../contracts/test_utils/ChainlinkMock.sol";
-import {IUSDs} from "../contracts/interfaces/IUSDs.sol";
+import {USDsMock} from "../contracts/test_utils/USDsMock.sol";
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {PriceCalculator} from "../contracts/PriceCalculator.sol";
 import {SmartVaultDeployerV4} from "../contracts/SmartVaultDeployerV4.sol";
@@ -16,6 +16,7 @@ contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
+        vm.warp(4 hours);
 
         ChainlinkMock clUsdcUsd = new ChainlinkMock("USDC / USD");
         clUsdcUsd.setPrice(100000000);
@@ -25,7 +26,7 @@ contract Deploy is Script {
         SmartVaultDeployerV4 deployer = new SmartVaultDeployerV4(bytes32("ETH"), address(calculator));
         SmartVaultIndex index = new SmartVaultIndex();
         MockNFTMetadataGenerator generator = new MockNFTMetadataGenerator();
-        IUSDs usds = IUSDs(0x0173184A51CF807Cc386B3F5Dc5689Cae09B81fb);
+        USDsMock usds = USDsMock(0x0173184A51CF807Cc386B3F5Dc5689Cae09B81fb);
 
         address proxy = Upgrades.deployTransparentProxy(
             "SmartVaultManagerV6.sol",
