@@ -261,9 +261,9 @@ contract SmartVaultV4 is ISmartVault {
         returns (uint256 _amountOut)
     {
         IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
-        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
+        IERC20(_params.tokenIn).safeIncreaseAllowance(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
         _amountOut = ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
-        IERC20(_params.tokenIn).safeApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
+        IERC20(_params.tokenIn).forceApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline)
@@ -301,7 +301,7 @@ contract SmartVaultV4 is ISmartVault {
             _collateralAddr = ISmartVaultManagerV3(manager).weth();
             IWETH(_collateralAddr).deposit{value: _collateralAmount}();
         }
-        IERC20(_collateralAddr).safeApprove(_swapRouterAddress, _collateralAmount);
+        IERC20(_collateralAddr).safeIncreaseAllowance(_swapRouterAddress, _collateralAmount);
         _amountOut = ISwapRouter(_swapRouterAddress).exactInput(
             ISwapRouter.ExactInputParams({
                 path: _swapPath,
@@ -315,6 +315,7 @@ contract SmartVaultV4 is ISmartVault {
                 )
             })
         );
+        IERC20(_collateralAddr).forceApprove(_swapRouterAddress, 0);
         uint256 _usdsBalance = USDs.balanceOf(address(this));
         minted -= _usdsBalance;
         USDs.burn(address(this), _usdsBalance);
@@ -355,7 +356,7 @@ contract SmartVaultV4 is ISmartVault {
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
         if (_balance == 0) revert InvalidToken();
-        IERC20(_token).safeApprove(ISmartVaultManagerV3(manager).yieldManager(), _balance);
+        IERC20(_token).safeIncreaseAllowance(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         uint256 _preDepositCollateral = usdCollateral();
         (address _hypervisor1, address _hypervisor2) =
             ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
@@ -374,7 +375,7 @@ contract SmartVaultV4 is ISmartVault {
         withinTimestamp(_deadline)
     {
         address _token = getTokenisedAddr(_symbol);
-        IERC20(_hypervisor).safeApprove(
+        IERC20(_hypervisor).safeIncreaseAllowance(
             ISmartVaultManagerV3(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this))
         );
         uint256 _preWithdrawCollateral = usdCollateral();

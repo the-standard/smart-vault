@@ -63,7 +63,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         address _ramsesRouter,
         address _usdsHypervisor,
         address _uniswapRouter
-    ) {
+    ) Ownable(msg.sender) {
         USDs = _USDs;
         USDC = _USDC;
         WETH = _WETH;
@@ -160,7 +160,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             address _tokenIn = _tokenAIs0 ? _token0 : _token1;
             address _tokenOut = _tokenAIs0 ? _token1 : _token0;
 
-            IERC20(_tokenIn).safeApprove(_swapRouter, _tokenABalance);
+            IERC20(_tokenIn).safeIncreaseAllowance(_swapRouter, _tokenABalance);
             ISwapRouter(_swapRouter).exactInputSingle(
                 ISwapRouter.ExactInputSingleParams({
                     tokenIn: _tokenIn,
@@ -173,14 +173,14 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     sqrtPriceLimitX96: 0
                 })
             );
-            IERC20(_tokenIn).safeApprove(_swapRouter, 0);
+            IERC20(_tokenIn).forceApprove(_swapRouter, 0);
         } else {
             // we want more tokenA
 
             address _tokenIn = _tokenAIs0 ? _token1 : _token0;
             address _tokenOut = _tokenAIs0 ? _token0 : _token1;
 
-            IERC20(_tokenIn).safeApprove(_swapRouter, _tokenBBalance);
+            IERC20(_tokenIn).safeIncreaseAllowance(_swapRouter, _tokenBBalance);
             ISwapRouter(_swapRouter).exactOutputSingle(
                 ISwapRouter.ExactOutputSingleParams({
                     tokenIn: _tokenIn,
@@ -193,7 +193,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     sqrtPriceLimitX96: 0
                 })
             );
-            IERC20(_tokenIn).safeApprove(_swapRouter, 0);
+            IERC20(_tokenIn).forceApprove(_swapRouter, 0);
         }
     }
 
@@ -201,7 +201,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _unwantedToken = _token0 == _wantedToken ? IHypervisor(_hypervisor).token1() : _token0;
         uint256 _balance = _thisBalanceOf(_unwantedToken);
-        IERC20(_unwantedToken).safeApprove(_swapRouter, _balance);
+        IERC20(_unwantedToken).safeIncreaseAllowance(_swapRouter, _balance);
         ISwapRouter(_swapRouter).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
                 tokenIn: _unwantedToken,
@@ -214,14 +214,14 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 sqrtPriceLimitX96: 0
             })
         );
-        IERC20(_unwantedToken).safeApprove(_swapRouter, 0);
+        IERC20(_unwantedToken).forceApprove(_swapRouter, 0);
         // transfer any dust amounts of unwanted token to smart vault
         IERC20(_unwantedToken).safeTransfer(msg.sender, _thisBalanceOf(_unwantedToken));
     }
 
     function _swapToUSDC(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
         uint256 _usdYieldPortion = _thisBalanceOf(_collateralToken) * _usdPercentage / HUNDRED_PC;
-        IERC20(_collateralToken).safeApprove(uniswapRouter, _usdYieldPortion);
+        IERC20(_collateralToken).safeIncreaseAllowance(uniswapRouter, _usdYieldPortion);
         ISwapRouter(uniswapRouter).exactInput(
             ISwapRouter.ExactInputParams({
                 path: _pathToUSDC,
@@ -231,14 +231,14 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 amountOutMinimum: 1
             })
         );
-        IERC20(_collateralToken).safeApprove(uniswapRouter, 0);
+        IERC20(_collateralToken).forceApprove(uniswapRouter, 0);
     }
 
     function _deposit(address _hypervisor) private {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _token1 = IHypervisor(_hypervisor).token1();
-        IERC20(_token0).safeApprove(_hypervisor, _thisBalanceOf(_token0));
-        IERC20(_token1).safeApprove(_hypervisor, _thisBalanceOf(_token1));
+        IERC20(_token0).safeIncreaseAllowance(_hypervisor, _thisBalanceOf(_token0));
+        IERC20(_token1).safeIncreaseAllowance(_hypervisor, _thisBalanceOf(_token1));
         IUniProxy(uniProxy).deposit(
             _thisBalanceOf(_token0),
             _thisBalanceOf(_token1),
@@ -246,8 +246,8 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             _hypervisor,
             [uint256(0), uint256(0), uint256(0), uint256(0)]
         );
-        IERC20(_token0).safeApprove(_hypervisor, 0);
-        IERC20(_token1).safeApprove(_hypervisor, 0);
+        IERC20(_token0).forceApprove(_hypervisor, 0);
+        IERC20(_token1).forceApprove(_hypervisor, 0);
     }
 
     function _usdDeposit(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
@@ -282,7 +282,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     function _sellUSDC(address _token) private {
         bytes memory _pathFromUSDC = hypervisorData[_token].pathFromUSDC;
         uint256 _balance = _thisBalanceOf(USDC);
-        IERC20(USDC).safeApprove(uniswapRouter, _balance);
+        IERC20(USDC).safeIncreaseAllowance(uniswapRouter, _balance);
         ISwapRouter(uniswapRouter).exactInput(
             ISwapRouter.ExactInputParams({
                 path: _pathFromUSDC,
@@ -292,7 +292,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                 amountOutMinimum: 0
             })
         );
-        IERC20(USDC).safeApprove(uniswapRouter, 0);
+        IERC20(USDC).forceApprove(uniswapRouter, 0);
     }
 
     function _withdrawUSDsDeposit(address _token) private {

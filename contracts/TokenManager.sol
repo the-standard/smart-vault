@@ -16,7 +16,7 @@ contract TokenManager is ITokenManager, Ownable {
     event TokenAdded(bytes32 symbol, address token);
     event TokenRemoved(bytes32 symbol);
 
-    constructor(bytes32 _native, address _clNativeUsd) {
+    constructor(bytes32 _native, address _clNativeUsd) Ownable(msg.sender) {
         NATIVE = _native;
         acceptedTokens.push(
             Token(NATIVE, address(0), 18, _clNativeUsd, Chainlink.AggregatorV3Interface(_clNativeUsd).decimals())

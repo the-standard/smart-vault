@@ -68,7 +68,7 @@ contract SmartVaultManagerV6 is
         uint16 _userVaultLimit
     ) public initializer {
         __ERC721_init("The Standard Smart Vault Manager (USDs)", "TS-VAULTMAN-USDs");
-        __Ownable_init();
+        __Ownable_init(msg.sender);
         collateralRate = _collateralRate;
         usds = _usds;
         mintFeeRate = _feeRate;
@@ -179,11 +179,12 @@ contract SmartVaultManagerV6 is
         yieldManager = _yieldManager;
     }
 
-    // TODO test transfer
-    function _afterTokenTransfer(address _from, address _to, uint256 _tokenId, uint256) internal override {
+    function _update(address _to, uint256 _tokenID, address _auth) internal virtual override returns (address) {
+        address _from = super._update(_to, _tokenID, _auth);
         require(vaultIDs(_to).length < userVaultLimit, "err-vault-limit");
-        smartVaultIndex.transferTokenId(_from, _to, _tokenId);
-        if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).setOwner(_to);
-        emit VaultTransferred(_tokenId, _from, _to);
+        smartVaultIndex.transferTokenId(_from, _to, _tokenID);
+        if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).setOwner(_to);
+        emit VaultTransferred(_tokenID, _from, _to);
+        return _from;
     }
 }

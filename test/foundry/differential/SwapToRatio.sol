@@ -72,7 +72,7 @@ contract SwapToRatioOld is SwapToRatioBase {
                     _divisor++;
                     _tokenBTooLarge = false;
                 }
-                IERC20(_tokenA).safeApprove(swapRouter, _thisBalanceOf(_tokenA));
+                IERC20(_tokenA).safeIncreaseAllowance(swapRouter, _thisBalanceOf(_tokenA));
                 try ISwapRouter(swapRouter).exactOutputSingle(
                     ISwapRouter.ExactOutputSingleParams({
                         tokenIn: _tokenA,
@@ -87,13 +87,13 @@ contract SwapToRatioOld is SwapToRatioBase {
                 ) returns (uint256) {} catch {
                     _divisor++;
                 }
-                IERC20(_tokenA).safeApprove(swapRouter, 0);
+                IERC20(_tokenA).forceApprove(swapRouter, 0);
             } else {
                 if (!_tokenBTooLarge) {
                     _divisor++;
                     _tokenBTooLarge = true;
                 }
-                IERC20(_tokenB).safeApprove(swapRouter, (_tokenBBalance - _midRatio) / _divisor);
+                IERC20(_tokenB).safeIncreaseAllowance(swapRouter, (_tokenBBalance - _midRatio) / _divisor);
                 try ISwapRouter(swapRouter).exactInputSingle(
                     ISwapRouter.ExactInputSingleParams({
                         tokenIn: _tokenB,
@@ -108,7 +108,7 @@ contract SwapToRatioOld is SwapToRatioBase {
                 ) returns (uint256) {} catch {
                     _divisor++;
                 }
-                IERC20(_tokenB).safeApprove(swapRouter, 0);
+                IERC20(_tokenB).forceApprove(swapRouter, 0);
             }
             _tokenBBalance = _thisBalanceOf(_tokenB);
             (_amountStart, _amountEnd) =
@@ -200,7 +200,7 @@ contract SwapToRatioNew is SwapToRatioBase {
             address _tokenIn = _tokenAIs0 ? _token0 : _token1;
             address _tokenOut = _tokenAIs0 ? _token1 : _token0;
 
-            IERC20(_tokenIn).safeApprove(swapRouter, _tokenABalance);
+            IERC20(_tokenIn).safeIncreaseAllowance(swapRouter, _tokenABalance);
             ISwapRouter(swapRouter).exactInputSingle(
                 ISwapRouter.ExactInputSingleParams({
                     tokenIn: _tokenIn,
@@ -213,14 +213,14 @@ contract SwapToRatioNew is SwapToRatioBase {
                     sqrtPriceLimitX96: 0
                 })
             );
-            IERC20(_tokenIn).safeApprove(swapRouter, 0);
+            IERC20(_tokenIn).forceApprove(swapRouter, 0);
         } else {
             // we want more tokenA
 
             address _tokenIn = _tokenAIs0 ? _token1 : _token0;
             address _tokenOut = _tokenAIs0 ? _token0 : _token1;
 
-            IERC20(_tokenIn).safeApprove(swapRouter, _tokenBBalance);
+            IERC20(_tokenIn).safeIncreaseAllowance(swapRouter, _tokenBBalance);
             ISwapRouter(swapRouter).exactOutputSingle(
                 ISwapRouter.ExactOutputSingleParams({
                     tokenIn: _tokenIn,
@@ -233,7 +233,7 @@ contract SwapToRatioNew is SwapToRatioBase {
                     sqrtPriceLimitX96: 0
                 })
             );
-            IERC20(_tokenIn).safeApprove(swapRouter, 0);
+            IERC20(_tokenIn).forceApprove(swapRouter, 0);
         }
     }
 }
@@ -314,7 +314,7 @@ contract SwapToRatioPython is SwapToRatioBase {
         // Unless Python returns zero for both values, perform the swap to get the other token balance delta
         if (delta_a != 0) {
             if (_tokenBBalance < _midRatio) {
-                IERC20(_tokenA).safeApprove(swapRouter, delta_a);
+                IERC20(_tokenA).safeIncreaseAllowance(swapRouter, delta_a);
                 delta_b = ISwapRouter(swapRouter).exactInputSingle(
                     ISwapRouter.ExactInputSingleParams({
                         tokenIn: _tokenA,
@@ -327,9 +327,9 @@ contract SwapToRatioPython is SwapToRatioBase {
                         sqrtPriceLimitX96: 0
                     })
                 );
-                IERC20(_tokenA).safeApprove(swapRouter, 0);
+                IERC20(_tokenA).forceApprove(swapRouter, 0);
             } else {
-                IERC20(_tokenB).safeApprove(swapRouter, _tokenBBalance);
+                IERC20(_tokenB).safeIncreaseAllowance(swapRouter, _tokenBBalance);
                 delta_b = ISwapRouter(swapRouter).exactOutputSingle(
                     ISwapRouter.ExactOutputSingleParams({
                         tokenIn: _tokenB,
@@ -342,7 +342,7 @@ contract SwapToRatioPython is SwapToRatioBase {
                         sqrtPriceLimitX96: 0
                     })
                 );
-                IERC20(_tokenB).safeApprove(swapRouter, 0);
+                IERC20(_tokenB).forceApprove(swapRouter, 0);
             }
         }
     }

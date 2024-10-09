@@ -6,6 +6,8 @@ import {Test, stdError} from "forge-std/Test.sol";
 import {IHypervisor} from "contracts/interfaces/IHypervisor.sol";
 import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
 import {ChainlinkMock} from "src/test_utils/ChainlinkMock.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
 import {SmartVaultFixture, SmartVaultV4} from "./fixtures/SmartVaultFixture.sol";
 
@@ -180,7 +182,7 @@ contract SmartVaultTest is SmartVaultFixture, Test {
 
         // removing native via removeCollateral reverts
         vm.startPrank(VAULT_OWNER);
-        vm.expectRevert("Address: call to non-contract");
+        vm.expectRevert(abi.encodeWithSelector(Address.AddressEmptyCode.selector, address(0)));
         smartVault.removeCollateral(NATIVE, address(smartVault).balance, VAULT_OWNER);
         vm.stopPrank();
 

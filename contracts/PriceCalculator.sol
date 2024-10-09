@@ -20,7 +20,7 @@ contract PriceCalculator is IPriceCalculator, Ownable {
     error SequencerDown();
     error GracePeriodNotOver();
 
-    constructor(bytes32 _native, address _USDCToUSDAddr, address _sequencerUptimeFeed) {
+    constructor(bytes32 _native, address _USDCToUSDAddr, address _sequencerUptimeFeed) Ownable(msg.sender) {
         NATIVE = _native;
         USDCToUSDAddr = _USDCToUSDAddr;
         sequencerUptimeFeed = Chainlink.AggregatorV3Interface(_sequencerUptimeFeed);

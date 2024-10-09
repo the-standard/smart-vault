@@ -159,12 +159,12 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         // deposit tokens (based on the rates) to hypervisors and burn tokens to ensure the rates are correct
         // and these underlying tokens remain in the hypervisors when testing yield manager withdrawal logic
         // NOTE: this is part of a workaround for the _swapToRatio() logic in the yield manager
-        IERC20(address(usds)).safeApprove(address(usdsHypervisor), usdsAmount);
-        IERC20(address(usdc)).safeApprove(address(usdsHypervisor), usdcAmount);
-        IERC20(address(wbtc)).safeApprove(address(wbtcHypervisor), wbtcAmount);
-        IERC20(address(weth)).safeApprove(address(wbtcHypervisor), wethAmount);
-        IERC20(address(link)).safeApprove(address(linkHypervisor), linkAmount);
-        IERC20(address(weth)).safeApprove(address(linkHypervisor), wethAmount);
+        IERC20(address(usds)).safeIncreaseAllowance(address(usdsHypervisor), usdsAmount);
+        IERC20(address(usdc)).safeIncreaseAllowance(address(usdsHypervisor), usdcAmount);
+        IERC20(address(wbtc)).safeIncreaseAllowance(address(wbtcHypervisor), wbtcAmount);
+        IERC20(address(weth)).safeIncreaseAllowance(address(wbtcHypervisor), wethAmount);
+        IERC20(address(link)).safeIncreaseAllowance(address(linkHypervisor), linkAmount);
+        IERC20(address(weth)).safeIncreaseAllowance(address(linkHypervisor), wethAmount);
 
         usds.mint(address(this), usdsAmount);
         usdc.mint(address(this), usdcAmount);

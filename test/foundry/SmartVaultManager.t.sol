@@ -9,6 +9,7 @@ import {EnumerableSet} from "@openzeppelin/contracts/utils/structs/EnumerableSet
 import {SmartVaultManagerFixture, SmartVaultManagerV6} from "./fixtures/SmartVaultManagerFixture.sol";
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {ISmartVault} from "src/interfaces/ISmartVault.sol";
+import {IERC20Errors, IERC721Errors} from "@openzeppelin/contracts/interfaces/draft-IERC6093.sol";
 
 contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -87,9 +88,10 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         vm.prank(VAULT_OWNER);
         SmartVaultV4(payable(vault)).mint(VAULT_OWNER, mintValue);
 
-        vm.prank(liquidator);
         // Attempt to liquidate without USDs to burn
-        vm.expectRevert("ERC20: burn amount exceeds balance");
+        uint256 minted = smartVaultManager.vaultData(tokenId).status.minted;
+        vm.prank(liquidator);
+        vm.expectRevert(abi.encodeWithSelector(IERC20Errors.ERC20InsufficientBalance.selector, liquidator, 0, minted));
         smartVaultManager.liquidateVault(tokenId);
 
         // mint extra because of outstanding fees in vault debt
@@ -145,13 +147,14 @@ contract SmartVaultManagerTest is SmartVaultManagerFixture, Test {
         assertEq(smartVaultManager.balanceOf(recipient), 1);
         assertEq(smartVaultManager.vaultIDs(recipient).length, recipientBalanceBefore);
 
-        // Attempt to transfer with invalid recipient invalid caller
-        vm.expectRevert("ERC721: caller is not token owner or approved");
-        smartVaultManager.transferFrom(VAULT_OWNER, address(0), tokenId);
+        // Attempt to transfer with invalid caller
+        vm.prank(recipient);
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InsufficientApproval.selector, recipient, 1));
+        smartVaultManager.transferFrom(VAULT_OWNER, recipient, tokenId);
 
         // Attempt to transfer with invalid recipient
         vm.startPrank(VAULT_OWNER);
-        vm.expectRevert("ERC721: transfer to the zero address");
+        vm.expectRevert(abi.encodeWithSelector(IERC721Errors.ERC721InvalidReceiver.selector, address(0)));
         smartVaultManager.transferFrom(VAULT_OWNER, address(0), tokenId);
         vm.stopPrank();
 
