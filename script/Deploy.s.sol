@@ -12,7 +12,7 @@ import {SmartVaultManagerV6} from "../contracts/SmartVaultManagerV6.sol";
 // import {Upgrades} from "lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
-contract MyScript is Script {
+contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);

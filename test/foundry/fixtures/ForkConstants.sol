@@ -77,10 +77,8 @@ AggregatorV3Interface constant CL_SUSHI_USD = AggregatorV3Interface(CL_SUSHI_USD
 
 // Router constants
 address constant UNISWAP_ROUTER_ADDRESS = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
-address constant RAMSES_ROUTER_ADDRESS = 0xAA23611badAFB62D37E7295A682D21960ac85A90;
 
 ISwapRouter constant UNISWAP_ROUTER = ISwapRouter(UNISWAP_ROUTER_ADDRESS);
-ISwapRouter constant RAMSES_ROUTER = ISwapRouter(RAMSES_ROUTER_ADDRESS);
 
 // Gamma constants
 address constant UNI_PROXY_ADDRESS = 0x82FcEB07a4D01051519663f6c1c919aF21C27845;

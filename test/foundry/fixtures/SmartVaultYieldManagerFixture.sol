@@ -200,7 +200,6 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             address(usdc),
             address(weth),
             address(uniProxy),
-            address(ramsesRouter),
             address(usdsHypervisor),
             address(uniswapRouter)
         );

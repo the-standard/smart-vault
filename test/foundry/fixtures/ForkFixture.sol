@@ -110,7 +110,6 @@ contract ForkFixture is Test {
         vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
-        vm.label(RAMSES_ROUTER_ADDRESS, "Ramses Router");
 
         vm.label(UNI_PROXY_ADDRESS, "UniProxy");
         vm.label(CLEARING_ADDRESS, "Clearing");
@@ -271,7 +270,6 @@ contract ForkFixture is Test {
             USDC_ADDRESS,
             WETH_ADDRESS,
             UNI_PROXY_ADDRESS,
-            RAMSES_ROUTER_ADDRESS,
             address(usdsHypervisor),
             UNISWAP_ROUTER_ADDRESS
         );
