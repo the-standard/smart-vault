@@ -1,17 +1,22 @@
 {
     "arbitrum": {
         "SmartVaultManager": "0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC",
+        "SmartVaultManager_USDs": "0x496aB4A155C8fE359Cd28d43650fAFA0A35322Fb",
         "EUROs": "0x643b34980e635719c15a2d4ce69571a258f940e9",
+        "USDs": "0x2Ea0bE86990E8Dac0D09e4316Bb92086F304622d",
         "TokenManager": "0x33c5A816382760b6E5fb50d8854a61b3383a32a0",
         "Deployer": "0xa4879376995E60A7469e140C29f96744A7188278",
+        "Deployed_USDs": "0xde5C4623ea33dFFb25B725E3de0Ac5986A0BE182",
         "SmartVaultIndex": "0x56c7506410e5e242261c5E0db6941956c686E5A1",
+        "SmartVaultIndex_USDs": "0x9bDCDd0A729aa6a0DE16cD41d81D0Cd3ad26Ffdd",
         "NFTMetadataGenerator": "0x3C70276Ee29FD659a9D06983522b731784012c54",
         "Directory": "0xBe57E0d3126a1F28a2E840ECbB842cb357e56866",
         "LiquidationPool": "0x6F3e7d650D7Fe0fd4232c76561c8022D12107c93",
         "LiquidationPoolManager": "0x2a823EE5F731c5699E75E51AcA799e1141d29910",
         "Staking": "0x2b422Fafc9C5841e6dFaDB383a62406B4BF13Ece",
         "RewardGateway": "0xb7ba62932d90C3c7ef841eF4339995eB93299dC9",
-        "LiquidationAutomation": "0x2B218f2a96B7F738aF4936FC596A0c02A351C746"
+        "LiquidationAutomation": "0x2B218f2a96B7F738aF4936FC596A0c02A351C746",
+        "YieldManager": "0xaF81416b73a1aF1C9F61a6B396CDD154cBd7f1d0"
     },
     "arbitrum_sepolia": {
         "EUROs": "0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b",
