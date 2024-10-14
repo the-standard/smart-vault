@@ -1,35 +1,26 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "contracts/uniswap/FullMath.sol";
-import "contracts/uniswap/PoolAddress.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/access/Ownable.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
-import "contracts/interfaces/IPeripheryImmutableState.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/IUniProxy.sol";
-import "contracts/interfaces/IUniswapV3Pool.sol";
-import "contracts/interfaces/IWETH.sol";
 import "contracts/interfaces/IPeripheryImmutableState.sol";
-import "contracts/interfaces/IUniswapV3Pool.sol";
-
 import {PoolAddress} from "contracts/uniswap/PoolAddress.sol";
 import {FullMath} from "contracts/uniswap/FullMath.sol";
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
-import {console} from "forge-std/console.sol";
 
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 
     address private immutable USDs;
     address private immutable USDC;
-    address private immutable WETH;
     address private immutable uniProxy;
     address private immutable usdsHypervisor;
     address private immutable uniswapRouter;
@@ -58,14 +49,12 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     constructor(
         address _USDs,
         address _USDC,
-        address _WETH,
         address _uniProxy,
         address _usdsHypervisor,
         address _uniswapRouter
     ) Ownable(msg.sender) {
         USDs = _USDs;
         USDC = _USDC;
-        WETH = _WETH;
         uniProxy = _uniProxy;
         usdsHypervisor = _usdsHypervisor;
         uniswapRouter = _uniswapRouter;
@@ -93,9 +82,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         {
             PoolAddress.PoolKey memory poolKey = PoolAddress.getPoolKey(_token0, _token1, _fee);
             address factory = IPeripheryImmutableState(uniswapRouter).factory();
-            console.log("HELLO");
             (_sqrtPriceX96,,,,,,) = IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0();
-            console.log("Hi");
         }
 
         uint256 _midRatio;

@@ -1,7 +1,7 @@
 // // SPDX-License-Identifier: UNLICENSED
 // pragma solidity 0.8.21;
 
-// import "@openzeppelin/contracts/utils/Strings.sol";
+// import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/utils/Strings.sol";
 // import "contracts/interfaces/ISmartVault.sol";
 // import "contracts/nfts/DefGenerator.sol";
 // import "contracts/nfts/NFTUtils.sol";

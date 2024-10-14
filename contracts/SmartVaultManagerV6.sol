@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "lib/openzeppelin-contracts-upgradeable/contracts/access/OwnableUpgradeable.sol";
+import "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializable.sol";
+import "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";

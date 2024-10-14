@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import "@openzeppelin/contracts/access/Ownable.sol";
+import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/access/Ownable.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 
 contract SmartVaultIndex is ISmartVaultIndex, Ownable {
