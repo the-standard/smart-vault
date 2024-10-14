@@ -237,7 +237,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
     function _usdDeposit(address _collateralToken, uint256 _usdPercentage, bytes memory _pathToUSDC) private {
         _swapToUSDC(_collateralToken, _usdPercentage, _pathToUSDC);
-        _swapToRatio(USDC, usdsHypervisor, 500);
+        _swapToRatio(USDC, usdsHypervisor, 3000);
         _deposit(usdsHypervisor);
     }
 
@@ -287,7 +287,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             address(this),
             [uint256(0), uint256(0), uint256(0), uint256(0)]
         );
-        _swapToSingleAsset(usdsHypervisor, USDC, 500);
+        _swapToSingleAsset(usdsHypervisor, USDC, 3000);
         _sellUSDC(_token);
     }
 
