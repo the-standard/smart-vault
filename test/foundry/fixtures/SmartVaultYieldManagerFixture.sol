@@ -18,8 +18,6 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 import {UniProxyMock} from "src/test_utils/UniProxyMock.sol";
 import {MockUniswapFactory} from "src/test_utils/MockUniswapFactory.sol";
-import {MockRamsesFactory} from "src/test_utils/MockRamsesFactory.sol";
-import {MockRamsesPool} from "src/test_utils/MockRamsesPool.sol";
 
 contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -31,16 +29,6 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         super.setUp();
 
         UniProxyMock uniProxy = new UniProxyMock();
-        MockSwapRouter ramsesRouter = new MockSwapRouter();
-
-        {
-            MockRamsesPool impl = new MockRamsesPool();
-            MockRamsesFactory ramsesFactory = new MockRamsesFactory(address(impl));
-            ramsesRouter.setFactory(address(ramsesFactory));
-            address pool = ramsesFactory.deploy(address(usds), address(usdc));
-            // vm.label(pool, "USDs/USDC Ramses Pool"); // TODO: investigate why medusa doesn't like this
-            MockRamsesPool(pool).setPrice(_calcSqrtX96(address(usds), address(usdc), 1));
-        }
 
         // uni proxy ratios
         uniProxy.setRatio(address(usdsHypervisor), address(usdc), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
@@ -65,12 +53,16 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             DEFAULT_LINK_ETH_DIVISOR * 10 ** (18 + weth.decimals() - link.decimals())
         ); // 1:200
 
-        // ramses router rates: usds <-> usdc
-        ramsesRouter.setRate(address(usds), address(usdc), 10 ** (18 + usdc.decimals() - usds.decimals())); // 1:1
-        ramsesRouter.setRate(address(usdc), address(usds), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
         {
             MockUniswapFactory uniFactory = new MockUniswapFactory();
             uniswapRouter.setFactory(address(uniFactory));
+
+            // uniswap router rates: usds <-> usdc
+            uniswapRouter.setRate(address(usds), address(usdc), 10 ** (18 + usdc.decimals() - usds.decimals())); // 1:1
+            uniswapRouter.setRate(address(usdc), address(usds), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
+
+            address usdsUsdcPool = uniFactory.deploy(address(usds), address(usdc), RAMSES_FEE);
+            IUniswapV3Pool(usdsUsdcPool).initialize(_calcSqrtX96(address(usds), address(usdc), 1));
 
             // uniswap router rates: weth/wbtc/link <-> usdc
             uniswapRouter.setRate(
@@ -148,8 +140,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         uint256 linkAmount = 2_000_000 * 10 ** link.decimals();
 
         usds.grantRole(usds.MINTER_ROLE(), address(this));
-        usds.mint(address(ramsesRouter), 25_000_000 * 10 ** usds.decimals());
-        usdc.mint(address(ramsesRouter), 25_000_000 * 10 ** usdc.decimals());
+        usds.mint(address(uniswapRouter), 25_000_000 * 10 ** usds.decimals());
         usdc.mint(address(uniswapRouter), 25_000_000 * 10 ** usdc.decimals());
         weth.mint(address(uniswapRouter), 10_000 * 10 ** weth.decimals());
         vm.deal(address(weth), address(weth).balance + 10_000 * 10 ** weth.decimals());
