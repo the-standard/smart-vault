@@ -82,7 +82,6 @@ contract ForkTest is ForkFixture {
         );
 
         status = vault.status();
-        console.log(status.minted);
         assertEq(status.minted, vaultDebt - _USDsRedeemed);
         assertEq(address(vault).balance, ethCollateral - ETHToSell);
     }
