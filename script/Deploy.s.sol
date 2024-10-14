@@ -8,50 +8,40 @@ import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.
 import {PriceCalculator} from "../contracts/PriceCalculator.sol";
 import {SmartVaultDeployerV4} from "../contracts/SmartVaultDeployerV4.sol";
 import {SmartVaultIndex} from "../contracts/SmartVaultIndex.sol";
-import {SmartVaultManagerV6} from "../contracts/SmartVaultManagerV6.sol";
-// import {Upgrades} from "lib/openzeppelin-foundry-upgrades/src/Upgrades.sol";
-import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
+import {SmartVaultManagerV6} from "../contracts/FlattenedManager.sol";
+import {TransparentUpgradeableProxy} from "../contracts/FlattenedProxy.sol";
 
 contract Deploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
-        vm.warp(4 hours);
 
-        ChainlinkMock clUsdcUsd = new ChainlinkMock("USDC / USD");
-        clUsdcUsd.setPrice(100000000);
-        ChainlinkMock uptimeFeed = new ChainlinkMock("Uptime Feed");
-        uptimeFeed.setStartedAt(block.timestamp - 2 hours);
-        PriceCalculator calculator = new PriceCalculator(bytes32("ETH"), address(clUsdcUsd), address(uptimeFeed));
+        PriceCalculator calculator = new PriceCalculator(bytes32("ETH"), 0x50834F3163758fcC1Df9973b6e91f0F0F0434aD3, 0xFdB631F5EE196F0ed6FAa767959853A9F217697D);
         SmartVaultDeployerV4 deployer = new SmartVaultDeployerV4(bytes32("ETH"), address(calculator));
         SmartVaultIndex index = new SmartVaultIndex();
-        MockNFTMetadataGenerator generator = new MockNFTMetadataGenerator();
-        USDsMock usds = USDsMock(0x0173184A51CF807Cc386B3F5Dc5689Cae09B81fb);
 
-        address proxy = Upgrades.deployTransparentProxy(
-            "SmartVaultManagerV6.sol",
-            msg.sender,
+        SmartVaultManagerV6 impl = new SmartVaultManagerV6();
+
+        TransparentUpgradeableProxy proxy = new TransparentUpgradeableProxy(
+            address(impl), msg.sender,
             abi.encodeCall(SmartVaultManagerV6.initialize, (
                 110000,
                 500,
-                address(usds), // usds
-                0xCa17e2A2264f4Cf721a792d771A4021c37538049, // protocol
-                0x18f413879A00Db35A4Ea22300977924E613F3D88, // token manager
+                0x2Ea0bE86990E8Dac0D09e4316Bb92086F304622d, // usds
+                msg.sender, // protocol
+                0x33c5A816382760b6E5fb50d8854a61b3383a32a0, // token manager
                 address(deployer),
                 address(index), // protocol
-                address(generator),
+                address(0),
                 1000
             ))
         );
 
-        index.setVaultManager(proxy);
+        index.setVaultManager(address(proxy));
 
-        usds.grantRole(usds.DEFAULT_ADMIN_ROLE(), proxy);
-        usds.grantRole(usds.BURNER_ROLE(), proxy);
-        
-        // set weth address
-        // set swap router
-        // set yield manager
+        SmartVaultManagerV6 manager = SmartVaultManagerV6(address(proxy));
+        manager.setWethAddress(0x82aF49447D8a07e3bd95BD0d56f35241523fBab1);
+        manager.setSwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 
         vm.stopBroadcast();
     }
