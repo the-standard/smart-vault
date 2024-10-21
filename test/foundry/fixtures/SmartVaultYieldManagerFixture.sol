@@ -18,6 +18,7 @@ import {IUniswapV3Pool} from "src/interfaces/IUniswapV3Pool.sol";
 import {MockSwapRouter} from "src/test_utils/MockSwapRouter.sol";
 import {UniProxyMock} from "src/test_utils/UniProxyMock.sol";
 import {MockUniswapFactory} from "src/test_utils/MockUniswapFactory.sol";
+import {console} from "forge-std/console.sol";
 
 contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
     using EnumerableSet for EnumerableSet.Bytes32Set;
@@ -62,6 +63,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
             uniswapRouter.setRate(address(usdc), address(usds), 10 ** (18 + usds.decimals() - usdc.decimals())); // 1:1
 
             address usdsUsdcPool = uniFactory.deploy(address(usds), address(usdc), RAMSES_FEE);
+
             IUniswapV3Pool(usdsUsdcPool).initialize(_calcSqrtX96(address(usds), address(usdc), 1));
 
             // uniswap router rates: weth/wbtc/link <-> usdc
@@ -165,8 +167,8 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         link.mint(address(this), linkAmount);
 
         uniProxy.deposit(
-            usdsAmount,
             usdcAmount,
+            usdsAmount,
             address(0xDEAD),
             address(usdsHypervisor),
             [uint256(0), uint256(0), uint256(0), uint256(0)]
@@ -189,7 +191,6 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         yieldManager = new SmartVaultYieldManager(
             address(usds),
             address(usdc),
-            address(weth),
             address(uniProxy),
             address(usdsHypervisor),
             address(uniswapRouter)
