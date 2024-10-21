@@ -72,6 +72,40 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         return _tokenBBalance >= _requiredStart && _tokenBBalance <= _requiredEnd;
     }
 
+    function _sell(address _tokenIn, address _tokenOut, uint24 _fee, uint256 _amountIn) private {
+        IERC20(_tokenIn).safeIncreaseAllowance(uniswapRouter, _amountIn);
+        ISwapRouter(uniswapRouter).exactInputSingle(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amountIn,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
+        IERC20(_tokenIn).forceApprove(uniswapRouter, 0);
+    }
+
+    function _buy(address _tokenIn, address _tokenOut, uint24 _fee, uint256 _amountOut) private {
+        IERC20(_tokenIn).safeIncreaseAllowance(uniswapRouter, _thisBalanceOf(_tokenIn));
+        ISwapRouter(uniswapRouter).exactOutputSingle(
+            ISwapRouter.ExactOutputSingleParams({
+                tokenIn: _tokenIn,
+                tokenOut: _tokenOut,
+                fee: _fee,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountOut: _amountOut,
+                amountInMaximum: _thisBalanceOf(_tokenIn),
+                sqrtPriceLimitX96: 0
+            })
+        );
+        IERC20(_tokenIn).forceApprove(uniswapRouter, 0);
+    }
+
     function _swapToRatio(address _tokenA, address _hypervisor, uint24 _fee) private {
         address _token0 = IHypervisor(_hypervisor).token0();
         address _token1 = IHypervisor(_hypervisor).token1();
@@ -85,16 +119,13 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
             (_sqrtPriceX96,,,,,,) = IUniswapV3Pool(PoolAddress.computeAddressUniswap(factory, poolKey)).slot0();
         }
 
-        uint256 _midRatio;
+        uint256 _target;
         {
             (uint256 _amountStart, uint256 _amountEnd) =
                 IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
-            if (_withinRatio(_thisBalanceOf(_tokenB), _amountStart, _amountEnd)) return;
-
-            _midRatio = (_amountStart + _amountEnd) / 2;
+            _target = (_amountStart + _amountEnd) / 2;
         }
 
-        bool _tokenAIs0 = _tokenA == _token0;
         uint256 _tokenBBalance = _thisBalanceOf(_tokenB);
         uint256 _tokenABalance = _thisBalanceOf(_tokenA);
 
@@ -103,82 +134,62 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
 
         // Push _fee back on to the stack
         uint24 _fee = _fee;
+        address _hypervisor = _hypervisor;
+        address _tokenA = _tokenA;
 
-        {
-            uint256 aDec = ERC20(_tokenA).decimals();
-            uint256 bDec = ERC20(_tokenB).decimals();
-
-            uint256 price36;
+        // price slides are not accounted for in this equation
+        // therefore we should loop, as may require one or two attempts to hit ratio
+        while (true) {
             {
-                uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
-                price36 = _tokenAIs0
-                    ? FullMath.mulDiv((10 ** aDec) * (10 ** (36 - bDec)), 1 << 192, priceX192)
-                    : FullMath.mulDiv((10 ** bDec) * (10 ** (36 - aDec)), priceX192, 1 << 192);
-            }
+                uint256 aDec = ERC20(_tokenA).decimals();
+                uint256 bDec = ERC20(_tokenB).decimals();
 
-            uint256 _ratio =
-                FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)), 1e36, _midRatio * (10 ** (36 - bDec)));
-            uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
+                uint256 price36;
+                {
+                    uint256 priceX192 = uint256(_sqrtPriceX96) * _sqrtPriceX96;
+                    price36 = _tokenA == _token0
+                        ? FullMath.mulDiv(10 ** (36 + bDec - aDec), 1 << 192, priceX192)
+                        : FullMath.mulDiv(10 ** (36 + bDec - aDec), priceX192, 1 << 192);
+                }
 
-            if (_tokenABalance * (10 ** (36 - aDec)) > _rb) {
-                // a -> b
+                uint256 _ratio =
+                    FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)), 1e36, _target * (10 ** (36 - bDec)));
+                uint256 _rb = FullMath.mulDiv(_tokenBBalance * (10 ** (36 - bDec)), _ratio, 1e36);
+
+                if (_tokenABalance * (10 ** (36 - aDec)) > _rb) {
+                    // a -> b
+
+                    uint256 _denominator =
+                        1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, _fee, 1e6), 1e36, price36);
+                    // a - rb / (1 + (1-f) * ratio / price)
+                    _amountIn =
+                        FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
+                } else {
+                    // b -> a
 
                 uint256 _denominator =
-                    1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, _fee, 1e6), 1e36, price36);
-                // a - rb / (1 + (1-f) * ratio / price)
-                _amountIn =
-                    FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
+                        1e36 + FullMath.mulDiv(_ratio, 1e36, price36 + FullMath.mulDiv(price36, _fee, 1e6));
+                    // rb - a / (1 + ratio / ((1+f) * price))
+                    _amountOut =
+                        FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
+                }
+            }
+
+            if (_tokenBBalance < _target) {
+                _sell(_tokenA, _tokenB, _fee, _amountIn);
             } else {
-                // b -> a
-
-                uint256 _denominator =
-                    1e36 + FullMath.mulDiv(_ratio, 1e36, price36 + FullMath.mulDiv(price36, _fee, 1e6));
-                // rb - a / (1 + ratio / ((1+f) * price))
-                _amountOut =
-                    FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
+                _buy(_tokenB, _tokenA, _fee, _amountOut);
             }
-        }
 
-        if (_tokenBBalance < _midRatio) {
-            // we want more tokenB
+            {
+                (uint256 _amountStart, uint256 _amountEnd) =
+                    IUniProxy(uniProxy).getDepositAmount(_hypervisor, _tokenA, _thisBalanceOf(_tokenA));
+                _tokenABalance = _thisBalanceOf(_tokenA);
+                _tokenBBalance = _thisBalanceOf(_tokenB);
+                if (_withinRatio(_tokenBBalance, _amountStart, _amountEnd)) return;
 
-            address _tokenIn = _tokenAIs0 ? _token0 : _token1;
-            address _tokenOut = _tokenAIs0 ? _token1 : _token0;
-
-            IERC20(_tokenIn).safeIncreaseAllowance(uniswapRouter, _tokenABalance);
-            ISwapRouter(uniswapRouter).exactInputSingle(
-                ISwapRouter.ExactInputSingleParams({
-                    tokenIn: _tokenIn,
-                    tokenOut: _tokenOut,
-                    fee: _fee,
-                    recipient: address(this),
-                    deadline: block.timestamp,
-                    amountIn: _amountIn,
-                    amountOutMinimum: 0,
-                    sqrtPriceLimitX96: 0
-                })
-            );
-            IERC20(_tokenIn).forceApprove(uniswapRouter, 0);
-        } else {
-            // we want more tokenA
-
-            address _tokenIn = _tokenAIs0 ? _token1 : _token0;
-            address _tokenOut = _tokenAIs0 ? _token0 : _token1;
-
-            IERC20(_tokenIn).safeIncreaseAllowance(uniswapRouter, _tokenBBalance);
-            ISwapRouter(uniswapRouter).exactOutputSingle(
-                ISwapRouter.ExactOutputSingleParams({
-                    tokenIn: _tokenIn,
-                    tokenOut: _tokenOut,
-                    fee: _fee,
-                    recipient: address(this),
-                    deadline: block.timestamp,
-                    amountOut: _amountOut,
-                    amountInMaximum: _tokenBBalance,
-                    sqrtPriceLimitX96: 0
-                })
-            );
-            IERC20(_tokenIn).forceApprove(uniswapRouter, 0);
+                _target = (_amountStart + _amountEnd) / 2;
+            }
         }
     }
 
