@@ -16,7 +16,7 @@
         "Staking": "0x2b422Fafc9C5841e6dFaDB383a62406B4BF13Ece",
         "RewardGateway": "0xb7ba62932d90C3c7ef841eF4339995eB93299dC9",
         "LiquidationAutomation": "0x2B218f2a96B7F738aF4936FC596A0c02A351C746",
-        "YieldManager": "0xaF81416b73a1aF1C9F61a6B396CDD154cBd7f1d0"
+        "YieldManager": "0x172DF12aF47864389EAF4bC1EA93877bE1Dd7ae9"
     },
     "arbitrum_sepolia": {
         "EUROs": "0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b",
