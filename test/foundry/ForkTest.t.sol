@@ -35,27 +35,50 @@ contract ForkTest is ForkFixture {
     }
 
     function test_depositAndWithdrawYield() public {
-        vm.deal(address(vault), 1 ether);
+        vm.deal(address(vault), 1e18);
+        _deal(WBTC, WBTC_WHALE, address(this));
+        _deal(WETH, WETH_WHALE, VAULT_OWNER);
+        _deal(ARB, ARB_WHALE, address(this));
+        _deal(LINK, LINK_WHALE, address(this));
+        _deal(GMX, GMX_WHALE, address(this));
+        _deal(RDNT, RDNT_WHALE, address(this));
+        WBTC.transfer(address(vault), 1e6);
+        ARB.transfer(address(vault), 500e18);
+        LINK.transfer(address(vault), 200e18);
+        GMX.transfer(address(vault), 10e18);
+        RDNT.transfer(address(vault), 200e18);
 
-        vm.prank(VAULT_OWNER);
+        vm.startPrank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(WBTC_SYMBOL, 5e4, 5e4, block.timestamp + 60);
+        vault.depositYield(ARB_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(LINK_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(GMX_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(RDNT_SYMBOL, 1e4, 5e4, block.timestamp + 60);
 
-        vm.prank(VAULT_OWNER);
-        vault.withdrawYield(address(usdsHypervisor), NATIVE, 5e4, block.timestamp + 60);
+        vault.withdrawYield(USDS_HYPERVISOR_ADDRESS, NATIVE, 5e4, block.timestamp + 60);
+        vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, WBTC_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(ARB_HYPERVISOR_ADDRESS, ARB_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(LINK_HYPERVISOR_ADDRESS, LINK_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(GMX_HYPERVISOR_ADDRESS, GMX_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(RDNT_HYPERVISOR_ADDRESS, RDNT_SYMBOL, 5e4, block.timestamp + 60);
 
-        vm.prank(VAULT_OWNER);
-        vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, NATIVE, 5e4, block.timestamp + 60);
+        // put weth in after eth deposit is done because of eth yield deposit clearing out the weth balance
+        WETH.transfer(address(vault), 1e18);
+        vault.depositYield(WETH_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, WETH_SYMBOL, 5e4, block.timestamp + 60);
+        vm.stopPrank();
     }
 
     function test_autoRedemption() public {
         // make USDs cheaper, so redemption will be required:
         uint256 usdsDump = 50000 ether;
-        usds.approve(UNISWAP_ROUTER_ADDRESS, usdsDump);
+        USDS.approve(UNISWAP_ROUTER_ADDRESS, usdsDump);
         ISwapRouter(UNISWAP_ROUTER_ADDRESS).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
-                tokenIn: address(usds),
+                tokenIn: USDS_ADDRESS,
                 tokenOut: USDC_ADDRESS,
-                fee: UNISWAP_FEE,
+                fee: RAMSES_FEE,
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: usdsDump,
@@ -74,9 +97,9 @@ contract ForkTest is ForkFixture {
         uint256 vaultDebt = status.minted;
         uint256 vaultTokenID = 1;
         bytes memory ethUSDsSwapPath =
-            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, UNISWAP_FEE, address(usds));
-        vm.prank(VAULT_MANAGER_OWNER);
+            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
         uint256 ETHToSell = ethCollateral / 100;
+        vm.prank(VAULT_MANAGER_OWNER);
         uint256 _USDsRedeemed = smartVaultManager.vaultAutoRedemption(
             vaultTokenID, UNISWAP_ROUTER_ADDRESS, address(0), ethUSDsSwapPath, ETHToSell
         );
