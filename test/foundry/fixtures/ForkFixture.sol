@@ -39,11 +39,9 @@ contract ForkFixture is Test {
     address YIELD_MANAGER_OWNER = _makeAddr("Yield manager owner");
     address PROTOCOL = _makeAddr("Protocol");
     address HYPERVISOR_FEE_RECIPIENT = _makeAddr("Hypervisor fee recipient");
+    address USDS_OWNER = 0xF9d85965c6A40D0C029471d758850e4b4C0d5b17;
 
     // Protocol deployments
-    USDsMock usds;
-    IUniswapV3Pool usdsPool;
-    IHypervisor usdsHypervisor;
     TokenManager tokenManager;
     SmartVaultManagerV6 smartVaultManager;
     SmartVaultYieldManager yieldManager;
@@ -70,7 +68,7 @@ contract ForkFixture is Test {
         _pushCollateralSymbols();
         _pushCollateralData();
 
-        _deployUsds();
+        _addUSDLiquidity();
         _deployTokenManager();
         _deployVaultManager();
         _deployYieldManager();
@@ -90,6 +88,7 @@ contract ForkFixture is Test {
     }
 
     function _labelConstants() internal {
+        vm.label(USDS_ADDRESS, "USDs");
         vm.label(USDC_ADDRESS, "USDC");
         vm.label(WETH_ADDRESS, "WETH");
         vm.label(WBTC_ADDRESS, "WBTC");
@@ -97,7 +96,7 @@ contract ForkFixture is Test {
         vm.label(ARB_ADDRESS, "ARB");
         vm.label(GMX_ADDRESS, "GMX");
         vm.label(PAXG_ADDRESS, "PAXG");
-        // vm.label(RDNT_ADDRESS, "RDNT");
+        vm.label(RDNT_ADDRESS, "RDNT");
         vm.label(SUSHI_ADDRESS, "SUSHI");
 
         vm.label(CL_NATIVE_USD_ADDRESS, "Chainlink ETH/USD");
@@ -106,7 +105,7 @@ contract ForkFixture is Test {
         vm.label(CL_ARB_USD_ADDRESS, "Chainlink ARB/USD");
         vm.label(CL_GMX_USD_ADDRESS, "Chainlink GMX/USD");
         vm.label(CL_PAXG_USD_ADDRESS, "Chainlink PAXG/USD");
-        // vm.label(CL_RDNT_USD_ADDRESS, "Chainlink RDNT/USD");
+        vm.label(CL_RDNT_USD_ADDRESS, "Chainlink RDNT/USD");
         vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
@@ -114,11 +113,12 @@ contract ForkFixture is Test {
         vm.label(UNI_PROXY_ADDRESS, "UniProxy");
         vm.label(CLEARING_ADDRESS, "Clearing");
 
+        vm.label(USDS_HYPERVISOR_ADDRESS, "USDs Hypervisor");
         vm.label(WBTC_HYPERVISOR_ADDRESS, "WBTC Hypervisor");
         vm.label(LINK_HYPERVISOR_ADDRESS, "LINK Hypervisor");
         vm.label(ARB_HYPERVISOR_ADDRESS, "ARB Hypervisor");
         vm.label(GMX_HYPERVISOR_ADDRESS, "GMX Hypervisor");
-        // vm.label(RDNT_HYPERVISOR_ADDRESS, "RDNT Hypervisor");
+        vm.label(RDNT_HYPERVISOR_ADDRESS, "RDNT Hypervisor");
     }
 
     function _pushCollateralSymbols() internal {
@@ -130,7 +130,7 @@ contract ForkFixture is Test {
         collateralSymbols.push(ARB_SYMBOL);
         collateralSymbols.push(GMX_SYMBOL);
         collateralSymbols.push(PAXG_SYMBOL);
-        // collateralSymbols.push(RDNT_SYMBOL);
+        collateralSymbols.push(RDNT_SYMBOL);
         collateralSymbols.push(SUSHI_SYMBOL);
     }
 
@@ -155,8 +155,8 @@ contract ForkFixture is Test {
             WBTC,
             CL_WBTC_USD,
             WBTC_HYPERVISOR,
-            abi.encodePacked(WBTC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, UNISWAP_FEE, WBTC_ADDRESS)
+            abi.encodePacked(WBTC_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WBTC_ADDRESS)
         );
 
         collateralData[LINK_SYMBOL] = CollateralData(
@@ -183,6 +183,14 @@ contract ForkFixture is Test {
             abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
         );
 
+        collateralData[RDNT_SYMBOL] = CollateralData(
+            RDNT,
+            CL_RDNT_USD,
+            RDNT_HYPERVISOR,
+            abi.encodePacked(RDNT_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, RDNT_ADDRESS)
+        );
+
         collateralData[PAXG_SYMBOL] =
             CollateralData(PAXG, CL_PAXG_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
 
@@ -190,29 +198,6 @@ contract ForkFixture is Test {
             CollateralData(SUSHI, CL_SUSHI_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
 
         // TODO: RDNT configurations not clear
-    }
-
-    function _deployUsds() internal {
-        // deploy USDs
-        usds = new USDsMock();
-        vm.label(address(usds), "USDs");
-
-        // deploy USDs Uniswap pool
-        IUniswapV3Factory factory = IUniswapV3Factory(IPeripheryImmutableState(UNISWAP_ROUTER_ADDRESS).factory());
-        usdsPool = IUniswapV3Pool(factory.createPool(USDC_ADDRESS, address(usds), UNISWAP_FEE));
-        vm.label(address(usdsPool), "USDs/USDC Uniswap Pool");
-
-        // deal tokens to this contract
-        usds.grantRole(usds.MINTER_ROLE(), address(this));
-        usds.mint(address(this), 1_000_000 * 10 ** usds.decimals());
-        _deal(USDC, USDC_WHALE, address(this));
-
-        // seed the pool with liquidity
-        _addUsdsLiquidity();
-
-        // deploy USDs/USDC hypervisor
-        usdsHypervisor = IHypervisor(_deployUsdsHypervisor());
-        vm.label(address(usdsHypervisor), "USDs/USDC Hypervisor");
     }
 
     function _deployTokenManager() internal {
@@ -242,7 +227,7 @@ contract ForkFixture is Test {
         smartVaultManager.initialize(
             COLLATERAL_RATE,
             PROTOCOL_FEE_RATE,
-            address(usds),
+            USDS_ADDRESS,
             PROTOCOL,
             address(tokenManager),
             address(smartVaultDeployer),
@@ -258,19 +243,21 @@ contract ForkFixture is Test {
         smartVaultManager.setWethAddress(WETH_ADDRESS);
 
         smartVaultIndex.setVaultManager(address(smartVaultManager));
-        usds.grantRole(usds.DEFAULT_ADMIN_ROLE(), address(smartVaultManager));
-        usds.grantRole(usds.BURNER_ROLE(), address(smartVaultManager));
+        // grant default admin role to smart vault manager
+        vm.startPrank(USDS_OWNER);
+        ADMIN_USDS.grantRole(0x00, address(smartVaultManager));
+        ADMIN_USDS.grantRole(ADMIN_USDS.BURNER_ROLE(), address(smartVaultManager));
+        vm.stopPrank();
     }
 
     function _deployYieldManager() internal {
         // deploy SmartVaultYieldManager
         vm.prank(YIELD_MANAGER_OWNER);
         yieldManager = new SmartVaultYieldManager(
-            address(usds),
+            USDS_ADDRESS,
             USDC_ADDRESS,
-            WETH_ADDRESS,
             UNI_PROXY_ADDRESS,
-            address(usdsHypervisor),
+            USDS_HYPERVISOR_ADDRESS,
             UNISWAP_ROUTER_ADDRESS
         );
 
@@ -307,64 +294,31 @@ contract ForkFixture is Test {
         vault = SmartVaultV4(payable(smartVault));
     }
 
-    function _addUsdsLiquidity() internal {
-        (address token0, address token1) =
-            address(usds) < USDC_ADDRESS ? (address(usds), USDC_ADDRESS) : (USDC_ADDRESS, address(usds));
+    function _addUSDLiquidity() internal {
+        vm.startPrank(USDS_OWNER);
+        uint256 usdAmount = 1_000_000 * 10 ** USDS.decimals();
+        ADMIN_USDS.setSupplyLimit(10_000_000e18);
+        ADMIN_USDS.mint(address(this), usdAmount);
+        vm.stopPrank();
+        _deal(USDC, USDC_WHALE, address(this));
 
-        uint256 price = (10 ** ERC20(token1).decimals() * 1 << 192) / 10 ** ERC20(token0).decimals();
-        uint160 sqrtPriceX96 = uint160(FullMath.sqrt(price));
+        IUniswapV3Pool pool = IUniswapV3Pool(USD_POOL_ADDRESS);
+        (,int24 tick,,,,,) = pool.slot0();
+        int24 tickSpacing = pool.tickSpacing();
+        // int24 tickLower = (tick - tick) / tickSpacing * tickSpacing;
+        // int24 tickLower = tick / tickSpacing * tickSpacing - tickSpacing;
+        int24 tickLower = (tick - 500) / tickSpacing * tickSpacing;
+        // int24 tickUpper = (tick + tick) / tickSpacing * tickSpacing;
+        // int24 tickUpper = tick / tickSpacing * tickSpacing + tickSpacing;
+        int24 tickUpper = (tick + 500) / tickSpacing * tickSpacing;
 
-        int24 tick = TickMath.getTickAtSqrtRatio(sqrtPriceX96);
+        pool.mint(address(this), tickLower, tickUpper, 1e19, "");
 
-        IUniswapV3Pool(usdsPool).initialize(sqrtPriceX96);
-
-        int24 tickLower = tick - 100 - tick % IUniswapV3Pool(usdsPool).tickSpacing();
-        int24 tickUpper = tick + 100 + tick % IUniswapV3Pool(usdsPool).tickSpacing();
-
-        uint128 liquidity = LiquidityAmounts.getLiquidityForAmounts(
-            sqrtPriceX96,
-            TickMath.getSqrtRatioAtTick(tickLower),
-            TickMath.getSqrtRatioAtTick(tickUpper),
-            100_000 * 10 ** ERC20(token0).decimals(),
-            100_000 * 10 ** ERC20(token1).decimals()
-        );
-        IUniswapV3Pool(usdsPool).mint(address(this), tickLower, tickUpper, liquidity, "");
-
-        IUniswapV3Pool(usdsPool).increaseObservationCardinalityNext(100);
+        pool.increaseObservationCardinalityNext(100);
     }
 
     function uniswapV3MintCallback(uint256 amount0Owed, uint256 amount1Owed, bytes calldata) external {
-        usds.transfer(msg.sender, amount0Owed);
+        USDS.transfer(msg.sender, amount0Owed);
         USDC.transfer(msg.sender, amount1Owed);
-    }
-
-    // TODO: investigate whether there is a simpler way to do this without using raw bytecode
-    function _deployUsdsHypervisor() internal returns (address hypervisor) {
-        bytes memory constructorParams = abi.encode(usdsPool, address(this), "USDs-USDC Hypervisor", "USDs-USDC");
-        bytes memory bytecodeWithParams = bytes.concat(HYPERVISOR_CODE, constructorParams);
-
-        assembly {
-            hypervisor := create(0, add(bytecodeWithParams, 0x20), mload(bytecodeWithParams))
-        }
-
-        vm.assertNotEq(hypervisor, address(0));
-        IHypervisor(hypervisor).setWhitelist(UNI_PROXY_ADDRESS);
-        vm.prank(IClearing(UNI_PROXY_ADDRESS).owner());
-        CLEARING.addPosition(hypervisor, 1);
-
-        IHypervisor(hypervisor).rebalance(
-            -276350, // base lower
-            -276300, // base upper
-            -276280, // limit lower
-            -276230, // limit upper
-            HYPERVISOR_FEE_RECIPIENT,
-            [uint256(0), uint256(0), uint256(0), uint256(0)],
-            [uint256(0), uint256(0), uint256(0), uint256(0)]
-        );
-        vm.warp(block.timestamp + 3601);
-
-        usds.approve(hypervisor, 1_000 * 10 ** usds.decimals());
-        USDC.approve(hypervisor, 1_000 * 10 ** USDC.decimals());
-        UNI_PROXY.deposit(1000e18, 1000e6, msg.sender, hypervisor, [uint256(0), uint256(0), uint256(0), uint256(0)]);
     }
 }

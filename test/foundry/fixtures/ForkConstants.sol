@@ -8,12 +8,14 @@ import {ISwapRouter} from "src/interfaces/ISwapRouter.sol";
 import {IUniProxy} from "src/interfaces/IUniProxy.sol";
 import {IClearing} from "src/interfaces/IClearing.sol";
 import {IHypervisor} from "src/interfaces/IHypervisor.sol";
+import {IAdminUSDs} from "src/test_utils/interfaces/IAdminUSDs.sol";
 
 // Fork constants
 string constant ENV_RPC_URL = "ARBITRUM_RPC_URL";
 string constant DEFAULT_RPC_URL = "https://rpc.ankr.com/arbitrum";
 
 // Token constants
+address constant USDS_ADDRESS = 0x2Ea0bE86990E8Dac0D09e4316Bb92086F304622d;
 address constant USDC_ADDRESS = 0xaf88d065e77c8cC2239327C5EDb3A432268e5831;
 address constant WETH_ADDRESS = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 address constant WBTC_ADDRESS = 0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f;
@@ -24,6 +26,8 @@ address constant PAXG_ADDRESS = 0xfEb4DfC8C4Cf7Ed305bb08065D08eC6ee6728429;
 address constant RDNT_ADDRESS = 0x3082CC23568eA640225c2467653dB90e9250AaA0;
 address constant SUSHI_ADDRESS = 0xd4d42F0b6DEF4CE0383636770eF773390d85c61A;
 
+IAdminUSDs constant ADMIN_USDS = IAdminUSDs(USDS_ADDRESS);
+ERC20 constant USDS = ERC20(USDS_ADDRESS);
 ERC20 constant USDC = ERC20(USDC_ADDRESS);
 ERC20 constant WETH = ERC20(WETH_ADDRESS);
 ERC20 constant WBTC = ERC20(WBTC_ADDRESS);
@@ -50,6 +54,7 @@ address constant WBTC_WHALE = 0x078f358208685046a11C85e8ad32895DED33A249;
 address constant LINK_WHALE = 0x191c10Aa4AF7C30e871E70C95dB0E4eb77237530;
 address constant ARB_WHALE = 0xF3FC178157fb3c87548bAA86F9d24BA38E649B58;
 address constant GMX_WHALE = 0x908C4D94D34924765f1eDc22A1DD098397c59dD4;
+address constant RDNT_WHALE = 0xF977814e90dA44bFA03b6295A0616a897441aceC;
 address constant PAXG_WHALE = 0x694321B2f596C0610c03DEac16C7341933Aaa952;
 // address constant RDNT_WHALE = ?;
 address constant SUSHI_WHALE = 0x3Ef3D8bA38EBe18DB133cEc108f4D14CE00Dd9Ae;
@@ -80,6 +85,8 @@ address constant UNISWAP_ROUTER_ADDRESS = 0xE592427A0AEce92De3Edee1F18E0157C0586
 
 ISwapRouter constant UNISWAP_ROUTER = ISwapRouter(UNISWAP_ROUTER_ADDRESS);
 
+address constant USD_POOL_ADDRESS = 0x8DEF4Db6697F4885bA4a3f75e9AdB3cEFCca6D6E;
+
 // Gamma constants
 address constant UNI_PROXY_ADDRESS = 0x82FcEB07a4D01051519663f6c1c919aF21C27845;
 address constant CLEARING_ADDRESS = 0x80a44ce970D9380bDA7677916B860f37b4ba8Ce2;
@@ -88,12 +95,14 @@ IUniProxy constant UNI_PROXY = IUniProxy(UNI_PROXY_ADDRESS);
 IClearing constant CLEARING = IClearing(CLEARING_ADDRESS);
 
 // Hypervisor constants
+address constant USDS_HYPERVISOR_ADDRESS = 0x547A116a2622876cE1C8d19d41c683C8f7BeC5c0;
 address constant WBTC_HYPERVISOR_ADDRESS = 0x52ee1FFBA696c5E9b0Bc177A9f8a3098420EA691;
 address constant LINK_HYPERVISOR_ADDRESS = 0xfA392dbefd2d5ec891eF5aEB87397A89843a8260;
-address constant ARB_HYPERVISOR_ADDRESS = 0x330DFC5Bc1a63A1dCf1cD5bc9aD3D5e5E61Bcb6C;
+address constant ARB_HYPERVISOR_ADDRESS = 0x6B7635b7d2E85188dB41C3c05B1efa87B143fcE8;
 address constant GMX_HYPERVISOR_ADDRESS = 0xF08BDBC590C59cb7B27A8D224E419ef058952b5f;
 address constant RDNT_HYPERVISOR_ADDRESS = 0x2BCBDD577616357464CFe307Bc67F9e820A66e80;
 
+IHypervisor constant USDS_HYPERVISOR = IHypervisor(USDS_HYPERVISOR_ADDRESS);
 IHypervisor constant WBTC_HYPERVISOR = IHypervisor(WBTC_HYPERVISOR_ADDRESS);
 IHypervisor constant LINK_HYPERVISOR = IHypervisor(LINK_HYPERVISOR_ADDRESS);
 IHypervisor constant ARB_HYPERVISOR = IHypervisor(ARB_HYPERVISOR_ADDRESS);
