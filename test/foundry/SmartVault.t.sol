@@ -478,8 +478,10 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         vm.startPrank(VAULT_OWNER);
         address(smartVault).call{value: 1 ether}("");
         SmartVaultV4.Status memory status = smartVault.status();
-        smartVault.mint(VAULT_OWNER, status.maxMintable * 90 / 100);
-        smartVault.depositYield(NATIVE, 1e5, 5e4, block.timestamp + 60);
+        // mint 45% of max mintable amount
+        // 100% of collateral is going to usd stable, so 50% of collateral will be lost
+        smartVault.mint(VAULT_OWNER, status.maxMintable * 45 / 100);
+        smartVault.depositYield(NATIVE, 1e5, 45e3, block.timestamp + 60);
         SmartVaultV4.YieldPair[] memory yieldPairs = smartVault.yieldAssets();
         assertEq(yieldPairs.length, 1);
         address hypervisor = yieldPairs[0].hypervisor;
