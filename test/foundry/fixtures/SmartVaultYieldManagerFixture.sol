@@ -189,11 +189,7 @@ contract SmartVaultYieldManagerFixture is SmartVaultManagerFixture {
         );
 
         yieldManager = new SmartVaultYieldManager(
-            address(usds),
-            address(usdc),
-            address(uniProxy),
-            address(usdsHypervisor),
-            address(uniswapRouter)
+            address(usds), address(usdc), address(uniProxy), address(usdsHypervisor), address(uniswapRouter)
         );
 
         // add hypervisor data

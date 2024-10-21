@@ -46,13 +46,9 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     error HypervisorDataError();
     error IncompatibleHypervisor();
 
-    constructor(
-        address _USDs,
-        address _USDC,
-        address _uniProxy,
-        address _usdsHypervisor,
-        address _uniswapRouter
-    ) Ownable(msg.sender) {
+    constructor(address _USDs, address _USDC, address _uniProxy, address _usdsHypervisor, address _uniswapRouter)
+        Ownable(msg.sender)
+    {
         USDs = _USDs;
         USDC = _USDC;
         uniProxy = _uniProxy;
@@ -162,16 +158,16 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
                     uint256 _denominator =
                         1e36 + FullMath.mulDiv(_ratio - FullMath.mulDiv(_ratio, _fee, 1e6), 1e36, price36);
                     // a - rb / (1 + (1-f) * ratio / price)
-                    _amountIn =
-                        FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator) / 10 ** (36 - aDec);
+                    _amountIn = FullMath.mulDiv(_tokenABalance * (10 ** (36 - aDec)) - _rb, 1e36, _denominator)
+                        / 10 ** (36 - aDec);
                 } else {
                     // b -> a
 
-                uint256 _denominator =
+                    uint256 _denominator =
                         1e36 + FullMath.mulDiv(_ratio, 1e36, price36 + FullMath.mulDiv(price36, _fee, 1e6));
                     // rb - a / (1 + ratio / ((1+f) * price))
-                    _amountOut =
-                        FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator) / 10 ** (36 - aDec);
+                    _amountOut = FullMath.mulDiv(_rb - _tokenABalance * (10 ** (36 - aDec)), 1e36, _denominator)
+                        / 10 ** (36 - aDec);
                 }
             }
 

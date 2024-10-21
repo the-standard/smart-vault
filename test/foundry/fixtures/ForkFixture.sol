@@ -254,11 +254,7 @@ contract ForkFixture is Test {
         // deploy SmartVaultYieldManager
         vm.prank(YIELD_MANAGER_OWNER);
         yieldManager = new SmartVaultYieldManager(
-            USDS_ADDRESS,
-            USDC_ADDRESS,
-            UNI_PROXY_ADDRESS,
-            USDS_HYPERVISOR_ADDRESS,
-            UNISWAP_ROUTER_ADDRESS
+            USDS_ADDRESS, USDC_ADDRESS, UNI_PROXY_ADDRESS, USDS_HYPERVISOR_ADDRESS, UNISWAP_ROUTER_ADDRESS
         );
 
         // add hypervisor data
@@ -303,7 +299,7 @@ contract ForkFixture is Test {
         _deal(USDC, USDC_WHALE, address(this));
 
         IUniswapV3Pool pool = IUniswapV3Pool(USD_POOL_ADDRESS);
-        (,int24 tick,,,,,) = pool.slot0();
+        (, int24 tick,,,,,) = pool.slot0();
         int24 tickSpacing = pool.tickSpacing();
         // int24 tickLower = (tick - tick) / tickSpacing * tickSpacing;
         // int24 tickLower = tick / tickSpacing * tickSpacing - tickSpacing;
