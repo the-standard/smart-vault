@@ -21,6 +21,8 @@ remappings = [
 optimizer = true
 optimizer_runs = 200
 
+ignored_warnings_from = ["contracts/test_utils/"]
+
 fs_permissions = [
     { access = "read-write", path = "test/foundry/differential/balances.json"},
     { access = "read-write", path = "artifacts/SmartVaultManagerV6.sol/SmartVaultManagerV6.json"}
