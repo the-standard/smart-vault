@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import {Test, stdError} from "forge-std/Test.sol";
+import {Test, stdError, console} from "forge-std/Test.sol";
 
 import {IHypervisor} from "contracts/interfaces/IHypervisor.sol";
 import {ERC20Mock} from "src/test_utils/ERC20Mock.sol";
@@ -454,7 +454,11 @@ contract SmartVaultTest is SmartVaultFixture, Test {
         emit Withdraw(address(smartVault), address(weth), address(usdsHypervisor), 0);
         smartVault.withdrawYield(address(usdsHypervisor), NATIVE, 5e4, block.timestamp + 60);
         vm.stopPrank();
-        assertGt(address(smartVault).balance, nativeAmount + wethAmount - nativeBefore);
+        uint256 fee = (nativeAmount + wethAmount) * PROTOCOL_FEE_RATE / 1e5;
+        uint256 maxUniswapFee = (nativeAmount + wethAmount) * 3000 / 1e6;
+        assertGt(address(smartVault).balance, nativeAmount + wethAmount - nativeBefore - fee - maxUniswapFee);
+        // approx assertion (1%) because there is some loss with uniswap fees
+        assertApproxEqAbs(weth.balanceOf(PROTOCOL), fee, fee / 100);
     }
 
     function test_yieldCollateralCheck() public {
