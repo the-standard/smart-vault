@@ -9,9 +9,8 @@ contract HypervisorMock is IHypervisor, ERC20 {
     address public immutable token0;
     address public immutable token1;
 
-    constructor(string memory _name, string memory _symbol, address _token0, address _token1) ERC20(_name, _symbol) {
-        token0 = _token0;
-        token1 = _token1;
+    constructor(string memory _name, string memory _symbol, address _tokenA, address _tokenB) ERC20(_name, _symbol) {
+        (token0, token1) = _tokenA < _tokenB ? (_tokenA, _tokenB) : (_tokenB, _tokenA);
     }
 
     function getTotalAmounts() public view returns (uint256 total0, uint256 total1) {
