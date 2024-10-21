@@ -358,13 +358,11 @@ contract SmartVaultV4 is ISmartVault {
         if (_balance == 0) revert InvalidToken();
         IERC20(_token).safeIncreaseAllowance(ISmartVaultManagerV3(manager).yieldManager(), _balance);
         uint256 _preDepositCollateral = usdCollateral();
-        console.log(_preDepositCollateral);
         (address _hypervisor1, address _hypervisor2) =
             ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
         addUniqueHypervisor(_hypervisor1);
         if (_hypervisor2 != address(0)) addUniqueHypervisor(_hypervisor2);
         uint256 _postDepositCollateral = usdCollateral();
-        console.log(_postDepositCollateral);
         if (
             _undercollateralised(_postDepositCollateral)
                 || significantCollateralDrop(_preDepositCollateral, _postDepositCollateral, _minCollateralPercentage)
