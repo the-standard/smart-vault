@@ -5,6 +5,7 @@ import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contra
 import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/IHypervisor.sol";
+import "contracts/interfaces/IMerklDistributor.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManagerV3.sol";
@@ -13,8 +14,6 @@ import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
-
-import {console} from "forge-std/Test.sol";
 
 contract SmartVaultV4 is ISmartVault {
     using SafeERC20 for IERC20;
@@ -389,6 +388,10 @@ contract SmartVaultV4 is ISmartVault {
             _undercollateralised(_postWithdrawCollateral)
                 || significantCollateralDrop(_preWithdrawCollateral, _postWithdrawCollateral, _minCollateralPercentage)
         ) revert Undercollateralised();
+    }
+
+    function merklClaim(address _distributor, address[] calldata users, address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external  onlyOwner {
+        IMerklDistributor(_distributor).claim(users, tokens, amounts, proofs);
     }
 
     function yieldAssets() external view returns (YieldPair[] memory _yieldPairs) {
