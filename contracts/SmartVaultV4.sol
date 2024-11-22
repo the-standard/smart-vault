@@ -295,7 +295,7 @@ contract SmartVaultV4 is ISmartVault {
         address _collateralAddr,
         bytes memory _swapPath,
         uint256 _collateralAmount
-    ) external onlyVaultManager returns (uint256 _amountOut) {
+    ) public onlyVaultManager returns (uint256 _amountOut) {
         if (_collateralAddr == address(0)) {
             _collateralAddr = ISmartVaultManagerV3(manager).weth();
             IWETH(_collateralAddr).deposit{value: _collateralAmount}();
@@ -305,7 +305,7 @@ contract SmartVaultV4 is ISmartVault {
             ISwapRouter.ExactInputParams({
                 path: _swapPath,
                 recipient: address(this),
-                deadline: block.timestamp + 3600,
+                deadline: block.timestamp,
                 amountIn: _collateralAmount,
                 // minimum amount out should be at least usd value of collateral being swapped in
                 amountOutMinimum: calculator.tokenToUSD(
@@ -318,6 +318,20 @@ contract SmartVaultV4 is ISmartVault {
         uint256 _usdsBalance = USDs.balanceOf(address(this));
         minted -= _usdsBalance;
         USDs.burn(address(this), _usdsBalance);
+    }
+
+    function autoWithdrawAndRedemption(
+        address _swapRouterAddress,
+        address _collateralAddr,
+        bytes memory _swapPath,
+        uint256 _collateralAmount,
+        address _hypervisor
+    ) external onlyVaultManager returns (uint256 _amountOut) {
+        bytes32 _collateralSymbol = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralAddr).symbol;
+        withdrawYield(_hypervisor, _collateralSymbol, 99e3, block.timestamp);
+        autoRedemption(_swapRouterAddress, _collateralAddr, _swapPath, _collateralAmount);
+        // TODO create a private deposit function to avoid the stable %
+        depositYield(_collateralSymbol, 1e5, 99e3, block.timestamp);
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
@@ -350,7 +364,7 @@ contract SmartVaultV4 is ISmartVault {
         uint256 _stablePercentage,
         uint256 _minCollateralPercentage,
         uint256 _deadline
-    ) external onlyOwner withinTimestamp(_deadline) {
+    ) public onlyOwner withinTimestamp(_deadline) {
         if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
@@ -369,7 +383,7 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage, uint256 _deadline)
-        external
+        public
         onlyOwner
         withinTimestamp(_deadline)
     {
