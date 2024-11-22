@@ -25,7 +25,7 @@ interface IUniswapV3Pool {
 
     function increaseObservationCardinalityNext(uint16 observationCardinalityNext) external;
 
-    function liquidity() external returns (uint128);
+    function liquidity() external view returns (uint128);
     
     function ticks(int24 tick) external view returns (
         uint128 liquidityGross,
