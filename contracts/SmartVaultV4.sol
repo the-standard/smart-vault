@@ -7,6 +7,8 @@ import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contra
 import "contracts/interfaces/IHypervisor.sol";
 import "contracts/interfaces/IMerklDistributor.sol";
 import "contracts/interfaces/IPriceCalculator.sol";
+import "contracts/interfaces/IQuoter.sol";
+import "contracts/interfaces/IRedeemable.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultManagerV3.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
@@ -15,7 +17,7 @@ import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
 
-contract SmartVaultV4 is ISmartVault {
+contract SmartVaultV4 is ISmartVault, IRedeemable {
     using SafeERC20 for IERC20;
 
     uint8 private constant version = 4;
@@ -290,48 +292,71 @@ contract SmartVaultV4 is ISmartVault {
         }
     }
 
+    function calculateAmountIn(address _quoterAddress, address _collateralToken, bytes memory _swapPath, uint256 _USDCTargetAmount) private returns (uint256) {
+        (uint256 _quoteAmountIn,,,) = IQuoter(_quoterAddress).quoteExactOutput(_swapPath, _USDCTargetAmount);
+        uint256 _collateralBalance = getAssetBalance(_collateralToken);
+        return _quoteAmountIn > _collateralBalance ?
+            _collateralBalance : _quoteAmountIn;
+    }
+
+    function swapCollateral(
+        address _swapRouterAddress,
+        address _quoterAddress,
+        address _collateralToken,
+        bytes memory _swapPath,
+        uint256 _USDCTargetAmount
+    ) private {
+        uint256 _amountIn = calculateAmountIn(_quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
+        IERC20(_collateralToken).safeIncreaseAllowance(_swapRouterAddress, _amountIn);
+        ISwapRouter(_swapRouterAddress).exactInput(ISwapRouter.ExactInputParams({
+            path: _swapPath,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: _amountIn,
+            // minimum USD value of collateral out from swap
+            amountOutMinimum: calculator.tokenToUSD(
+                ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralToken),
+                _amountIn
+            )
+        }));
+        IERC20(_collateralToken).forceApprove(_swapRouterAddress, 0);
+    }
+
+    function redeposit(uint256 _withdrawn, uint256 _collateralBalance, address _hypervisor, address _collateralToken) private {
+        uint256 _redeposit = _withdrawn > _collateralBalance ? _collateralBalance : _withdrawn;
+        address _yieldManager = ISmartVaultManagerV3(manager).yieldManager();
+        IERC20(_collateralToken).safeIncreaseAllowance(_yieldManager, _redeposit);
+        ISmartVaultYieldManager(_yieldManager).quickDeposit(_hypervisor, _collateralToken, _redeposit);
+        IERC20(_collateralToken).forceApprove(_yieldManager, 0);
+    }
+
     function autoRedemption(
         address _swapRouterAddress,
-        address _collateralAddr,
+        address _quoterAddress,
+        address _collateralToken,
         bytes memory _swapPath,
-        uint256 _collateralAmount
-    ) public onlyVaultManager returns (uint256 _amountOut) {
-        if (_collateralAddr == address(0)) {
-            _collateralAddr = ISmartVaultManagerV3(manager).weth();
-            IWETH(_collateralAddr).deposit{value: _collateralAmount}();
+        uint256 _USDCTargetAmount,
+        address _hypervisor
+    ) external {
+        uint256 _withdrawn;
+        if (_hypervisor != address(0)) {
+            address _yieldManager = ISmartVaultManagerV3(manager).yieldManager();
+            IERC20(_hypervisor).safeIncreaseAllowance(_yieldManager, getAssetBalance(_hypervisor));
+            _withdrawn = ISmartVaultYieldManager(_yieldManager).quickWithdraw(_hypervisor, _collateralToken);
+            IERC20(_hypervisor).forceApprove(_yieldManager, 0);
         }
-        IERC20(_collateralAddr).safeIncreaseAllowance(_swapRouterAddress, _collateralAmount);
-        _amountOut = ISwapRouter(_swapRouterAddress).exactInput(
-            ISwapRouter.ExactInputParams({
-                path: _swapPath,
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: _collateralAmount,
-                // minimum amount out should be at least usd value of collateral being swapped in
-                amountOutMinimum: calculator.tokenToUSD(
-                    ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralAddr),
-                    _collateralAmount
-                )
-            })
-        );
-        IERC20(_collateralAddr).forceApprove(_swapRouterAddress, 0);
+        swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
         uint256 _usdsBalance = USDs.balanceOf(address(this));
         minted -= _usdsBalance;
         USDs.burn(address(this), _usdsBalance);
-    }
-
-    function autoWithdrawAndRedemption(
-        address _swapRouterAddress,
-        address _collateralAddr,
-        bytes memory _swapPath,
-        uint256 _collateralAmount,
-        address _hypervisor
-    ) external onlyVaultManager returns (uint256 _amountOut) {
-        bytes32 _collateralSymbol = ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralAddr).symbol;
-        withdrawYield(_hypervisor, _collateralSymbol, 99e3, block.timestamp);
-        autoRedemption(_swapRouterAddress, _collateralAddr, _swapPath, _collateralAmount);
-        // TODO create a private deposit function to avoid the stable %
-        depositYield(_collateralSymbol, 1e5, 99e3, block.timestamp);
+        if (_hypervisor != address(0) && _withdrawn > 0) {
+            uint256 _collateralBalance = getAssetBalance(_collateralToken);
+            if (_collateralBalance == 0) {
+                removeHypervisor(_hypervisor);
+            } else {
+                redeposit(_withdrawn, _collateralBalance, _hypervisor, _collateralToken);
+            }
+        }
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
@@ -383,7 +408,7 @@ contract SmartVaultV4 is ISmartVault {
     }
 
     function withdrawYield(address _hypervisor, bytes32 _symbol, uint256 _minCollateralPercentage, uint256 _deadline)
-        public
+        external
         onlyOwner
         withinTimestamp(_deadline)
     {
