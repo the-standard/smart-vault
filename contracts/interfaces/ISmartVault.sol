@@ -25,17 +25,4 @@ interface ISmartVault {
     function undercollateralised() external view returns (bool);
     function setOwner(address _newOwner) external;
     function liquidate(address _liquidator) external;
-    function autoRedemption(
-        address _swapRouterAddress,
-        address _collateralAddr,
-        bytes memory _swapPath,
-        uint256 _collateralAmount
-    ) external returns (uint256 _amountOut);
-    function autoWithdrawAndRedemption(
-        address _swapRouterAddress,
-        address _collateralAddr,
-        bytes memory _swapPath,
-        uint256 _collateralAmount,
-        address _hypervisor
-    ) external returns (uint256 _amountOut);
 }
