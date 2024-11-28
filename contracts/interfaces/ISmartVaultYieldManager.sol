@@ -5,5 +5,7 @@ interface ISmartVaultYieldManager {
     function deposit(address _collateralToken, uint256 _usdPercentage)
         external
         returns (address vault0, address vault1);
-    function withdraw(address _vault, address _token) external;
+    function withdraw(address _hypervisor, address _token) external;
+    function quickDeposit(address _hypervisor, address _token, uint256 _deposit) external;
+    function quickWithdraw(address _hypervisor, address _token) external returns (uint256 _withdrawn);
 }
