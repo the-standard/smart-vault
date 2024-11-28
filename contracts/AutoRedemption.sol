@@ -5,22 +5,29 @@ import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/inter
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import {Functions} from "@chainlink/contracts/src/v0.8/dev/functions/Functions.sol";
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol";
-import {ISmartVaultManagerV3} from "contracts/interfaces/ISmartVaultManagerV3.sol";
+import {IRedeemable, IRedeemableLegacy} from "contracts/interfaces/IRedeemable.sol";
+import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
+import {ISmartVaultIndex} from "contracts/interfaces/ISmartVaultIndex.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
 import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
+import {IERC20} from "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, ConfirmedOwner {
     using Functions for Functions.Request;
 
     uint32 private constant MAX_REQ_GAS = 100_000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
-    IUniswapV3Pool private immutable pool;
-    uint160 private immutable triggerPrice;
     bytes32 private lastRequestId;
-    uint64 public immutable subscriptionID;
     address private immutable smartVaultManager;
+    IUniswapV3Pool private immutable pool;
+    address private immutable smartVaultIndex;
+    address private immutable swapRouter;
+    address private immutable quoter;
+    uint160 private immutable triggerPrice;
+    uint64 public immutable subscriptionID;
+    uint256 public immutable lastLegacyVaultID;
     mapping(address => address) hypervisorCollaterals;
     mapping(address => bytes) swapPaths;
 
@@ -39,13 +46,20 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         ");"
         "return ethers.getBytes(encoded);";
 
-    constructor(address _smartVaultManager, address _functionsRouter, address _pool, uint160 _triggerPrice, uint64 _subscriptionID) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
+    constructor(
+        address _smartVaultManager, address _functionsRouter, address _pool, address _smartVaultIndex, address _swapRouter,
+        address _quoter, uint160 _triggerPrice, uint64 _subscriptionID, uint256 _lastLegacyVaultID
+    ) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
         smartVaultManager = _smartVaultManager;
+        swapRouter = _swapRouter;
+        quoter = _quoter;
+        smartVaultIndex = _smartVaultIndex;
         // 0x8DEF4Db6697F4885bA4a3f75e9AdB3cEFCca6D6E
         pool = IUniswapV3Pool(_pool);
         // 77222060634363710668800
         triggerPrice = _triggerPrice;
         subscriptionID = _subscriptionID;
+        lastLegacyVaultID = _lastLegacyVaultID;
     }
 
     function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData) {
@@ -90,6 +104,15 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
+    function legacyAutoRedemption(address _smartVault, address _token, bytes memory _collateralToUSDCPath, uint256 _USDCTargetAmount, uint256 _estimatedCollateralValueUSD) private {
+        uint256 _collateralBalance = _token == address(0) ?
+            _smartVault.balance :
+            IERC20(_token).balanceOf(_smartVault);
+        (uint256 _approxAmountInRequired,,,) = IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDCTargetAmount);
+        uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
+        IRedeemableLegacy(_smartVault).autoRedemption(swapRouter, _token, _collateralToUSDCPath, _amountIn);
+    }
+
     function fulfillRequest(
         bytes32 requestId,
         bytes memory response,
@@ -98,26 +121,20 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         // TODO proper error handling
         // if (err) revert;
         if (requestId != lastRequestId) revert("wrong request");
+        uint256 _USDCTargetAmount = calculateUSDCToTargetPrice();
         (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) = abi.decode(response,(uint256,address,uint256));
-        address _hypervisor;
-        if (hypervisorCollaterals[_token] != address(0)) {
-            _hypervisor = _token;
-            _token = hypervisorCollaterals[_token];
+        bytes memory _collateralToUSDCPath = swapPaths[_token];
+        address _smartVault = ISmartVaultIndex(smartVaultIndex).getVaultAddress(_tokenID);
+        if (_tokenID <= lastLegacyVaultID) {
+            legacyAutoRedemption(_smartVault, _token, _collateralToUSDCPath, _USDCTargetAmount, _estimatedCollateralValueUSD);
         } else {
-
+            address _hypervisor;
+            if (hypervisorCollaterals[_token] != address(0)) {
+                _hypervisor = _token;
+                _token = hypervisorCollaterals[_hypervisor];
+            }
+            IRedeemable(_smartVault).autoRedemption(swapRouter, quoter, _token, _collateralToUSDCPath, _USDCTargetAmount, _hypervisor);
         }
-        bytes memory collateralToUSDCPath = swapPaths[_token];
-        uint256 USDCTargetAmount = calculateUSDCToTargetPrice();
-        uint256 _collateralSwapAmount;
-        // figure out how to calculate the _collateralSwapAmount
-        // existing vaults need params address _swapRouterAddress, address _collateralAddr, bytes memory _swapPath, uint256 _collateralAmount
-        // we don't know underlying collateral value of hypervisor positions ... what can we calculate in api?
-        if (USDCTargetAmount > _estimatedCollateralValueUSD) {
-            // swap all the (underlying) vault's balance of given collateral
-        } else {
-            // swap a part of user's collateral ... need to figure out calculation
-        }
-        ISmartVaultManagerV3(smartVaultManager).vaultAutoRedemption(_tokenID, _token, collateralToUSDCPath, _collateralSwapAmount, _hypervisor);
         lastRequestId = bytes32(0);
     }
 }
