@@ -391,7 +391,13 @@ contract SmartVaultV4Legacy is ISmartVault, IRedeemableLegacy {
         ) revert Undercollateralised();
     }
 
-    function merklClaim(address _distributor, address[] calldata users, address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external  onlyOwner {
+    function merklClaim(
+        address _distributor,
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external onlyOwner {
         IMerklDistributor(_distributor).claim(users, tokens, amounts, proofs);
     }
 

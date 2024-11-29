@@ -292,11 +292,15 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         }
     }
 
-    function calculateAmountIn(address _quoterAddress, address _collateralToken, bytes memory _swapPath, uint256 _USDCTargetAmount) private returns (uint256) {
+    function calculateAmountIn(
+        address _quoterAddress,
+        address _collateralToken,
+        bytes memory _swapPath,
+        uint256 _USDCTargetAmount
+    ) private returns (uint256) {
         (uint256 _quoteAmountIn,,,) = IQuoter(_quoterAddress).quoteExactOutput(_swapPath, _USDCTargetAmount);
         uint256 _collateralBalance = getAssetBalance(_collateralToken);
-        return _quoteAmountIn > _collateralBalance ?
-            _collateralBalance : _quoteAmountIn;
+        return _quoteAmountIn > _collateralBalance ? _collateralBalance : _quoteAmountIn;
     }
 
     function swapCollateral(
@@ -308,21 +312,25 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     ) private {
         uint256 _amountIn = calculateAmountIn(_quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
         IERC20(_collateralToken).safeIncreaseAllowance(_swapRouterAddress, _amountIn);
-        ISwapRouter(_swapRouterAddress).exactInput(ISwapRouter.ExactInputParams({
-            path: _swapPath,
-            recipient: address(this),
-            deadline: block.timestamp,
-            amountIn: _amountIn,
-            // minimum USD value of collateral out from swap
-            amountOutMinimum: calculator.tokenToUSD(
-                ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralToken),
-                _amountIn
-            )
-        }));
+        ISwapRouter(_swapRouterAddress).exactInput(
+            ISwapRouter.ExactInputParams({
+                path: _swapPath,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _amountIn,
+                // minimum USD value of collateral out from swap
+                amountOutMinimum: calculator.tokenToUSD(
+                    ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralToken),
+                    _amountIn
+                )
+            })
+        );
         IERC20(_collateralToken).forceApprove(_swapRouterAddress, 0);
     }
 
-    function redeposit(uint256 _withdrawn, uint256 _collateralBalance, address _hypervisor, address _collateralToken) private {
+    function redeposit(uint256 _withdrawn, uint256 _collateralBalance, address _hypervisor, address _collateralToken)
+        private
+    {
         uint256 _redeposit = _withdrawn > _collateralBalance ? _collateralBalance : _withdrawn;
         address _yieldManager = ISmartVaultManagerV3(manager).yieldManager();
         IERC20(_collateralToken).safeIncreaseAllowance(_yieldManager, _redeposit);
@@ -429,7 +437,13 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         ) revert Undercollateralised();
     }
 
-    function merklClaim(address _distributor, address[] calldata users, address[] calldata tokens, uint256[] calldata amounts, bytes32[][] calldata proofs) external  onlyOwner {
+    function merklClaim(
+        address _distributor,
+        address[] calldata users,
+        address[] calldata tokens,
+        uint256[] calldata amounts,
+        bytes32[][] calldata proofs
+    ) external onlyOwner {
         IMerklDistributor(_distributor).claim(users, tokens, amounts, proofs);
     }
 

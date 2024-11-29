@@ -324,9 +324,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         _otherDeposit(_collateralToken, _hypervisorData);
     }
 
-    function quickWithdraw(address _hypervisor, address _token) external returns (uint256 _withdrawn) {
-        
-    }
+    function quickWithdraw(address _hypervisor, address _token) external returns (uint256 _withdrawn) {}
 
     function addHypervisorData(
         address _collateralToken,

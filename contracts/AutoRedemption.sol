@@ -12,7 +12,8 @@ import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
 import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
-import {IERC20} from "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from
+    "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, ConfirmedOwner {
     using Functions for Functions.Request;
@@ -31,24 +32,23 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     mapping(address => address) hypervisorCollaterals;
     mapping(address => bytes) swapPaths;
 
-    string source =
-        "const { ethers } = await import('npm:ethers@6.10.0')"
+    string source = "const { ethers } = await import('npm:ethers@6.10.0')"
         "const apiResponse = await Functions.makeHttpRequest({"
-            "url: 'https://smart-vault-api.thestandard.io/redemption'"
-        "});"
-        "if (apiResponse.error) {"
-            "throw Error('Request failed');"
-        "}"
-        "const { data } = apiResponse;"
-        "const encoded = ethers.AbiCoder.defaultAbiCoder().encode("
-            "['uint256', 'address', 'uint256'],"
-            "[data.tokenID, data.collateral, data.value]"
-        ");"
-        "return ethers.getBytes(encoded);";
+        "url: 'https://smart-vault-api.thestandard.io/redemption'" "});" "if (apiResponse.error) {"
+        "throw Error('Request failed');" "}" "const { data } = apiResponse;"
+        "const encoded = ethers.AbiCoder.defaultAbiCoder().encode(" "['uint256', 'address', 'uint256'],"
+        "[data.tokenID, data.collateral, data.value]" ");" "return ethers.getBytes(encoded);";
 
     constructor(
-        address _smartVaultManager, address _functionsRouter, address _pool, address _smartVaultIndex, address _swapRouter,
-        address _quoter, uint160 _triggerPrice, uint64 _subscriptionID, uint256 _lastLegacyVaultID
+        address _smartVaultManager,
+        address _functionsRouter,
+        address _pool,
+        address _smartVaultIndex,
+        address _swapRouter,
+        address _quoter,
+        uint160 _triggerPrice,
+        uint64 _subscriptionID,
+        uint256 _lastLegacyVaultID
     ) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
         smartVaultManager = _smartVaultManager;
         swapRouter = _swapRouter;
@@ -81,21 +81,27 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     function calculateUSDCToTargetPrice() private view returns (uint256 _usdc) {
         int24 _spacing = pool.tickSpacing();
-        (uint160 _sqrtPriceX96,int24 _tick,,,,,) = pool.slot0();
+        (uint160 _sqrtPriceX96, int24 _tick,,,,,) = pool.slot0();
         int24 _upperTick = _tick / _spacing * _spacing;
         int24 _lowerTick = _upperTick - _spacing;
         uint128 _liquidity = pool.liquidity();
         while (TickMath.getSqrtRatioAtTick(_lowerTick) < TARGET_PRICE) {
             uint256 _amount0;
             if (_tick > _lowerTick && _tick < _upperTick) {
-                (uint256 _amount0,) =  LiquidityAmounts.getAmountsForLiquidity(
-                    _sqrtPriceX96, TickMath.getSqrtRatioAtTick(_lowerTick), TickMath.getSqrtRatioAtTick(_upperTick), _liquidity
+                (uint256 _amount0,) = LiquidityAmounts.getAmountsForLiquidity(
+                    _sqrtPriceX96,
+                    TickMath.getSqrtRatioAtTick(_lowerTick),
+                    TickMath.getSqrtRatioAtTick(_upperTick),
+                    _liquidity
                 );
             } else {
-                (,int128 _liquidityNet,,,,,,) = pool.ticks(_lowerTick);
+                (, int128 _liquidityNet,,,,,,) = pool.ticks(_lowerTick);
                 _liquidity += uint128(_liquidityNet);
-                (uint256 _amount0,) =  LiquidityAmounts.getAmountsForLiquidity(
-                    _sqrtPriceX96, TickMath.getSqrtRatioAtTick(_lowerTick), TickMath.getSqrtRatioAtTick(_upperTick), _liquidity
+                (uint256 _amount0,) = LiquidityAmounts.getAmountsForLiquidity(
+                    _sqrtPriceX96,
+                    TickMath.getSqrtRatioAtTick(_lowerTick),
+                    TickMath.getSqrtRatioAtTick(_upperTick),
+                    _liquidity
                 );
             }
             _usdc += _amount0;
@@ -104,36 +110,42 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function legacyAutoRedemption(address _smartVault, address _token, bytes memory _collateralToUSDCPath, uint256 _USDCTargetAmount, uint256 _estimatedCollateralValueUSD) private {
-        uint256 _collateralBalance = _token == address(0) ?
-            _smartVault.balance :
-            IERC20(_token).balanceOf(_smartVault);
-        (uint256 _approxAmountInRequired,,,) = IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDCTargetAmount);
+    function legacyAutoRedemption(
+        address _smartVault,
+        address _token,
+        bytes memory _collateralToUSDCPath,
+        uint256 _USDCTargetAmount,
+        uint256 _estimatedCollateralValueUSD
+    ) private {
+        uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
+        (uint256 _approxAmountInRequired,,,) =
+            IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDCTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
         IRedeemableLegacy(_smartVault).autoRedemption(swapRouter, _token, _collateralToUSDCPath, _amountIn);
     }
 
-    function fulfillRequest(
-        bytes32 requestId,
-        bytes memory response,
-        bytes memory err
-    ) internal override {
+    function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
         // TODO proper error handling
         // if (err) revert;
         if (requestId != lastRequestId) revert("wrong request");
         uint256 _USDCTargetAmount = calculateUSDCToTargetPrice();
-        (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) = abi.decode(response,(uint256,address,uint256));
+        (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) =
+            abi.decode(response, (uint256, address, uint256));
         bytes memory _collateralToUSDCPath = swapPaths[_token];
         address _smartVault = ISmartVaultIndex(smartVaultIndex).getVaultAddress(_tokenID);
         if (_tokenID <= lastLegacyVaultID) {
-            legacyAutoRedemption(_smartVault, _token, _collateralToUSDCPath, _USDCTargetAmount, _estimatedCollateralValueUSD);
+            legacyAutoRedemption(
+                _smartVault, _token, _collateralToUSDCPath, _USDCTargetAmount, _estimatedCollateralValueUSD
+            );
         } else {
             address _hypervisor;
             if (hypervisorCollaterals[_token] != address(0)) {
                 _hypervisor = _token;
                 _token = hypervisorCollaterals[_hypervisor];
             }
-            IRedeemable(_smartVault).autoRedemption(swapRouter, quoter, _token, _collateralToUSDCPath, _USDCTargetAmount, _hypervisor);
+            IRedeemable(_smartVault).autoRedemption(
+                swapRouter, quoter, _token, _collateralToUSDCPath, _USDCTargetAmount, _hypervisor
+            );
         }
         lastRequestId = bytes32(0);
     }
