@@ -5,8 +5,9 @@ import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/inter
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
 import {Functions} from "@chainlink/contracts/src/v0.8/dev/functions/Functions.sol";
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol";
-import {IRedeemable, IRedeemableLegacy} from "contracts/interfaces/IRedeemable.sol";
+import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
 import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
+import {ISmartVaultManagerV3} from "contracts/interfaces/ISmartVaultManagerV3.sol";
 import {ISmartVaultIndex} from "contracts/interfaces/ISmartVaultIndex.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
@@ -121,7 +122,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         (uint256 _approxAmountInRequired,,,) =
             IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDCTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
-        IRedeemableLegacy(_smartVault).autoRedemption(swapRouter, _token, _collateralToUSDCPath, _amountIn);
+        ISmartVaultManagerV3(smartVaultManager).vaultAutoRedemption(_smartVault, _token, _collateralToUSDCPath, _amountIn);
     }
 
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {

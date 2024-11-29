@@ -6,6 +6,7 @@ import "lib/openzeppelin-contracts-upgradeable/contracts/proxy/utils/Initializab
 import "lib/openzeppelin-contracts-upgradeable/contracts/token/ERC721/ERC721Upgradeable.sol";
 import "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/utils/SafeERC20.sol";
 import "contracts/interfaces/INFTMetadataGenerator.sol";
+import "contracts/interfaces/IRedeemable.sol";
 import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
@@ -43,6 +44,7 @@ contract SmartVaultManagerV6 is
     address public swapRouter;
     uint16 public userVaultLimit;
     address public yieldManager;
+    address public autoRedemption;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
@@ -54,6 +56,11 @@ contract SmartVaultManagerV6 is
         uint256 mintFeeRate;
         uint256 burnFeeRate;
         ISmartVault.Status status;
+    }
+
+    modifier onlyAutoRedemption {
+        if (msg.sender != autoRedemption) revert();
+        _;
     }
 
     function initialize(
@@ -116,6 +123,15 @@ contract SmartVaultManagerV6 is
         emit VaultLiquidated(address(vault));
     }
 
+    function vaultAutoRedemption(
+        address _smartVault,
+        address _collateralAddr,
+        bytes memory _swapPath,
+        uint256 _collateralAmount
+    ) external onlyAutoRedemption returns (uint256 _amountOut) {
+        return IRedeemableLegacy(_smartVault).autoRedemption(swapRouter, _collateralAddr, _swapPath, _collateralAmount);
+    }
+
     // TODO maintain vault liquidations with old vault liquidate interface for EUROs
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
@@ -165,6 +181,10 @@ contract SmartVaultManagerV6 is
 
     function setYieldManager(address _yieldManager) external onlyOwner {
         yieldManager = _yieldManager;
+    }
+
+    function setAutoRedemption(address _autoRedemption) external onlyOwner {
+        autoRedemption = _autoRedemption;
     }
 
     function _update(address _to, uint256 _tokenID, address _auth) internal virtual override returns (address) {
