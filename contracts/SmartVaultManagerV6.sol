@@ -58,7 +58,7 @@ contract SmartVaultManagerV6 is
         ISmartVault.Status status;
     }
 
-    modifier onlyAutoRedemption {
+    modifier onlyAutoRedemption() {
         if (msg.sender != autoRedemption) revert();
         _;
     }

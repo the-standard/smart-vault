@@ -122,7 +122,9 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         (uint256 _approxAmountInRequired,,,) =
             IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDCTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
-        ISmartVaultManagerV3(smartVaultManager).vaultAutoRedemption(_smartVault, _token, _collateralToUSDCPath, _amountIn);
+        ISmartVaultManagerV3(smartVaultManager).vaultAutoRedemption(
+            _smartVault, _token, _collateralToUSDCPath, _amountIn
+        );
     }
 
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
