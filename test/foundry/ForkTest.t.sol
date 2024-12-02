@@ -116,7 +116,6 @@ contract ForkTest is ForkFixture {
             smartVaultManager.vaultAutoRedemption(address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount);
 
         status = legacyVault.status();
-        console.log(status.minted);
         assertEq(status.minted, vaultDebt - _USDsRedeemed);
         assertEq(address(legacyVault).balance, ethCollateral - _ethRedeemAmount);
     }
