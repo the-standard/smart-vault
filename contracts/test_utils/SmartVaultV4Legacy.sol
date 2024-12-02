@@ -315,7 +315,6 @@ contract SmartVaultV4Legacy is ISmartVault, IRedeemableLegacy {
                 )
             })
         );
-        console.log(_amountOut);
         IERC20(_collateralAddr).forceApprove(_swapRouterAddress, 0);
         uint256 _usdsBalance = USDs.balanceOf(address(this));
         minted -= _usdsBalance;
