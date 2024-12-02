@@ -46,6 +46,7 @@ contract ForkFixture is Test {
     SmartVaultManagerV6 smartVaultManager;
     SmartVaultYieldManager yieldManager;
     SmartVaultV4 vault;
+    PriceCalculator priceCalculator;
 
     // State
     struct CollateralData {
@@ -216,7 +217,7 @@ contract ForkFixture is Test {
     function _deployVaultManager() internal {
         // deploy SmartVaultManager
         smartVaultManager = new SmartVaultManagerV6();
-        PriceCalculator priceCalculator =
+        priceCalculator =
             new PriceCalculator(NATIVE, CL_USDC_USD_ADDRESS, CL_L2_SEQUENCER_UPTIME_FEED_ADDRESS);
         SmartVaultDeployerV4 smartVaultDeployer = new SmartVaultDeployerV4(NATIVE, address(priceCalculator));
         SmartVaultIndex smartVaultIndex = new SmartVaultIndex();

@@ -2,6 +2,8 @@
 pragma solidity 0.8.21;
 
 import "./fixtures/ForkFixture.sol";
+import {SmartVaultV4Legacy} from "src/test_utils/SmartVaultV4Legacy.sol";
+import {SmartVaultDeployerV4Legacy} from "src/test_utils/SmartVaultDeployerV4Legacy.sol";
 import {IWETH} from "src/interfaces/IWETH.sol";
 
 contract ForkTest is ForkFixture {
@@ -70,42 +72,53 @@ contract ForkTest is ForkFixture {
         vm.stopPrank();
     }
 
-    function test_autoRedemption() public {
-        // // make USDs cheaper, so redemption will be required:
-        // uint256 usdsDump = 50000 ether;
-        // USDS.approve(UNISWAP_ROUTER_ADDRESS, usdsDump);
-        // ISwapRouter(UNISWAP_ROUTER_ADDRESS).exactInputSingle(
-        //     ISwapRouter.ExactInputSingleParams({
-        //         tokenIn: USDS_ADDRESS,
-        //         tokenOut: USDC_ADDRESS,
-        //         fee: RAMSES_FEE,
-        //         recipient: address(this),
-        //         deadline: block.timestamp,
-        //         amountIn: usdsDump,
-        //         amountOutMinimum: 0,
-        //         sqrtPriceLimitX96: 0
-        //     })
-        // );
+    function test_legacyAutoRedemption() public {
+        SmartVaultDeployerV4Legacy deployer = new SmartVaultDeployerV4Legacy(NATIVE, address(priceCalculator));
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setSmartVaultDeployer(address(deployer));
 
-        // uint256 ethCollateral = 1 ether;
-        // vm.deal(address(vault), 1 ether);
+        vm.prank(VAULT_OWNER);
+        (address smartVault,) = smartVaultManager.mint();
+        SmartVaultV4Legacy legacyVault = SmartVaultV4Legacy(payable(smartVault));
 
-        // vm.prank(VAULT_OWNER);
-        // vault.mint(VAULT_OWNER, 500 ether);
+        // make USDs cheaper, so redemption will be required:
+        uint256 usdsDump = 50000 ether;
+        USDS.approve(UNISWAP_ROUTER_ADDRESS, usdsDump);
+        ISwapRouter(UNISWAP_ROUTER_ADDRESS).exactInputSingle(
+            ISwapRouter.ExactInputSingleParams({
+                tokenIn: USDS_ADDRESS,
+                tokenOut: USDC_ADDRESS,
+                fee: RAMSES_FEE,
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: usdsDump,
+                amountOutMinimum: 0,
+                sqrtPriceLimitX96: 0
+            })
+        );
 
-        // SmartVaultV4.Status memory status = vault.status();
-        // uint256 vaultDebt = status.minted;
-        // uint256 vaultTokenID = 1;
-        // bytes memory ethUSDsSwapPath =
-        //     abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
-        // uint256 ETHToSell = ethCollateral / 100;
-        // vm.prank(VAULT_MANAGER_OWNER);
-        // uint256 _USDsRedeemed = smartVaultManager.vaultAutoRedemption(
-        //     vaultTokenID, UNISWAP_ROUTER_ADDRESS, address(0), ethUSDsSwapPath, ETHToSell
-        // );
+        uint256 ethCollateral = 1 ether;
+        vm.deal(address(legacyVault), 1 ether);
 
-        // status = vault.status();
-        // assertEq(status.minted, vaultDebt - _USDsRedeemed);
-        // assertEq(address(vault).balance, ethCollateral - ETHToSell);
+        vm.prank(VAULT_OWNER);
+        legacyVault.mint(VAULT_OWNER, 500 ether);
+
+        SmartVaultV4.Status memory status = legacyVault.status();
+        uint256 vaultDebt = status.minted;
+        bytes memory ethUSDsSwapPath =
+            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
+        
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setAutoRedemption(address(this));
+        
+        uint256 _ethRedeemAmount = ethCollateral / 10;
+        uint256 _USDsRedeemed = smartVaultManager.vaultAutoRedemption(
+            address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount
+        );
+
+        status = legacyVault.status();
+        console.log(status.minted);
+        assertEq(status.minted, vaultDebt - _USDsRedeemed);
+        assertEq(address(legacyVault).balance, ethCollateral - _ethRedeemAmount);
     }
 }
