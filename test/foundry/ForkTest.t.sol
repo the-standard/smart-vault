@@ -107,14 +107,13 @@ contract ForkTest is ForkFixture {
         uint256 vaultDebt = status.minted;
         bytes memory ethUSDsSwapPath =
             abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
-        
+
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setAutoRedemption(address(this));
-        
+
         uint256 _ethRedeemAmount = ethCollateral / 10;
-        uint256 _USDsRedeemed = smartVaultManager.vaultAutoRedemption(
-            address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount
-        );
+        uint256 _USDsRedeemed =
+            smartVaultManager.vaultAutoRedemption(address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount);
 
         status = legacyVault.status();
         console.log(status.minted);
