@@ -10,7 +10,7 @@ import "contracts/interfaces/IPriceCalculator.sol";
 import "contracts/interfaces/IQuoter.sol";
 import "contracts/interfaces/IRedeemable.sol";
 import "contracts/interfaces/ISmartVault.sol";
-import "contracts/interfaces/ISmartVaultManagerV3.sol";
+import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultYieldManager.sol";
 import "contracts/interfaces/ISwapRouter.sol";
 import "contracts/interfaces/ITokenManager.sol";
@@ -94,7 +94,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     }
 
     function getTokenManager() private view returns (ITokenManager) {
-        return ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
+        return ITokenManager(ISmartVaultManager(manager).tokenManager());
     }
 
     function yieldVaultCollateral(ITokenManager.Token[] memory _acceptedTokens) private view returns (uint256 _usd) {
@@ -126,7 +126,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     }
 
     function usdCollateral() private view returns (uint256 _usd) {
-        ITokenManager tokenManager = ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
+        ITokenManager tokenManager = ITokenManager(ISmartVaultManager(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
             ITokenManager.Token memory _token = acceptedTokens[i];
@@ -137,7 +137,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     }
 
     function maxMintable(uint256 _collateral) private view returns (uint256) {
-        return _collateral * ISmartVaultManagerV3(manager).HUNDRED_PC() / ISmartVaultManagerV3(manager).collateralRate();
+        return _collateral * ISmartVaultManager(manager).HUNDRED_PC() / ISmartVaultManager(manager).collateralRate();
     }
 
     function getAssetBalance(address _tokenAddress) private view returns (uint256 amount) {
@@ -145,7 +145,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     }
 
     function getAssets() private view returns (Asset[] memory) {
-        ITokenManager tokenManager = ITokenManager(ISmartVaultManagerV3(manager).tokenManager());
+        ITokenManager tokenManager = ITokenManager(ISmartVaultManager(manager).tokenManager());
         ITokenManager.Token[] memory acceptedTokens = tokenManager.getAcceptedTokens();
         Asset[] memory assets = new Asset[](acceptedTokens.length);
         for (uint256 i = 0; i < acceptedTokens.length; i++) {
@@ -177,7 +177,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         minted = 0;
         // remove all erc20 collateral
         ITokenManager.Token[] memory tokens =
-            ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
+            ITokenManager(ISmartVaultManager(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol != NATIVE) {
                 IERC20 _token = IERC20(tokens[i].addr);
@@ -228,24 +228,24 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner ifNotLiquidated remainCollateralised {
-        uint256 fee = _amount * ISmartVaultManagerV3(manager).mintFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
+        uint256 fee = _amount * ISmartVaultManager(manager).mintFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         minted = minted + _amount + fee;
         USDs.mint(_to, _amount);
-        USDs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
+        USDs.mint(ISmartVaultManager(manager).protocol(), fee);
         emit USDsMinted(_to, _amount, fee);
     }
 
     function burn(uint256 _amount) external ifMinted(_amount) {
-        uint256 fee = _amount * ISmartVaultManagerV3(manager).burnFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
+        uint256 fee = _amount * ISmartVaultManager(manager).burnFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         minted = minted - _amount;
         USDs.burn(msg.sender, _amount + fee);
-        if (fee > 0) USDs.mint(ISmartVaultManagerV3(manager).protocol(), fee);
+        if (fee > 0) USDs.mint(ISmartVaultManager(manager).protocol(), fee);
         emit USDsBurned(_amount, fee);
     }
 
     function getToken(bytes32 _symbol) private view returns (ITokenManager.Token memory _token) {
         ITokenManager.Token[] memory tokens =
-            ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getAcceptedTokens();
+            ITokenManager(ISmartVaultManager(manager).tokenManager()).getAcceptedTokens();
         for (uint256 i = 0; i < tokens.length; i++) {
             if (tokens[i].symbol == _symbol) _token = tokens[i];
         }
@@ -254,17 +254,17 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
 
     function getTokenisedAddr(bytes32 _symbol) private view returns (address) {
         ITokenManager.Token memory _token = getToken(_symbol);
-        return _token.addr == address(0) ? ISmartVaultManagerV3(manager).weth() : _token.addr;
+        return _token.addr == address(0) ? ISmartVaultManager(manager).weth() : _token.addr;
     }
 
     function executeSwapAndFee(ISwapRouter.ExactInputSingleParams memory _params, uint256 _swapFee)
         private
         returns (uint256 _amountOut)
     {
-        IERC20(_params.tokenIn).safeTransfer(ISmartVaultManagerV3(manager).protocol(), _swapFee);
-        IERC20(_params.tokenIn).safeIncreaseAllowance(ISmartVaultManagerV3(manager).swapRouter(), _params.amountIn);
-        _amountOut = ISwapRouter(ISmartVaultManagerV3(manager).swapRouter()).exactInputSingle(_params);
-        IERC20(_params.tokenIn).forceApprove(ISmartVaultManagerV3(manager).swapRouter(), 0);
+        IERC20(_params.tokenIn).safeTransfer(ISmartVaultManager(manager).protocol(), _swapFee);
+        IERC20(_params.tokenIn).safeIncreaseAllowance(ISmartVaultManager(manager).swapRouter(), _params.amountIn);
+        _amountOut = ISwapRouter(ISmartVaultManager(manager).swapRouter()).exactInputSingle(_params);
+        IERC20(_params.tokenIn).forceApprove(ISmartVaultManager(manager).swapRouter(), 0);
     }
 
     function swap(bytes32 _inToken, bytes32 _outToken, uint256 _amount, uint256 _minOut, uint24 _fee, uint256 _deadline)
@@ -272,10 +272,9 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         onlyOwner
         remainCollateralised
     {
-        uint256 swapFee =
-            _amount * ISmartVaultManagerV3(manager).swapFeeRate() / ISmartVaultManagerV3(manager).HUNDRED_PC();
+        uint256 swapFee = _amount * ISmartVaultManager(manager).swapFeeRate() / ISmartVaultManager(manager).HUNDRED_PC();
         address inToken = getTokenisedAddr(_inToken);
-        if (_inToken == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: _amount}();
+        if (_inToken == NATIVE) IWETH(ISmartVaultManager(manager).weth()).deposit{value: _amount}();
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
             tokenIn: inToken,
             tokenOut: getTokenisedAddr(_outToken),
@@ -288,7 +287,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         });
         uint256 _amountOut = executeSwapAndFee(params, swapFee);
         if (_outToken == NATIVE) {
-            IWETH(ISmartVaultManagerV3(manager).weth()).withdraw(_amountOut);
+            IWETH(ISmartVaultManager(manager).weth()).withdraw(_amountOut);
         }
     }
 
@@ -320,8 +319,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
                 amountIn: _amountIn,
                 // minimum USD value of collateral out from swap
                 amountOutMinimum: calculator.tokenToUSD(
-                    ITokenManager(ISmartVaultManagerV3(manager).tokenManager()).getTokenIfExists(_collateralToken),
-                    _amountIn
+                    ITokenManager(ISmartVaultManager(manager).tokenManager()).getTokenIfExists(_collateralToken), _amountIn
                 )
             })
         );
@@ -332,7 +330,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         private
     {
         uint256 _redeposit = _withdrawn > _collateralBalance ? _collateralBalance : _withdrawn;
-        address _yieldManager = ISmartVaultManagerV3(manager).yieldManager();
+        address _yieldManager = ISmartVaultManager(manager).yieldManager();
         IERC20(_collateralToken).safeIncreaseAllowance(_yieldManager, _redeposit);
         ISmartVaultYieldManager(_yieldManager).quickDeposit(_hypervisor, _collateralToken, _redeposit);
         IERC20(_collateralToken).forceApprove(_yieldManager, 0);
@@ -348,7 +346,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     ) external {
         uint256 _withdrawn;
         if (_hypervisor != address(0)) {
-            address _yieldManager = ISmartVaultManagerV3(manager).yieldManager();
+            address _yieldManager = ISmartVaultManager(manager).yieldManager();
             IERC20(_hypervisor).safeIncreaseAllowance(_yieldManager, getAssetBalance(_hypervisor));
             _withdrawn = ISmartVaultYieldManager(_yieldManager).quickWithdraw(_hypervisor, _collateralToken);
             IERC20(_hypervisor).forceApprove(_yieldManager, 0);
@@ -389,7 +387,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         uint256 _minCollateralPercentage
     ) private view returns (bool) {
         return _postCollateralValue
-            < _minCollateralPercentage * _preCollateralValue / ISmartVaultManagerV3(manager).HUNDRED_PC();
+            < _minCollateralPercentage * _preCollateralValue / ISmartVaultManager(manager).HUNDRED_PC();
     }
 
     function depositYield(
@@ -398,14 +396,14 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         uint256 _minCollateralPercentage,
         uint256 _deadline
     ) public onlyOwner withinTimestamp(_deadline) {
-        if (_symbol == NATIVE) IWETH(ISmartVaultManagerV3(manager).weth()).deposit{value: address(this).balance}();
+        if (_symbol == NATIVE) IWETH(ISmartVaultManager(manager).weth()).deposit{value: address(this).balance}();
         address _token = getTokenisedAddr(_symbol);
         uint256 _balance = getAssetBalance(_token);
         if (_balance == 0) revert InvalidToken();
-        IERC20(_token).safeIncreaseAllowance(ISmartVaultManagerV3(manager).yieldManager(), _balance);
+        IERC20(_token).safeIncreaseAllowance(ISmartVaultManager(manager).yieldManager(), _balance);
         uint256 _preDepositCollateral = usdCollateral();
         (address _hypervisor1, address _hypervisor2) =
-            ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).deposit(_token, _stablePercentage);
+            ISmartVaultYieldManager(ISmartVaultManager(manager).yieldManager()).deposit(_token, _stablePercentage);
         addUniqueHypervisor(_hypervisor1);
         if (_hypervisor2 != address(0)) addUniqueHypervisor(_hypervisor2);
         uint256 _postDepositCollateral = usdCollateral();
@@ -422,10 +420,10 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     {
         address _token = getTokenisedAddr(_symbol);
         IERC20(_hypervisor).safeIncreaseAllowance(
-            ISmartVaultManagerV3(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this))
+            ISmartVaultManager(manager).yieldManager(), IERC20(_hypervisor).balanceOf(address(this))
         );
         uint256 _preWithdrawCollateral = usdCollateral();
-        ISmartVaultYieldManager(ISmartVaultManagerV3(manager).yieldManager()).withdraw(_hypervisor, _token);
+        ISmartVaultYieldManager(ISmartVaultManager(manager).yieldManager()).withdraw(_hypervisor, _token);
         removeHypervisor(_hypervisor);
         if (_symbol == NATIVE) {
             IWETH(_token).withdraw(getAssetBalance(_token));

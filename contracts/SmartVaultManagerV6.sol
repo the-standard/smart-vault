@@ -11,20 +11,13 @@ import "contracts/interfaces/ISmartVault.sol";
 import "contracts/interfaces/ISmartVaultDeployer.sol";
 import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
-import "contracts/interfaces/ISmartVaultManagerV2.sol";
 import "contracts/interfaces/IUSDs.sol";
 
 //
 // TODO describe changes
 // TODO upgraded zz/zz/zz
 //
-contract SmartVaultManagerV6 is
-    ISmartVaultManager,
-    ISmartVaultManagerV2,
-    Initializable,
-    ERC721Upgradeable,
-    OwnableUpgradeable
-{
+contract SmartVaultManagerV6 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
     uint256 public constant HUNDRED_PC = 1e5;
@@ -49,14 +42,6 @@ contract SmartVaultManagerV6 is
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
     event VaultTransferred(uint256 indexed tokenId, address from, address to);
-
-    struct SmartVaultData {
-        uint256 tokenId;
-        uint256 collateralRate;
-        uint256 mintFeeRate;
-        uint256 burnFeeRate;
-        ISmartVault.Status status;
-    }
 
     modifier onlyAutoRedemption() {
         if (msg.sender != autoRedemption) revert();
