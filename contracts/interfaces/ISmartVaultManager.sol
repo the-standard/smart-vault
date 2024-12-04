@@ -14,6 +14,7 @@ interface ISmartVaultManager {
 
     function HUNDRED_PC() external view returns (uint256);
     function tokenManager() external view returns (address);
+    function autoRedemption() external view returns (address);
     function protocol() external view returns (address);
     function burnFeeRate() external view returns (uint256);
     function mintFeeRate() external view returns (uint256);
