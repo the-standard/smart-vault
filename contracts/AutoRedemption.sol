@@ -89,7 +89,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         while (TickMath.getSqrtRatioAtTick(_lowerTick) < TARGET_PRICE) {
             uint256 _amount0;
             if (_tick > _lowerTick && _tick < _upperTick) {
-                (uint256 _amount0,) = LiquidityAmounts.getAmountsForLiquidity(
+                (_amount0,) = LiquidityAmounts.getAmountsForLiquidity(
                     _sqrtPriceX96,
                     TickMath.getSqrtRatioAtTick(_lowerTick),
                     TickMath.getSqrtRatioAtTick(_upperTick),
@@ -98,7 +98,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             } else {
                 (, int128 _liquidityNet,,,,,,) = pool.ticks(_lowerTick);
                 _liquidity += uint128(_liquidityNet);
-                (uint256 _amount0,) = LiquidityAmounts.getAmountsForLiquidity(
+                (_amount0,) = LiquidityAmounts.getAmountsForLiquidity(
                     _sqrtPriceX96,
                     TickMath.getSqrtRatioAtTick(_lowerTick),
                     TickMath.getSqrtRatioAtTick(_upperTick),
