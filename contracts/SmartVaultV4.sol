@@ -73,6 +73,11 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         _;
     }
 
+    modifier onlyAutoRedemption() {
+        if (msg.sender != ISmartVaultManager(manager).autoRedemption()) revert InvalidUser();
+        _;
+    }
+
     modifier ifMinted(uint256 _amount) {
         if (minted < _amount) revert Overrepay();
         _;
@@ -297,9 +302,11 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         bytes memory _swapPath,
         uint256 _USDCTargetAmount
     ) private returns (uint256) {
-        (uint256 _quoteAmountIn,,,) = IQuoter(_quoterAddress).quoteExactOutput(_swapPath, _USDCTargetAmount);
         uint256 _collateralBalance = getAssetBalance(_collateralToken);
-        return _quoteAmountIn > _collateralBalance ? _collateralBalance : _quoteAmountIn;
+        (uint256 _quoteAmountOut,,,) = IQuoter(_quoterAddress).quoteExactInput(_swapPath, _collateralBalance);
+        return _quoteAmountOut > _USDCTargetAmount ? 
+            _collateralBalance * _USDCTargetAmount / _quoteAmountOut :
+            _collateralBalance;
     }
 
     function swapCollateral(
@@ -343,7 +350,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         bytes memory _swapPath,
         uint256 _USDCTargetAmount,
         address _hypervisor
-    ) external {
+    ) external onlyAutoRedemption returns (uint256 _redeemed) {
         uint256 _withdrawn;
         if (_hypervisor != address(0)) {
             address _yieldManager = ISmartVaultManager(manager).yieldManager();
@@ -352,9 +359,9 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
             IERC20(_hypervisor).forceApprove(_yieldManager, 0);
         }
         swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
-        uint256 _usdsBalance = USDs.balanceOf(address(this));
-        minted -= _usdsBalance;
-        USDs.burn(address(this), _usdsBalance);
+        _redeemed = USDs.balanceOf(address(this));
+        minted -= _redeemed;
+        USDs.burn(address(this), _redeemed);
         if (_hypervisor != address(0) && _withdrawn > 0) {
             uint256 _collateralBalance = getAssetBalance(_collateralToken);
             if (_collateralBalance == 0) {
