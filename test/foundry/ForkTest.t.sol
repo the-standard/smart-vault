@@ -104,15 +104,29 @@ contract ForkTest is ForkFixture {
 
         bytes memory wethUSDsSwapPath =
             abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
-        
+
         vm.expectRevert(SmartVaultV4.InvalidUser.selector);
-        vault.autoRedemption(UNISWAP_ROUTER_ADDRESS, UNISWAP_QUOTER_ADDRESS, WETH_ADDRESS, wethUSDsSwapPath, _borrowAmount, WBTC_HYPERVISOR_ADDRESS);
+        vault.autoRedemption(
+            UNISWAP_ROUTER_ADDRESS,
+            UNISWAP_QUOTER_ADDRESS,
+            WETH_ADDRESS,
+            wethUSDsSwapPath,
+            _borrowAmount,
+            WBTC_HYPERVISOR_ADDRESS
+        );
 
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setAutoRedemption(address(this));
-        
+
         uint256 _debt = vault.status().minted;
-        uint256 _redeemed = vault.autoRedemption(UNISWAP_ROUTER_ADDRESS, UNISWAP_QUOTER_ADDRESS, WETH_ADDRESS, wethUSDsSwapPath, _borrowAmount, WBTC_HYPERVISOR_ADDRESS);
+        uint256 _redeemed = vault.autoRedemption(
+            UNISWAP_ROUTER_ADDRESS,
+            UNISWAP_QUOTER_ADDRESS,
+            WETH_ADDRESS,
+            wethUSDsSwapPath,
+            _borrowAmount,
+            WBTC_HYPERVISOR_ADDRESS
+        );
 
         assertEq(vault.status().minted, _debt - _redeemed);
     }
@@ -138,7 +152,7 @@ contract ForkTest is ForkFixture {
         uint256 vaultDebt = status.minted;
         bytes memory ethUSDsSwapPath =
             abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
-        
+
         uint256 _ethRedeemAmount = ethCollateral / 10;
         vm.expectRevert();
         smartVaultManager.vaultAutoRedemption(address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount);

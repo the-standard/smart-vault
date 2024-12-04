@@ -304,9 +304,9 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     ) private returns (uint256) {
         uint256 _collateralBalance = getAssetBalance(_collateralToken);
         (uint256 _quoteAmountOut,,,) = IQuoter(_quoterAddress).quoteExactInput(_swapPath, _collateralBalance);
-        return _quoteAmountOut > _USDCTargetAmount ? 
-            _collateralBalance * _USDCTargetAmount / _quoteAmountOut :
-            _collateralBalance;
+        return _quoteAmountOut > _USDCTargetAmount
+            ? _collateralBalance * _USDCTargetAmount / _quoteAmountOut
+            : _collateralBalance;
     }
 
     function swapCollateral(
