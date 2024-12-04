@@ -9,7 +9,7 @@ interface IRedeemable {
         bytes memory _swapPath,
         uint256 _USDCTargetAmount,
         address _hypervisor
-    ) external;
+    ) external returns (uint256 _redeemed);
 }
 
 interface IRedeemableLegacy {
@@ -18,5 +18,5 @@ interface IRedeemableLegacy {
         address _collateralAddr,
         bytes memory _swapPath,
         uint256 _amountIn
-    ) external returns (uint256 _amountOut);
+    ) external returns (uint256 _redeemed);
 }
