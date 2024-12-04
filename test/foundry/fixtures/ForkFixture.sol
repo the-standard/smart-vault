@@ -110,6 +110,7 @@ contract ForkFixture is Test {
         vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
+        vm.label(UNISWAP_QUOTER_ADDRESS, "Uniswap Quoter");
 
         vm.label(UNI_PROXY_ADDRESS, "UniProxy");
         vm.label(CLEARING_ADDRESS, "Clearing");

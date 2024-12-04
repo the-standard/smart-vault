@@ -72,17 +72,9 @@ contract ForkTest is ForkFixture {
         vm.stopPrank();
     }
 
-    function test_legacyAutoRedemption() public {
-        SmartVaultDeployerV4Legacy deployer = new SmartVaultDeployerV4Legacy(NATIVE, address(priceCalculator));
-        vm.prank(VAULT_MANAGER_OWNER);
-        smartVaultManager.setSmartVaultDeployer(address(deployer));
-
-        vm.prank(VAULT_OWNER);
-        (address smartVault,) = smartVaultManager.mint();
-        SmartVaultV4Legacy legacyVault = SmartVaultV4Legacy(payable(smartVault));
-
+    function dropUSDsPrice() private {
         // make USDs cheaper, so redemption will be required:
-        uint256 usdsDump = 50000 ether;
+        uint256 usdsDump = 70000 ether;
         USDS.approve(UNISWAP_ROUTER_ADDRESS, usdsDump);
         ISwapRouter(UNISWAP_ROUTER_ADDRESS).exactInputSingle(
             ISwapRouter.ExactInputSingleParams({
@@ -96,9 +88,48 @@ contract ForkTest is ForkFixture {
                 sqrtPriceLimitX96: 0
             })
         );
+    }
+
+    function test_autoRedemption() public {
+        dropUSDsPrice();
+
+        vm.deal(address(vault), 1 ether);
+
+        vm.prank(VAULT_OWNER);
+        vault.depositYield(NATIVE, 5e4, 5e4, block.timestamp);
+        uint256 _borrowAmount = 1000 ether;
+
+        vm.prank(VAULT_OWNER);
+        vault.mint(VAULT_OWNER, _borrowAmount);
+
+        bytes memory wethUSDsSwapPath =
+            abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
+        
+        vm.expectRevert(SmartVaultV4.InvalidUser.selector);
+        vault.autoRedemption(UNISWAP_ROUTER_ADDRESS, UNISWAP_QUOTER_ADDRESS, WETH_ADDRESS, wethUSDsSwapPath, _borrowAmount, WBTC_HYPERVISOR_ADDRESS);
+
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setAutoRedemption(address(this));
+        
+        uint256 _debt = vault.status().minted;
+        uint256 _redeemed = vault.autoRedemption(UNISWAP_ROUTER_ADDRESS, UNISWAP_QUOTER_ADDRESS, WETH_ADDRESS, wethUSDsSwapPath, _borrowAmount, WBTC_HYPERVISOR_ADDRESS);
+
+        assertEq(vault.status().minted, _debt - _redeemed);
+    }
+
+    function test_legacyAutoRedemption() public {
+        dropUSDsPrice();
+
+        SmartVaultDeployerV4Legacy deployer = new SmartVaultDeployerV4Legacy(NATIVE, address(priceCalculator));
+        vm.prank(VAULT_MANAGER_OWNER);
+        smartVaultManager.setSmartVaultDeployer(address(deployer));
+
+        vm.prank(VAULT_OWNER);
+        (address smartVault,) = smartVaultManager.mint();
+        SmartVaultV4Legacy legacyVault = SmartVaultV4Legacy(payable(smartVault));
 
         uint256 ethCollateral = 1 ether;
-        vm.deal(address(legacyVault), 1 ether);
+        vm.deal(address(legacyVault), ethCollateral);
 
         vm.prank(VAULT_OWNER);
         legacyVault.mint(VAULT_OWNER, 500 ether);
@@ -107,11 +138,14 @@ contract ForkTest is ForkFixture {
         uint256 vaultDebt = status.minted;
         bytes memory ethUSDsSwapPath =
             abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
+        
+        uint256 _ethRedeemAmount = ethCollateral / 10;
+        vm.expectRevert();
+        smartVaultManager.vaultAutoRedemption(address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount);
 
         vm.prank(VAULT_MANAGER_OWNER);
         smartVaultManager.setAutoRedemption(address(this));
 
-        uint256 _ethRedeemAmount = ethCollateral / 10;
         uint256 _USDsRedeemed =
             smartVaultManager.vaultAutoRedemption(address(legacyVault), address(0), ethUSDsSwapPath, _ethRedeemAmount);
 

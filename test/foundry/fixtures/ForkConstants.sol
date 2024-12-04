@@ -82,6 +82,7 @@ AggregatorV3Interface constant CL_SUSHI_USD = AggregatorV3Interface(CL_SUSHI_USD
 
 // Router constants
 address constant UNISWAP_ROUTER_ADDRESS = 0xE592427A0AEce92De3Edee1F18E0157C05861564;
+address constant UNISWAP_QUOTER_ADDRESS = 0x5e55C9e631FAE526cd4B0526C4818D6e0a9eF0e3;
 
 ISwapRouter constant UNISWAP_ROUTER = ISwapRouter(UNISWAP_ROUTER_ADDRESS);
 
