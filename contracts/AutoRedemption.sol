@@ -3,7 +3,8 @@ pragma solidity 0.8.21;
 
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
-import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import {AutomationCompatibleInterface} from
+    "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
 import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
@@ -34,7 +35,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     mapping(address => address) hypervisorCollaterals;
     mapping(address => bytes) swapPaths;
 
-    string private constant source = "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'uint256'], [data.tokenID, data.collateral, data.value]); return ethers.getBytes(encoded)";
+    string private constant source =
+        "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'uint256'], [data.tokenID, data.collateral, data.value]); return ethers.getBytes(encoded)";
 
     constructor(
         address _smartVaultManager,
@@ -69,12 +71,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     function triggerRequest() private {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
-        lastRequestId = _sendRequest(
-            req.encodeCBOR(),
-            subscriptionID,
-            MAX_REQ_GAS,
-            donID
-        );
+        lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionID, MAX_REQ_GAS, donID);
     }
 
     function performUpkeep(bytes calldata performData) external {
