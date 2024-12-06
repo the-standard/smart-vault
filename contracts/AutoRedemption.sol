@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity 0.8.21;
 
-import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/interfaces/AutomationCompatibleInterface.sol";
-import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
-import {Functions} from "@chainlink/contracts/src/v0.8/dev/functions/Functions.sol";
-import {FunctionsClient} from "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol";
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/FunctionsClient.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/libraries/FunctionsRequest.sol";
+import {AutomationCompatibleInterface} from "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
 import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
 import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
@@ -17,11 +17,12 @@ import {IERC20} from
     "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
 contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, ConfirmedOwner {
-    using Functions for Functions.Request;
+    using FunctionsRequest for FunctionsRequest.Request;
 
-    uint32 private constant MAX_REQ_GAS = 100_000;
+    uint32 private constant MAX_REQ_GAS = 300000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
     bytes32 private lastRequestId;
+    bytes32 private immutable donID;
     address private immutable smartVaultManager;
     IUniswapV3Pool private immutable pool;
     address private immutable smartVaultIndex;
@@ -33,16 +34,12 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     mapping(address => address) hypervisorCollaterals;
     mapping(address => bytes) swapPaths;
 
-    string source = "const { ethers } = await import('npm:ethers@6.10.0')"
-        "const apiResponse = await Functions.makeHttpRequest({"
-        "url: 'https://smart-vault-api.thestandard.io/redemption'" "});" "if (apiResponse.error) {"
-        "throw Error('Request failed');" "}" "const { data } = apiResponse;"
-        "const encoded = ethers.AbiCoder.defaultAbiCoder().encode(" "['uint256', 'address', 'uint256'],"
-        "[data.tokenID, data.collateral, data.value]" ");" "return ethers.getBytes(encoded);";
+    string private constant source = "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'uint256'], [data.tokenID, data.collateral, data.value]); return ethers.getBytes(encoded)";
 
     constructor(
         address _smartVaultManager,
         address _functionsRouter,
+        bytes32 _donID,
         address _pool,
         address _smartVaultIndex,
         address _swapRouter,
@@ -52,6 +49,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         uint256 _lastLegacyVaultID
     ) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
         smartVaultManager = _smartVaultManager;
+        donID = _donID;
         swapRouter = _swapRouter;
         quoter = _quoter;
         smartVaultIndex = _smartVaultIndex;
@@ -68,15 +66,20 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         upkeepNeeded = sqrtPriceX96 <= triggerPrice;
     }
 
-    function _sendRequest() private {
-        Functions.Request memory req;
+    function triggerRequest() private {
+        FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
-        lastRequestId = sendRequest(req, subscriptionID, MAX_REQ_GAS);
+        lastRequestId = _sendRequest(
+            req.encodeCBOR(),
+            subscriptionID,
+            MAX_REQ_GAS,
+            donID
+        );
     }
 
     function performUpkeep(bytes calldata performData) external {
         if (lastRequestId == bytes32(0)) {
-            _sendRequest();
+            triggerRequest();
         }
     }
 

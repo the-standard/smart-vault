@@ -2,7 +2,7 @@
 pragma solidity 0.8.21;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
 import {ISwapRouter} from "src/interfaces/ISwapRouter.sol";
 import {IUniProxy} from "src/interfaces/IUniProxy.sol";
