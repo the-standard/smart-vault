@@ -13,7 +13,6 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 
-
 contract SmartVaultManagerV6 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 

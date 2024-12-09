@@ -16,7 +16,6 @@ import {FullMath} from "contracts/uniswap/FullMath.sol";
 import {IPeripheryImmutableState} from "contracts/interfaces/IPeripheryImmutableState.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 
-
 contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
     using SafeERC20 for IERC20;
 

@@ -16,7 +16,6 @@ import "contracts/interfaces/ITokenManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 import "contracts/interfaces/IWETH.sol";
 
-
 contract SmartVaultV4Legacy is ISmartVault, IRedeemableLegacy {
     using SafeERC20 for IERC20;
 
