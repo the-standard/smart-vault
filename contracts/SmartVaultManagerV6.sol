@@ -13,10 +13,7 @@ import "contracts/interfaces/ISmartVaultIndex.sol";
 import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/IUSDs.sol";
 
-//
-// TODO describe changes
-// TODO upgraded zz/zz/zz
-//
+
 contract SmartVaultManagerV6 is ISmartVaultManager, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
 
@@ -116,8 +113,6 @@ contract SmartVaultManagerV6 is ISmartVaultManager, Initializable, ERC721Upgrade
     ) external onlyAutoRedemption returns (uint256 _amountOut) {
         return IRedeemableLegacy(_smartVault).autoRedemption(swapRouter, _collateralAddr, _swapPath, _collateralAmount);
     }
-
-    // TODO maintain vault liquidations with old vault liquidate interface for EUROs
 
     function tokenURI(uint256 _tokenId) public view virtual override returns (string memory) {
         ISmartVault.Status memory vaultStatus = ISmartVault(smartVaultIndex.getVaultAddress(_tokenId)).status();

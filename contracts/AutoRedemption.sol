@@ -7,15 +7,14 @@ import {AutomationCompatibleInterface} from
     "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
-import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
 import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
-import {ISmartVaultIndex} from "contracts/interfaces/ISmartVaultIndex.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
 import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
 import {IERC20} from
     "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
+
 
 contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
@@ -26,7 +25,6 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     bytes32 private immutable donID;
     address private immutable smartVaultManager;
     IUniswapV3Pool private immutable pool;
-    address private immutable smartVaultIndex;
     address private immutable swapRouter;
     address private immutable quoter;
     uint160 private immutable triggerPrice;
@@ -43,7 +41,6 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         address _functionsRouter,
         bytes32 _donID,
         address _pool,
-        address _smartVaultIndex,
         address _swapRouter,
         address _quoter,
         uint160 _triggerPrice,
@@ -54,10 +51,9 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         donID = _donID;
         swapRouter = _swapRouter;
         quoter = _quoter;
-        smartVaultIndex = _smartVaultIndex;
         // 0x8DEF4Db6697F4885bA4a3f75e9AdB3cEFCca6D6E
         pool = IUniswapV3Pool(_pool);
-        // 77222060634363710668800
+        // around .97-.98
         triggerPrice = _triggerPrice;
         subscriptionID = _subscriptionID;
         lastLegacyVaultID = _lastLegacyVaultID;
