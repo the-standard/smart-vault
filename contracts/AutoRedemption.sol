@@ -35,6 +35,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     mapping(address => address) hypervisorCollaterals;
     mapping(address => bytes) swapPaths;
 
+    event AutoRedemption(address indexed vault, address indexed token, uint256 usdsRedeemed);
+
     string private constant source =
         "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address'], [data.tokenID, data.collateral]); return ethers.getBytes(encoded)";
 
@@ -122,7 +124,10 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         (uint256 _approxAmountInRequired,,,) =
             IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath, _USDsTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
-        ISmartVaultManager(smartVaultManager).vaultAutoRedemption(_smartVault, _token, _collateralToUSDsPath, _amountIn);
+        uint256 _usdsRedeemed = ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
+            _smartVault, _token, _collateralToUSDsPath, _amountIn
+        );
+        emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
     }
 
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
