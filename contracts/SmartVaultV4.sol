@@ -333,13 +333,11 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         IERC20(_collateralToken).forceApprove(_swapRouterAddress, 0);
     }
 
-    function redeposit(uint256 _withdrawn, uint256 _collateralBalance, address _hypervisor, address _collateralToken)
-        private
-    {
+    function redeposit(uint256 _withdrawn, uint256 _collateralBalance, address _collateralToken) private {
         uint256 _redeposit = _withdrawn > _collateralBalance ? _collateralBalance : _withdrawn;
         address _yieldManager = ISmartVaultManager(manager).yieldManager();
         IERC20(_collateralToken).safeIncreaseAllowance(_yieldManager, _redeposit);
-        ISmartVaultYieldManager(_yieldManager).quickDeposit(_hypervisor, _collateralToken, _redeposit);
+        ISmartVaultYieldManager(_yieldManager).quickDeposit(_collateralToken, _redeposit);
         IERC20(_collateralToken).forceApprove(_yieldManager, 0);
     }
 
@@ -371,7 +369,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
             if (_collateralBalance == 0) {
                 removeHypervisor(_hypervisor);
             } else {
-                redeposit(_withdrawn, _collateralBalance, _hypervisor, _collateralToken);
+                redeposit(_withdrawn, _collateralBalance, _collateralToken);
             }
         }
         if (undercollateralised()) revert Undercollateralised();
