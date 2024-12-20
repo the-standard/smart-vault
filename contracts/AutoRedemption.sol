@@ -100,24 +100,16 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         int24 _lowerTick = _upperTick - _spacing;
         uint128 _liquidity = pool.liquidity();
         while (TickMath.getSqrtRatioAtTick(_lowerTick) < TARGET_PRICE) {
-            uint256 _amount0;
-            if (_tick > _lowerTick && _tick < _upperTick) {
-                (_amount0,) = LiquidityAmounts.getAmountsForLiquidity(
-                    _sqrtPriceX96,
-                    TickMath.getSqrtRatioAtTick(_lowerTick),
-                    TickMath.getSqrtRatioAtTick(_upperTick),
-                    _liquidity
-                );
-            } else {
+            if (_lowerTick > _tick) {
                 (, int128 _liquidityNet,,,,,,) = pool.ticks(_lowerTick);
                 _liquidity = LiquidityMath.addDelta(_liquidity, _liquidityNet);
-                (_amount0,) = LiquidityAmounts.getAmountsForLiquidity(
-                    _sqrtPriceX96,
-                    TickMath.getSqrtRatioAtTick(_lowerTick),
-                    TickMath.getSqrtRatioAtTick(_upperTick),
-                    _liquidity
-                );
             }
+            (uint256 _amount0,) = LiquidityAmounts.getAmountsForLiquidity(
+                _sqrtPriceX96,
+                TickMath.getSqrtRatioAtTick(_lowerTick),
+                TickMath.getSqrtRatioAtTick(_upperTick),
+                _liquidity
+            );
             _usdc += _amount0;
             _lowerTick += _spacing;
             _upperTick += _spacing;
