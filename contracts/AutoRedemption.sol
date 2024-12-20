@@ -36,7 +36,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     mapping(address => bytes) swapPaths;
 
     string private constant source =
-        "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'uint256'], [data.tokenID, data.collateral, data.value]); return ethers.getBytes(encoded)";
+        "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address'], [data.tokenID, data.collateral]); return ethers.getBytes(encoded)";
 
     constructor(
         address _smartVaultManager,
@@ -120,8 +120,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         address _smartVault,
         address _token,
         bytes memory _collateralToUSDsPath,
-        uint256 _USDsTargetAmount,
-        uint256 _estimatedCollateralValueUSD
+        uint256 _USDsTargetAmount
     ) private {
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
         (uint256 _approxAmountInRequired,,,) =
@@ -136,15 +135,14 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         if (requestId != lastRequestId) revert("wrong request");
         if (redemptionRequired()) {
             uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
-            (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) =
-                abi.decode(response, (uint256, address, uint256));
+            (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
             bytes memory _collateralToUSDsPath = swapPaths[_token];
             ISmartVaultManager.SmartVaultData memory _vaultData = ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
             if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
             address _smartVault = _vaultData.status.vaultAddress;
             if (_tokenID <= lastLegacyVaultID) {
                 legacyAutoRedemption(
-                    _smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount, _estimatedCollateralValueUSD
+                    _smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount
                 );
             } else {
                 address _hypervisor;
