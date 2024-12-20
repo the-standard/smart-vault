@@ -66,7 +66,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         secondsAgo[0] = 0;
         secondsAgo[1] = TWAP_INTERVAL;
 
-        (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
+        (int56[] memory tickCumulatives,) = pool.observe(secondsAgo);
 
         int56 tickCumulativeDiff = tickCumulatives[0] - tickCumulatives[1];
         int24 twapTick = int24(tickCumulativeDiff / int56(int32(TWAP_INTERVAL)));
@@ -137,13 +137,12 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
             (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
             bytes memory _collateralToUSDsPath = swapPaths[_token];
-            ISmartVaultManager.SmartVaultData memory _vaultData = ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
+            ISmartVaultManager.SmartVaultData memory _vaultData =
+                ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
             if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
             address _smartVault = _vaultData.status.vaultAddress;
             if (_tokenID <= lastLegacyVaultID) {
-                legacyAutoRedemption(
-                    _smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount
-                );
+                legacyAutoRedemption(_smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount);
             } else {
                 address _hypervisor;
                 if (hypervisorCollaterals[_token] != address(0)) {
