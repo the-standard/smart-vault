@@ -20,6 +20,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     uint32 private constant MAX_REQ_GAS = 300000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
+    uint32 private constant TWAP_INTERVAL = 300;
+
     bytes32 private lastRequestId;
     bytes32 private immutable donID;
     address private immutable smartVaultManager;
@@ -58,9 +60,24 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         lastLegacyVaultID = _lastLegacyVaultID;
     }
 
+    function poolTWAP() private returns (uint160) {
+        uint32[] memory secondsAgo = new uint32[](2);
+        secondsAgo[0] = 0;
+        secondsAgo[1] = TWAP_INTERVAL;
+
+        (int56[] memory tickCumulatives, ) = pool.observe(secondsAgo);
+
+        int56 tickCumulativeDiff = tickCumulatives[0] - tickCumulatives[1];
+        int24 twapTick = int24(tickCumulativeDiff / int56(int32(TWAP_INTERVAL)));
+        return TickMath.getSqrtRatioAtTick(twapTick);
+    }
+
+    function redemptionRequired() private returns (bool) {
+        return poolTWAP() <= triggerPrice;
+    }
+
     function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData) {
-        (uint160 sqrtPriceX96,,,,,,) = pool.slot0();
-        upkeepNeeded = sqrtPriceX96 <= triggerPrice;
+        upkeepNeeded = redemptionRequired();
     }
 
     function triggerRequest() private {
@@ -70,7 +87,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     }
 
     function performUpkeep(bytes calldata performData) external {
-        if (lastRequestId == bytes32(0)) {
+        if (lastRequestId == bytes32(0) && redemptionRequired()) {
             triggerRequest();
         }
     }
@@ -124,26 +141,28 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         // TODO proper error handling
         // if (err) revert;
         if (requestId != lastRequestId) revert("wrong request");
-        uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
-        (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) =
-            abi.decode(response, (uint256, address, uint256));
-        bytes memory _collateralToUSDCPath = swapPaths[_token];
-        ISmartVaultManager.SmartVaultData memory _vaultData = ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
-        if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
-        address _smartVault = _vaultData.status.vaultAddress;
-        if (_tokenID <= lastLegacyVaultID) {
-            legacyAutoRedemption(
-                _smartVault, _token, _collateralToUSDCPath, _USDsTargetAmount, _estimatedCollateralValueUSD
-            );
-        } else {
-            address _hypervisor;
-            if (hypervisorCollaterals[_token] != address(0)) {
-                _hypervisor = _token;
-                _token = hypervisorCollaterals[_hypervisor];
+        if (redemptionRequired()) {
+            uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
+            (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) =
+                abi.decode(response, (uint256, address, uint256));
+            bytes memory _collateralToUSDCPath = swapPaths[_token];
+            ISmartVaultManager.SmartVaultData memory _vaultData = ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
+            if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
+            address _smartVault = _vaultData.status.vaultAddress;
+            if (_tokenID <= lastLegacyVaultID) {
+                legacyAutoRedemption(
+                    _smartVault, _token, _collateralToUSDCPath, _USDsTargetAmount, _estimatedCollateralValueUSD
+                );
+            } else {
+                address _hypervisor;
+                if (hypervisorCollaterals[_token] != address(0)) {
+                    _hypervisor = _token;
+                    _token = hypervisorCollaterals[_hypervisor];
+                }
+                IRedeemable(_smartVault).autoRedemption(
+                    _smartVault, quoter, _token, _collateralToUSDCPath, _USDsTargetAmount, _hypervisor
+                );
             }
-            IRedeemable(_smartVault).autoRedemption(
-                _smartVault, quoter, _token, _collateralToUSDCPath, _USDsTargetAmount, _hypervisor
-            );
         }
         lastRequestId = bytes32(0);
     }
