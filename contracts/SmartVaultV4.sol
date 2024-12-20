@@ -374,6 +374,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
                 redeposit(_withdrawn, _collateralBalance, _hypervisor, _collateralToken);
             }
         }
+        if (undercollateralised()) revert Undercollateralised();
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
