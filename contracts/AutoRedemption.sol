@@ -93,7 +93,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function calculateUSDsToTargetPrice() private view returns (uint256 _usdc) {
+    function calculateUSDsToTargetPrice() private view returns (uint256 _usds) {
         int24 _spacing = pool.tickSpacing();
         (uint160 _sqrtPriceX96, int24 _tick,,,,,) = pool.slot0();
         int24 _upperTick = _tick / _spacing * _spacing;
@@ -110,7 +110,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                 TickMath.getSqrtRatioAtTick(_upperTick),
                 _liquidity
             );
-            _usdc += _amount0;
+            _usds += _amount0;
             _lowerTick += _spacing;
             _upperTick += _spacing;
         }
@@ -119,15 +119,15 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     function legacyAutoRedemption(
         address _smartVault,
         address _token,
-        bytes memory _collateralToUSDCPath,
+        bytes memory _collateralToUSDsPath,
         uint256 _USDsTargetAmount,
         uint256 _estimatedCollateralValueUSD
     ) private {
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
         (uint256 _approxAmountInRequired,,,) =
-            IQuoter(quoter).quoteExactOutput(_collateralToUSDCPath, _USDsTargetAmount);
+            IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath, _USDsTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
-        ISmartVaultManager(smartVaultManager).vaultAutoRedemption(_smartVault, _token, _collateralToUSDCPath, _amountIn);
+        ISmartVaultManager(smartVaultManager).vaultAutoRedemption(_smartVault, _token, _collateralToUSDsPath, _amountIn);
     }
 
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
@@ -138,13 +138,13 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
             (uint256 _tokenID, address _token, uint256 _estimatedCollateralValueUSD) =
                 abi.decode(response, (uint256, address, uint256));
-            bytes memory _collateralToUSDCPath = swapPaths[_token];
+            bytes memory _collateralToUSDsPath = swapPaths[_token];
             ISmartVaultManager.SmartVaultData memory _vaultData = ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
             if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
             address _smartVault = _vaultData.status.vaultAddress;
             if (_tokenID <= lastLegacyVaultID) {
                 legacyAutoRedemption(
-                    _smartVault, _token, _collateralToUSDCPath, _USDsTargetAmount, _estimatedCollateralValueUSD
+                    _smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount, _estimatedCollateralValueUSD
                 );
             } else {
                 address _hypervisor;
@@ -153,7 +153,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                     _token = hypervisorCollaterals[_hypervisor];
                 }
                 IRedeemable(_smartVault).autoRedemption(
-                    swapRouter, quoter, _token, _collateralToUSDCPath, _USDsTargetAmount, _hypervisor
+                    swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
                 );
             }
         }

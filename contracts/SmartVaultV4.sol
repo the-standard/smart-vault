@@ -300,12 +300,12 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         address _quoterAddress,
         address _collateralToken,
         bytes memory _swapPath,
-        uint256 _USDCTargetAmount
+        uint256 _USDsTargetAmount
     ) private returns (uint256) {
         uint256 _collateralBalance = getAssetBalance(_collateralToken);
         (uint256 _quoteAmountOut,,,) = IQuoter(_quoterAddress).quoteExactInput(_swapPath, _collateralBalance);
-        return _quoteAmountOut > _USDCTargetAmount
-            ? _collateralBalance * _USDCTargetAmount / _quoteAmountOut
+        return _quoteAmountOut > _USDsTargetAmount
+            ? _collateralBalance * _USDsTargetAmount / _quoteAmountOut
             : _collateralBalance;
     }
 
@@ -314,9 +314,9 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         address _quoterAddress,
         address _collateralToken,
         bytes memory _swapPath,
-        uint256 _USDCTargetAmount
+        uint256 _USDsTargetAmount
     ) private {
-        uint256 _amountIn = calculateAmountIn(_quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
+        uint256 _amountIn = calculateAmountIn(_quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
         IERC20(_collateralToken).safeIncreaseAllowance(_swapRouterAddress, _amountIn);
         ISwapRouter(_swapRouterAddress).exactInput(
             ISwapRouter.ExactInputParams({
@@ -348,7 +348,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         address _quoterAddress,
         address _collateralToken,
         bytes memory _swapPath,
-        uint256 _USDCTargetAmount,
+        uint256 _USDsTargetAmount,
         address _hypervisor
     ) external onlyAutoRedemption returns (uint256 _redeemed) {
         uint256 _withdrawn;
@@ -362,7 +362,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
             _collateralToken = ISmartVaultManager(manager).weth();
             IWETH(_collateralToken).deposit{value: address(this).balance}();
         }
-        swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDCTargetAmount);
+        swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
         _redeemed = USDs.balanceOf(address(this));
         minted -= _redeemed;
         USDs.burn(address(this), _redeemed);
