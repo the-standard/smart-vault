@@ -161,7 +161,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                     _token = hypervisorCollaterals[_hypervisor];
                 }
                 IRedeemable(_smartVault).autoRedemption(
-                    _smartVault, quoter, _token, _collateralToUSDCPath, _USDsTargetAmount, _hypervisor
+                    swapRouter, quoter, _token, _collateralToUSDCPath, _USDsTargetAmount, _hypervisor
                 );
             }
         }
