@@ -116,12 +116,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function legacyAutoRedemption(
-        address _smartVault,
-        address _token,
-        bytes memory _collateralToUSDsPath,
-        uint256 _USDsTargetAmount
-    ) private {
+    function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount) private {
+        bytes memory _collateralToUSDsPath = swapPaths[_token];
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
         (uint256 _approxAmountInRequired,,,) =
             IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath, _USDsTargetAmount);
@@ -136,24 +132,32 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         if (redemptionRequired()) {
             uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
             (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
-            bytes memory _collateralToUSDsPath = swapPaths[_token];
             ISmartVaultManager.SmartVaultData memory _vaultData =
                 ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
             if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
             address _smartVault = _vaultData.status.vaultAddress;
             if (_tokenID <= lastLegacyVaultID) {
-                legacyAutoRedemption(_smartVault, _token, _collateralToUSDsPath, _USDsTargetAmount);
+                legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
             } else {
                 address _hypervisor;
                 if (hypervisorCollaterals[_token] != address(0)) {
                     _hypervisor = _token;
                     _token = hypervisorCollaterals[_hypervisor];
                 }
+                bytes memory _collateralToUSDsPath = swapPaths[_token];
                 IRedeemable(_smartVault).autoRedemption(
                     swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
                 );
             }
         }
         lastRequestId = bytes32(0);
+    }
+
+    function setHypervisorCollateral(address _hypervisor, address _collateral) external onlyOwner {
+        hypervisorCollaterals[_hypervisor] = _collateral;
+    }
+
+    function setSwapPath(address _token, bytes memory _path) external onlyOwner {
+        swapPaths[_token] = _path;
     }
 }
