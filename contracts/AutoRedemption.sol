@@ -10,6 +10,7 @@ import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
 import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
+import {LiquidityMath} from "src/uniswap/LiquidityMath.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
 import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
 import {IERC20} from
@@ -109,7 +110,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                 );
             } else {
                 (, int128 _liquidityNet,,,,,,) = pool.ticks(_lowerTick);
-                _liquidity += uint128(_liquidityNet);
+                _liquidity = LiquidityMath.addDelta(_liquidity, _liquidityNet);
                 (_amount0,) = LiquidityAmounts.getAmountsForLiquidity(
                     _sqrtPriceX96,
                     TickMath.getSqrtRatioAtTick(_lowerTick),
