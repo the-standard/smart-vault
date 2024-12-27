@@ -168,7 +168,7 @@ contract SmartVaultManagerV6 is ISmartVaultManager, Initializable, ERC721Upgrade
 
     function _update(address _to, uint256 _tokenID, address _auth) internal virtual override returns (address) {
         address _from = super._update(_to, _tokenID, _auth);
-        require(vaultIDs(_to).length < userVaultLimit, "err-vault-limit");
+        require(_to == address(0) || vaultIDs(_to).length < userVaultLimit, "err-vault-limit");
         smartVaultIndex.transferTokenId(_from, _to, _tokenID);
         if (address(_from) != address(0)) ISmartVault(smartVaultIndex.getVaultAddress(_tokenID)).setOwner(_to);
         emit VaultTransferred(_tokenID, _from, _to);
