@@ -33,7 +33,12 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint64 public immutable subscriptionID;
     uint256 public immutable lastLegacyVaultID;
     mapping(address => address) hypervisorCollaterals;
-    mapping(address => bytes) swapPaths;
+    mapping(address => SwapPath) swapPaths;
+
+    struct SwapPath {
+        bytes input;
+        bytes output;
+    }
 
     event AutoRedemption(address indexed vault, address indexed token, uint256 usdsRedeemed);
 
@@ -119,13 +124,13 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     }
 
     function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount) private {
-        bytes memory _collateralToUSDsPath = swapPaths[_token];
+        SwapPath memory _collateralToUSDsPath = swapPaths[_token];
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
         (uint256 _approxAmountInRequired,,,) =
-            IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath, _USDsTargetAmount);
+            IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath.output, _USDsTargetAmount);
         uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
         uint256 _usdsRedeemed = ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
-            _smartVault, _token, _collateralToUSDsPath, _amountIn
+            _smartVault, _token, _collateralToUSDsPath.input, _amountIn
         );
         emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
     }
@@ -149,7 +154,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                     _hypervisor = _token;
                     _token = hypervisorCollaterals[_hypervisor];
                 }
-                bytes memory _collateralToUSDsPath = swapPaths[_token];
+                bytes memory _collateralToUSDsPath = swapPaths[_token].input;
                 (uint256 _usdsRedeemed) = IRedeemable(_smartVault).autoRedemption(
                     swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
                 );
@@ -163,7 +168,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         hypervisorCollaterals[_hypervisor] = _collateral;
     }
 
-    function setSwapPath(address _token, bytes memory _path) external onlyOwner {
-        swapPaths[_token] = _path;
+    function setSwapPath(address _token, bytes memory _inputPath, bytes memory _outputPath) external onlyOwner {
+        swapPaths[_token] = SwapPath(_inputPath, _outputPath);
     }
 }
