@@ -341,6 +341,10 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         IERC20(_collateralToken).forceApprove(_yieldManager, 0);
     }
 
+    function calculateCollaralPercentage() private returns (uint256) {
+        return 100 * usdCollateral() / minted;
+    }
+
     function autoRedemption(
         address _swapRouterAddress,
         address _quoterAddress,
@@ -349,6 +353,8 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         uint256 _USDsTargetAmount,
         address _hypervisor
     ) external onlyAutoRedemption returns (uint256 _redeemed) {
+        if (undercollateralised()) revert Undercollateralised();
+        uint256 _preCollateralisationPercentage = calculateCollaralPercentage();
         uint256 _withdrawn;
         if (_hypervisor != address(0)) {
             address _yieldManager = ISmartVaultManager(manager).yieldManager();
@@ -372,7 +378,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
                 redeposit(_withdrawn, _collateralBalance, _collateralToken);
             }
         }
-        if (undercollateralised()) revert Undercollateralised();
+        if (calculateCollaralPercentage() < _preCollateralisationPercentage) revert Overrepay();
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
