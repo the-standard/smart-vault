@@ -315,10 +315,10 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         address _collateralToken,
         bytes memory _swapPath,
         uint256 _USDsTargetAmount
-    ) private {
+    ) private returns (uint256 _amountOut) {
         uint256 _amountIn = calculateAmountIn(_quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
         IERC20(_collateralToken).safeIncreaseAllowance(_swapRouterAddress, _amountIn);
-        ISwapRouter(_swapRouterAddress).exactInput(
+        _amountOut = ISwapRouter(_swapRouterAddress).exactInput(
             ISwapRouter.ExactInputParams({
                 path: _swapPath,
                 recipient: address(this),
@@ -366,8 +366,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
             _collateralToken = ISmartVaultManager(manager).weth();
             IWETH(_collateralToken).deposit{value: address(this).balance}();
         }
-        swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
-        _redeemed = USDs.balanceOf(address(this));
+        uint256 _redeemed = swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
         minted -= _redeemed;
         USDs.burn(address(this), _redeemed);
         if (_hypervisor != address(0) && _withdrawn > 0) {

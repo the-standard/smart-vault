@@ -21,7 +21,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     uint32 private constant MAX_REQ_GAS = 300000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
-    uint32 private constant TWAP_INTERVAL = 300;
+    uint32 private constant TWAP_INTERVAL = 1800;
 
     bytes32 private lastRequestId;
     bytes32 private immutable donID;
