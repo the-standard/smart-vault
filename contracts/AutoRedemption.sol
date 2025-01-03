@@ -22,6 +22,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint32 private constant MAX_REQ_GAS = 300000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
     uint32 private constant TWAP_INTERVAL = 1800;
+    uint256 private constant ENCODED_API_RESPONSE_LENGTH = 64;
 
     bytes32 private lastRequestId;
     bytes32 private immutable donID;
@@ -123,43 +124,50 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount) private {
+    function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount) private returns (uint256) {
         SwapPath memory _collateralToUSDsPath = swapPaths[_token];
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
-        (uint256 _approxAmountInRequired,,,) =
-            IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath.output, _USDsTargetAmount);
-        uint256 _amountIn = _approxAmountInRequired > _collateralBalance ? _collateralBalance : _approxAmountInRequired;
-        uint256 _usdsRedeemed = ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
-            _smartVault, _token, _collateralToUSDsPath.input, _amountIn
-        );
-        emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
+        try IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath.output, _USDsTargetAmount) returns (uint256 amountInRequired, uint160[] memory sqrtPriceX96AfterList, uint32[] memory initializedTicksCrossedList, uint256 gasEstimate) {
+            uint256 _amountIn = amountInRequired > _collateralBalance ? _collateralBalance : amountInRequired;
+            try ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
+                _smartVault, _token, _collateralToUSDsPath.input, _amountIn
+            ) returns (uint256 _usdsRedeemed) {
+                return _usdsRedeemed;
+            } catch {}
+        } catch {}
+    }
+
+    function runAutoRedemption(bytes memory response) private returns (address _smartVault, address _collateralToken, uint256 _usdsRedeemed) {
+        uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
+        if (_USDsTargetAmount > 0) {
+            (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
+            try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (ISmartVaultManager.SmartVaultData memory _vaultData) {
+                if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
+                _smartVault = _vaultData.status.vaultAddress;
+                if (_tokenID <= lastLegacyVaultID) {
+                    _usdsRedeemed = legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
+                } else {
+                    address _hypervisor;
+                    if (hypervisorCollaterals[_token] != address(0)) {
+                        _hypervisor = _token;
+                        _token = hypervisorCollaterals[_hypervisor];
+                    }
+                    bytes memory _collateralToUSDsPath = swapPaths[_token].input;
+                    try IRedeemable(_smartVault).autoRedemption(
+                        swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
+                    ) returns (uint256 _redeemed) {
+                        _usdsRedeemed = _redeemed;
+                    } catch {}
+                }
+                _collateralToken = _token;
+            } catch {}
+        }
     }
 
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
-        // TODO proper error handling
-        // if (err) revert;
-        if (requestId != lastRequestId) revert("wrong request");
-        if (redemptionRequired()) {
-            uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
-            (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
-            ISmartVaultManager.SmartVaultData memory _vaultData =
-                ISmartVaultManager(smartVaultManager).vaultData(_tokenID);
-            if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
-            address _smartVault = _vaultData.status.vaultAddress;
-            if (_tokenID <= lastLegacyVaultID) {
-                legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
-            } else {
-                address _hypervisor;
-                if (hypervisorCollaterals[_token] != address(0)) {
-                    _hypervisor = _token;
-                    _token = hypervisorCollaterals[_hypervisor];
-                }
-                bytes memory _collateralToUSDsPath = swapPaths[_token].input;
-                (uint256 _usdsRedeemed) = IRedeemable(_smartVault).autoRedemption(
-                    swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
-                );
-                emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
-            }
+        if (requestId == lastRequestId && response.length == ENCODED_API_RESPONSE_LENGTH && redemptionRequired()) {
+            (address _smartVault, address _token, uint256 _usdsRedeemed) = runAutoRedemption(response);
+            if (_usdsRedeemed > 0) emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
         }
         lastRequestId = bytes32(0);
     }
