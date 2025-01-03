@@ -124,10 +124,18 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount) private returns (uint256) {
+    function legacyAutoRedemption(address _smartVault, address _token, uint256 _USDsTargetAmount)
+        private
+        returns (uint256)
+    {
         SwapPath memory _collateralToUSDsPath = swapPaths[_token];
         uint256 _collateralBalance = _token == address(0) ? _smartVault.balance : IERC20(_token).balanceOf(_smartVault);
-        try IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath.output, _USDsTargetAmount) returns (uint256 amountInRequired, uint160[] memory sqrtPriceX96AfterList, uint32[] memory initializedTicksCrossedList, uint256 gasEstimate) {
+        try IQuoter(quoter).quoteExactOutput(_collateralToUSDsPath.output, _USDsTargetAmount) returns (
+            uint256 amountInRequired,
+            uint160[] memory sqrtPriceX96AfterList,
+            uint32[] memory initializedTicksCrossedList,
+            uint256 gasEstimate
+        ) {
             uint256 _amountIn = amountInRequired > _collateralBalance ? _collateralBalance : amountInRequired;
             try ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
                 _smartVault, _token, _collateralToUSDsPath.input, _amountIn
@@ -137,11 +145,16 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         } catch {}
     }
 
-    function runAutoRedemption(bytes memory response) private returns (address _smartVault, address _collateralToken, uint256 _usdsRedeemed) {
+    function runAutoRedemption(bytes memory response)
+        private
+        returns (address _smartVault, address _collateralToken, uint256 _usdsRedeemed)
+    {
         uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
         if (_USDsTargetAmount > 0) {
             (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
-            try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (ISmartVaultManager.SmartVaultData memory _vaultData) {
+            try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
+                ISmartVaultManager.SmartVaultData memory _vaultData
+            ) {
                 if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
                 _smartVault = _vaultData.status.vaultAddress;
                 if (_tokenID <= lastLegacyVaultID) {
