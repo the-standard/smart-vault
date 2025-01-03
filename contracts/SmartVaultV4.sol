@@ -324,10 +324,10 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: _amountIn,
-                // minimum USD value of collateral out from swap
                 amountOutMinimum: calculator.tokenToUSD(
                     ITokenManager(ISmartVaultManager(manager).tokenManager()).getTokenIfExists(_collateralToken), _amountIn
-                )
+                ) * 99 / 100 // 99% of usd value of collateral – usds should be bought at around .98-.99 on average,
+                    // but this gives some buffer for lower liquidity / higher fee pools
             })
         );
         IERC20(_collateralToken).forceApprove(_swapRouterAddress, 0);
@@ -366,7 +366,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
             _collateralToken = ISmartVaultManager(manager).weth();
             IWETH(_collateralToken).deposit{value: address(this).balance}();
         }
-        uint256 _redeemed = swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
+        _redeemed = swapCollateral(_swapRouterAddress, _quoterAddress, _collateralToken, _swapPath, _USDsTargetAmount);
         minted -= _redeemed;
         USDs.burn(address(this), _redeemed);
         if (_hypervisor != address(0) && _withdrawn > 0) {
