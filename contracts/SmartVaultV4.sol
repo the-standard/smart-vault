@@ -32,14 +32,6 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     uint256 private minted;
     bool private liquidated;
 
-    struct YieldPair {
-        address hypervisor;
-        address token0;
-        uint256 amount0;
-        address token1;
-        uint256 amount1;
-    }
-
     event CollateralRemoved(bytes32 symbol, uint256 amount, address to);
     event AssetRemoved(address token, uint256 amount, address to);
     event USDsMinted(address to, uint256 amount, uint256 fee);

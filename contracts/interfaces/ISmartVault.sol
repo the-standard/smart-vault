@@ -21,8 +21,17 @@ interface ISmartVault {
         bytes32 vaultType;
     }
 
+    struct YieldPair {
+        address hypervisor;
+        address token0;
+        uint256 amount0;
+        address token1;
+        uint256 amount1;
+    }
+
     function status() external view returns (Status memory);
     function undercollateralised() external view returns (bool);
     function setOwner(address _newOwner) external;
     function liquidate(address _liquidator) external;
+    function yieldAssets() external view returns (YieldPair[] memory _yieldPairs);
 }

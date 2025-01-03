@@ -8,6 +8,7 @@ import {AutomationCompatibleInterface} from
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
 import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
+import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {LiquidityMath} from "src/uniswap/LiquidityMath.sol";
@@ -145,6 +146,17 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         } catch {}
     }
 
+    function validData(ISmartVaultManager.SmartVaultData memory _vaultData, address _token) private returns (bool) {
+        if (_vaultData.status.vaultAddress == address(0)) return false;
+        for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
+            if (_vaultData.status.collateral[i].token.addr == _token) return true;
+        }
+        ISmartVault.YieldPair[] memory _yieldPairs = ISmartVault(_vaultData.status.vaultAddress).yieldAssets();
+        for (uint256 i = 0; i < _yieldPairs.length; i++) {
+            if (_yieldPairs[i].hypervisor == _token) return true;
+        }
+    }
+
     function runAutoRedemption(bytes memory response)
         private
         returns (address _smartVault, address _collateralToken, uint256 _usdsRedeemed)
@@ -155,24 +167,26 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
                 ISmartVaultManager.SmartVaultData memory _vaultData
             ) {
-                if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
-                _smartVault = _vaultData.status.vaultAddress;
-                if (_tokenID <= lastLegacyVaultID) {
-                    _usdsRedeemed = legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
-                } else {
-                    address _hypervisor;
-                    if (hypervisorCollaterals[_token] != address(0)) {
-                        _hypervisor = _token;
-                        _token = hypervisorCollaterals[_hypervisor];
+                if (validData(_vaultData, _token)) {
+                    if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
+                    _smartVault = _vaultData.status.vaultAddress;
+                    if (_tokenID <= lastLegacyVaultID) {
+                        _usdsRedeemed = legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
+                    } else {
+                        address _hypervisor;
+                        if (hypervisorCollaterals[_token] != address(0)) {
+                            _hypervisor = _token;
+                            _token = hypervisorCollaterals[_hypervisor];
+                        }
+                        bytes memory _collateralToUSDsPath = swapPaths[_token].input;
+                        try IRedeemable(_smartVault).autoRedemption(
+                            swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
+                        ) returns (uint256 _redeemed) {
+                            _usdsRedeemed = _redeemed;
+                        } catch {}
                     }
-                    bytes memory _collateralToUSDsPath = swapPaths[_token].input;
-                    try IRedeemable(_smartVault).autoRedemption(
-                        swapRouter, quoter, _token, _collateralToUSDsPath, _USDsTargetAmount, _hypervisor
-                    ) returns (uint256 _redeemed) {
-                        _usdsRedeemed = _redeemed;
-                    } catch {}
+                    _collateralToken = _token;
                 }
-                _collateralToken = _token;
             } catch {}
         }
     }
