@@ -23,7 +23,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint32 private constant MAX_REQ_GAS = 300000;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
     uint32 private constant TWAP_INTERVAL = 1800;
-    uint256 private constant ENCODED_API_RESPONSE_LENGTH = 64;
+    uint256 private constant ENCODED_API_RESPONSE_LENGTH = 96;
 
     bytes32 private lastRequestId;
     bytes32 private immutable donID;
@@ -45,7 +45,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     event AutoRedemption(address indexed vault, address indexed token, uint256 usdsRedeemed);
 
     string private constant source =
-        "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address'], [data.tokenID, data.collateral]); return ethers.getBytes(encoded)";
+        "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'address'], [data.tokenID, data.collateral, data.hypervisor]); return ethers.getBytes(encoded)";
 
     constructor(
         address _smartVaultManager,
@@ -163,7 +163,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     {
         uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
         if (_USDsTargetAmount > 0) {
-            (uint256 _tokenID, address _token) = abi.decode(response, (uint256, address));
+            (uint256 _tokenID, address _token, address _hypervisor) = abi.decode(response, (uint256, address, address));
             try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
                 ISmartVaultManager.SmartVaultData memory _vaultData
             ) {
@@ -173,11 +173,6 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                     if (_tokenID <= lastLegacyVaultID) {
                         _usdsRedeemed = legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
                     } else {
-                        address _hypervisor;
-                        if (hypervisorCollaterals[_token] != address(0)) {
-                            _hypervisor = _token;
-                            _token = hypervisorCollaterals[_hypervisor];
-                        }
                         SwapPath memory _collateralToUSDsPaths = swapPaths[_token];
                         try IRedeemable(_smartVault).autoRedemption(
                             swapRouter,
