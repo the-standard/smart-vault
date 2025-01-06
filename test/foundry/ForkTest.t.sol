@@ -102,16 +102,19 @@ contract ForkTest is ForkFixture {
         vm.prank(VAULT_OWNER);
         vault.mint(VAULT_OWNER, _borrowAmount);
 
-        bytes memory wethUSDsSwapPath =
+        bytes memory wethUSDsSwapPathInput =
             abi.encodePacked(WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS, RAMSES_FEE, USDS_ADDRESS);
+        bytes memory wethUSDsSwapPathOutput =
+            abi.encodePacked(USDS_ADDRESS, RAMSES_FEE, USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS);
 
         vm.expectRevert(SmartVaultV4.InvalidUser.selector);
         vault.autoRedemption(
             UNISWAP_ROUTER_ADDRESS,
             UNISWAP_QUOTER_ADDRESS,
             WETH_ADDRESS,
-            wethUSDsSwapPath,
             _borrowAmount,
+            wethUSDsSwapPathInput,
+            wethUSDsSwapPathOutput,
             WBTC_HYPERVISOR_ADDRESS
         );
 
@@ -123,8 +126,9 @@ contract ForkTest is ForkFixture {
             UNISWAP_ROUTER_ADDRESS,
             UNISWAP_QUOTER_ADDRESS,
             WETH_ADDRESS,
-            wethUSDsSwapPath,
             _borrowAmount,
+            wethUSDsSwapPathInput,
+            wethUSDsSwapPathOutput,
             WBTC_HYPERVISOR_ADDRESS
         );
 

@@ -6,8 +6,9 @@ interface IRedeemable {
         address _swapRouterAddress,
         address _quoterAddress,
         address _collateralToken,
-        bytes memory _swapPath,
-        uint256 _USDCTargetAmount,
+        uint256 _USDsTargetAmount,
+        bytes memory _swapPathInput,
+        bytes memory _swapPathOutput,
         address _hypervisor
     ) external returns (uint256 _redeemed);
 }
