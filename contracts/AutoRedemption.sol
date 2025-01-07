@@ -34,7 +34,6 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint160 private immutable triggerPrice;
     uint64 public immutable subscriptionID;
     uint256 public immutable lastLegacyVaultID;
-    mapping(address => address) hypervisorCollaterals;
     mapping(address => SwapPath) swapPaths;
 
     struct SwapPath {
@@ -198,10 +197,6 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             if (_usdsRedeemed > 0) emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
         }
         lastRequestId = bytes32(0);
-    }
-
-    function setHypervisorCollateral(address _hypervisor, address _collateral) external onlyOwner {
-        hypervisorCollaterals[_hypervisor] = _collateral;
     }
 
     function setSwapPath(address _token, bytes memory _inputPath, bytes memory _outputPath) external onlyOwner {
