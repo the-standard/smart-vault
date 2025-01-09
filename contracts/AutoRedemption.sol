@@ -7,8 +7,9 @@ import {AutomationCompatibleInterface} from
     "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
-import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
 import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
+import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
+import {ISmartVaultYieldManager} from "contracts/interfaces/ISmartVaultYieldManager.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
 import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {LiquidityMath} from "src/uniswap/LiquidityMath.sol";
@@ -28,6 +29,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     bytes32 private lastRequestId;
     bytes32 private immutable donID;
     address private immutable smartVaultManager;
+    address private immutable yieldManager;
     IUniswapV3Pool private immutable pool;
     address private immutable swapRouter;
     address private immutable quoter;
@@ -48,6 +50,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     constructor(
         address _smartVaultManager,
+        address _yieldManager,
         address _functionsRouter,
         bytes32 _donID,
         address _pool,
@@ -58,6 +61,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         uint256 _lastLegacyVaultID
     ) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
         smartVaultManager = _smartVaultManager;
+        yieldManager = _yieldManager;
         donID = _donID;
         swapRouter = _swapRouter;
         quoter = _quoter;
@@ -145,14 +149,18 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         } catch {}
     }
 
-    function validData(ISmartVaultManager.SmartVaultData memory _vaultData, address _token) private returns (bool) {
+    function validData(ISmartVaultManager.SmartVaultData memory _vaultData, address _token, address _hypervisor)
+        private
+        returns (bool)
+    {
         if (_vaultData.status.vaultAddress == address(0)) return false;
         for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
-            if (_vaultData.status.collateral[i].token.addr == _token) return true;
-        }
-        ISmartVault.YieldPair[] memory _yieldPairs = ISmartVault(_vaultData.status.vaultAddress).yieldAssets();
-        for (uint256 i = 0; i < _yieldPairs.length; i++) {
-            if (_yieldPairs[i].hypervisor == _token) return true;
+            if (_vaultData.status.collateral[i].token.addr == _token) {
+                return (
+                    _hypervisor == address(0)
+                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(_token) == _hypervisor
+                );
+            }
         }
     }
 
@@ -166,7 +174,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
                 ISmartVaultManager.SmartVaultData memory _vaultData
             ) {
-                if (validData(_vaultData, _token)) {
+                if (validData(_vaultData, _token, _hypervisor)) {
                     if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
                     _smartVault = _vaultData.status.vaultAddress;
                     if (_tokenID <= lastLegacyVaultID) {

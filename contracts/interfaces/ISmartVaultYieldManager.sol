@@ -2,6 +2,7 @@
 pragma solidity 0.8.21;
 
 interface ISmartVaultYieldManager {
+    function getHypervisorForCollateral(address _collateralToken) external returns (address _hypervisor);
     function deposit(address _collateralToken, uint256 _usdPercentage)
         external
         returns (address vault0, address vault1);
