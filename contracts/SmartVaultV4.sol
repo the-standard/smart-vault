@@ -47,6 +47,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
     error InvalidToken();
     error DeadlineExpired();
     error CollateralRatioDecrease();
+    error InvalidAutoRedemption();
 
     constructor(bytes32 _native, address _manager, address _owner, address _usds, address _priceCalculator) {
         NATIVE = _native;
@@ -369,6 +370,7 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         address _hypervisor
     ) external onlyAutoRedemption returns (uint256 _redeemed) {
         if (undercollateralised()) revert Undercollateralised();
+        if (minted == 0) revert InvalidAutoRedemption();
         uint256 _preCollateralisationPercentage = calculateCollateralPercentage();
         uint256 _withdrawn;
         if (_hypervisor != address(0)) {
@@ -394,7 +396,9 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
                 redeposit(_withdrawn, _collateralBalance, _collateralToken);
             }
         }
-        if (calculateCollateralPercentage() < _preCollateralisationPercentage) revert CollateralRatioDecrease();
+        if (minted > 0 && calculateCollateralPercentage() < _preCollateralisationPercentage) {
+            revert CollateralRatioDecrease();
+        }
     }
 
     function addUniqueHypervisor(address _hypervisor) private {
