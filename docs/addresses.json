@@ -1,7 +1,9 @@
 {
     "arbitrum": {
         "SmartVaultManager": "0xba169cceCCF7aC51dA223e04654Cf16ef41A68CC",
+        "SmartVaultManager_USDs": "0x496aB4A155C8fE359Cd28d43650fAFA0A35322Fb",
         "EUROs": "0x643b34980e635719c15a2d4ce69571a258f940e9",
+        "USDs": "0x2Ea0bE86990E8Dac0D09e4316Bb92086F304622d",
         "TokenManager": "0x33c5A816382760b6E5fb50d8854a61b3383a32a0",
         "Deployer": "0xa4879376995E60A7469e140C29f96744A7188278",
         "SmartVaultIndex": "0x56c7506410e5e242261c5E0db6941956c686E5A1",
