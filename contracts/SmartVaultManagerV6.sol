@@ -14,11 +14,10 @@ import "contracts/interfaces/ISmartVaultManager.sol";
 import "contracts/interfaces/ISmartVaultManagerV2.sol";
 
 //
-// allows use of different swap router address (post 7/11 attack)
-// allows setting of protocol wallet address + liquidator address
-// upgraded zz/zz/zz
+// TODO describe changes
+// TODO upgraded zz/zz/zz
 //
-contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
+contract SmartVaultManagerV6 is ISmartVaultManager, ISmartVaultManagerV2, Initializable, ERC721Upgradeable, OwnableUpgradeable {
     using SafeERC20 for IERC20;
     
     uint256 public constant HUNDRED_PC = 1e5;
@@ -39,6 +38,7 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
     address public swapRouter;
     address public swapRouter2;
     uint16 public userVaultLimit;
+    address public yieldManager;
 
     event VaultDeployed(address indexed vaultAddress, address indexed owner, address vaultType, uint256 tokenId);
     event VaultLiquidated(address indexed vaultAddress);
@@ -141,6 +141,10 @@ contract SmartVaultManagerV5 is ISmartVaultManager, ISmartVaultManagerV2, Initia
 
     function setUserVaultLimit(uint16 _userVaultLimit) external onlyOwner() {
         userVaultLimit = _userVaultLimit;
+    }
+
+    function setYieldManager(address _yieldManager) external onlyOwner() {
+        yieldManager = _yieldManager;
     }
 
     // TODO test transfer

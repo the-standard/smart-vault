@@ -19,7 +19,7 @@ describe('SmartVaultManager', async () => {
     TokenManager = await (await ethers.getContractFactory('TokenManager')).deploy(ETH, ClEthUsd.address);
     EUROs = await (await ethers.getContractFactory('EUROsMock')).deploy();
     Tether = await (await ethers.getContractFactory('ERC20Mock')).deploy('Tether', 'USDT', 6);
-    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV3')).deploy(ETH, ClEurUsd.address);
+    SmartVaultDeployer = await (await ethers.getContractFactory('SmartVaultDeployerV4')).deploy(ETH, ClEurUsd.address);
     const SmartVaultIndex = await (await ethers.getContractFactory('SmartVaultIndex')).deploy();
     MockSwapRouter = await (await ethers.getContractFactory('MockSwapRouter')).deploy();
     NFTMetadataGenerator = await (await getNFTMetadataContract()).deploy();
@@ -27,7 +27,7 @@ describe('SmartVaultManager', async () => {
       DEFAULT_COLLATERAL_RATE, PROTOCOL_FEE_RATE, EUROs.address, protocol.address,
       liquidator.address, TokenManager.address, SmartVaultDeployer.address,
       SmartVaultIndex.address, NFTMetadataGenerator.address, WETH_ADDRESS,
-      MockSwapRouter.address, TEST_VAULT_LIMIT
+      MockSwapRouter.address, TEST_VAULT_LIMIT, ethers.constants.AddressZero
     );
     await SmartVaultIndex.setVaultManager(VaultManager.address);
     await EUROs.grantRole(await EUROs.DEFAULT_ADMIN_ROLE(), VaultManager.address);
@@ -213,6 +213,13 @@ describe('SmartVaultManager', async () => {
         expect(metadataJSON).to.have.string('application/json');
         expect(metadataJSON).to.have.string('data');
         expect(metadataJSON).to.have.string('base64');
+      });
+    });
+
+    describe('vault version', async () => {
+      it('deploys v4 vaults', async () => {
+        const vault = await ethers.getContractAt('SmartVault', vaultAddress);
+        expect((await vault.status()).version).to.equal(4);
       });
     });
   });
