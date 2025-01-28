@@ -26,16 +26,16 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint32 private constant TWAP_INTERVAL = 1800;
     uint256 private constant ENCODED_API_RESPONSE_LENGTH = 96;
 
-    bytes32 private lastRequestId;
     bytes32 private immutable donID;
     address private immutable smartVaultManager;
     address private immutable yieldManager;
     IUniswapV3Pool private immutable pool;
     address private immutable swapRouter;
     address private immutable quoter;
-    uint160 private immutable triggerPrice;
     uint64 public immutable subscriptionID;
     uint256 public immutable lastLegacyVaultID;
+    bytes32 private lastRequestId;
+    uint160 private triggerPrice;
     mapping(address => SwapPath) swapPaths;
 
     struct SwapPath {
@@ -209,5 +209,9 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     function setSwapPath(address _token, bytes memory _inputPath, bytes memory _outputPath) external onlyOwner {
         swapPaths[_token] = SwapPath(_inputPath, _outputPath);
+    }
+
+    function setTriggerPrice(uint160 _triggerPrice) external onlyOwner {
+        triggerPrice = _triggerPrice;
     }
 }
