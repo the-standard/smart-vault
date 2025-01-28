@@ -373,15 +373,15 @@ contract SmartVaultV4 is ISmartVault, IRedeemable {
         if (minted == 0) revert InvalidAutoRedemption();
         uint256 _preCollateralisationPercentage = calculateCollateralPercentage();
         uint256 _withdrawn;
+        if (_collateralToken == address(0)) {
+            _collateralToken = ISmartVaultManager(manager).weth();
+            IWETH(_collateralToken).deposit{value: address(this).balance}();
+        }
         if (_hypervisor != address(0)) {
             address _yieldManager = ISmartVaultManager(manager).yieldManager();
             IERC20(_hypervisor).safeIncreaseAllowance(_yieldManager, getAssetBalance(_hypervisor));
             _withdrawn = ISmartVaultYieldManager(_yieldManager).quickWithdraw(_hypervisor, _collateralToken);
             IERC20(_hypervisor).forceApprove(_yieldManager, 0);
-        }
-        if (_collateralToken == address(0)) {
-            _collateralToken = ISmartVaultManager(manager).weth();
-            IWETH(_collateralToken).deposit{value: address(this).balance}();
         }
         _redeemed = swapCollateral(
             _swapRouterAddress, _quoterAddress, _collateralToken, _USDsTargetAmount, _swapPathInput, _swapPathOutput
