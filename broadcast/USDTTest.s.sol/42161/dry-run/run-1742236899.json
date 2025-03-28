@@ -1,0 +1,58 @@
+{
+  "transactions": [
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": "TokenManager",
+      "contractAddress": "0x33c5a816382760b6e5fb50d8854a61b3383a32a0",
+      "function": "addAcceptedToken(address,address)",
+      "arguments": [
+        "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+        "0x3f3f5dF88dC9F13eac63DF89EC16ef6e7E25DdE7"
+      ],
+      "transaction": {
+        "from": "0xf9d85965c6a40d0c029471d758850e4b4c0d5b17",
+        "to": "0x33c5a816382760b6e5fb50d8854a61b3383a32a0",
+        "gas": "0x4d74a",
+        "value": "0x0",
+        "input": "0xb8f41acf000000000000000000000000fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb90000000000000000000000003f3f5df88dc9f13eac63df89ec16ef6e7e25dde7",
+        "nonce": "0x266",
+        "chainId": "0xa4b1"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    },
+    {
+      "hash": null,
+      "transactionType": "CALL",
+      "contractName": "SmartVaultYieldManager",
+      "contractAddress": "0x7c153d7561aa059e5313ff09d852bab299ebabe5",
+      "function": "addHypervisorData(address,address,uint24,bytes,bytes)",
+      "arguments": [
+        "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9",
+        "0x95375694685E39997828Ed5B17f30f0A3eD90537",
+        "500",
+        "0xfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9000064af88d065e77c8cc2239327c5edb3a432268e5831",
+        "0xaf88d065e77c8cc2239327c5edb3a432268e5831000064fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
+      ],
+      "transaction": {
+        "from": "0xf9d85965c6a40d0c029471d758850e4b4c0d5b17",
+        "to": "0x7c153d7561aa059e5313ff09d852bab299ebabe5",
+        "gas": "0x7081a",
+        "value": "0x0",
+        "input": "0xcc29a7a5000000000000000000000000fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb900000000000000000000000095375694685e39997828ed5b17f30f0a3ed9053700000000000000000000000000000000000000000000000000000000000001f400000000000000000000000000000000000000000000000000000000000000a00000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000002bfd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9000064af88d065e77c8cc2239327c5edb3a432268e5831000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002baf88d065e77c8cc2239327c5edb3a432268e5831000064fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9000000000000000000000000000000000000000000",
+        "nonce": "0x267",
+        "chainId": "0xa4b1"
+      },
+      "additionalContracts": [],
+      "isFixedGasLimit": false
+    }
+  ],
+  "receipts": [],
+  "libraries": [],
+  "pending": [],
+  "returns": {},
+  "timestamp": 1742236899,
+  "chain": 42161,
+  "commit": "bd9ad62"
+}
