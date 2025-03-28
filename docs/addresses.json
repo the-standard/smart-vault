@@ -6,7 +6,7 @@
         "USDs": "0x2Ea0bE86990E8Dac0D09e4316Bb92086F304622d",
         "TokenManager": "0x33c5A816382760b6E5fb50d8854a61b3383a32a0",
         "Deployer": "0xa4879376995E60A7469e140C29f96744A7188278",
-        "Deployed_USDs": "0xde5C4623ea33dFFb25B725E3de0Ac5986A0BE182",
+        "Deployed_USDs": "0x02e7c4489e2827698cf765116b04e7d3b3579b6e",
         "SmartVaultIndex": "0x56c7506410e5e242261c5E0db6941956c686E5A1",
         "SmartVaultIndex_USDs": "0x9bDCDd0A729aa6a0DE16cD41d81D0Cd3ad26Ffdd",
         "NFTMetadataGenerator": "0x3C70276Ee29FD659a9D06983522b731784012c54",
@@ -19,7 +19,8 @@
         "YieldManager": "0x7c153d7561AA059E5313fF09D852BaB299EBaBE5",
         "StakingTST": "0xA27A9F6Bac7f3C530EAF324Ae45F33Bc113c1E83",
         "RewardGatewayTST": "0xC789D77Dca1ba8e3Dca6F8B3D8E10DBDd99da3F4",
-        "AutoRedemption": "0xa9a41EdE01DbC8808a955863fdb590eA38A547B6"
+        "AutoRedemption": "0xa9a41EdE01DbC8808a955863fdb590eA38A547B6",
+        "PriceCalculator": "0xbda964D76eF8672DF6a48CEd8c7EA320f5E86175"
     },
     "arbitrum_sepolia": {
         "EUROs": "0x5D1684E5b989Eb232ac84D6b73D783FE44114C2b",
