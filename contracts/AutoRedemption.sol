@@ -141,6 +141,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             uint256 gasEstimate
         ) {
             uint256 _amountIn = amountInRequired > _collateralBalance ? _collateralBalance : amountInRequired;
+            // worth leaving a margin here, causing problems with small decimal tokens
+            _amountIn = _amountIn * 99 / 100;
             try ISmartVaultManager(smartVaultManager).vaultAutoRedemption(
                 _smartVault, _token, _collateralToUSDsPath.input, _amountIn
             ) returns (uint256 _usdsRedeemed) {
@@ -213,5 +215,14 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
 
     function setTriggerPrice(uint160 _triggerPrice) external onlyOwner {
         triggerPrice = _triggerPrice;
+    }
+
+    function callVaultData(bytes memory _response) external view returns (uint256) {
+        (uint256 _tokenID, address _token, address _hypervisor) = abi.decode(_response, (uint256, address, address));
+        try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
+            ISmartVaultManager.SmartVaultData memory _vaultData
+        ) {
+            return _vaultData.status.totalCollateralValue;
+        } catch {}
     }
 }
