@@ -216,13 +216,4 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     function setTriggerPrice(uint160 _triggerPrice) external onlyOwner {
         triggerPrice = _triggerPrice;
     }
-
-    function callVaultData(bytes memory _response) external view returns (uint256) {
-        (uint256 _tokenID, address _token, address _hypervisor) = abi.decode(_response, (uint256, address, address));
-        try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
-            ISmartVaultManager.SmartVaultData memory _vaultData
-        ) {
-            return _vaultData.status.totalCollateralValue;
-        } catch {}
-    }
 }
