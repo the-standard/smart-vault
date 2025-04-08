@@ -92,8 +92,12 @@ contract AutoRedemptionV2 is AutomationCompatibleInterface, FunctionsClient, Con
         return poolTWAP() <= triggerPrice;
     }
 
+    function shouldRun() private returns (bool) {
+        return !paused && poolBelowTriggerPrice() && lastRequestId == bytes32(0);
+    }
+
     function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = !paused && poolBelowTriggerPrice() && lastRequestId == bytes32(0);
+        upkeepNeeded = shouldRun();
     }
 
     function triggerRequest() private {
@@ -125,16 +129,16 @@ contract AutoRedemptionV2 is AutomationCompatibleInterface, FunctionsClient, Con
         }
     }
 
-    function validData(ISmartVaultManager.SmartVaultData memory _vaultData, address _token, address _hypervisor)
+    function validData(ISmartVaultManager.SmartVaultData memory _vaultData)
         private
         returns (bool)
     {
         if (_vaultData.status.vaultAddress == address(0)) return false;
         for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
-            if (_vaultData.status.collateral[i].token.addr == _token) {
+            if (_vaultData.status.collateral[i].token.addr == token) {
                 return (
-                    _hypervisor == address(0)
-                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(_token) == _hypervisor
+                    hypervisor == address(0)
+                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(token) == hypervisor
                 );
             }
         }
@@ -187,7 +191,7 @@ contract AutoRedemptionV2 is AutomationCompatibleInterface, FunctionsClient, Con
             try ISmartVaultManager(smartVaultManager).vaultData(tokenID) returns (
                 ISmartVaultManager.SmartVaultData memory _vaultData
             ) {
-                if (validData(_vaultData, token, hypervisor)) {
+                if (validData(_vaultData)) {
                     if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
                     _smartVault = _vaultData.status.vaultAddress;
                     if (tokenID <= lastLegacyVaultID) {
@@ -201,18 +205,20 @@ contract AutoRedemptionV2 is AutomationCompatibleInterface, FunctionsClient, Con
     }
 
     function performUpkeep(bytes calldata performData) external {
-        if ((block.timestamp - dataReceivedAt) > 30 minutes) {
-            triggerRequest();
-        } else {
-            (address _smartVault, uint256 _usdsRedeemed) = runAutoRedemption();
-            if (_usdsRedeemed == 0) {
-                paused = true;
+        if (shouldRun()) {
+            if ((block.timestamp - dataReceivedAt) > 30 minutes) {
+                triggerRequest();
             } else {
-                emit AutoRedemption(_smartVault, token, _usdsRedeemed);
-                dataReceivedAt = 0;
-                tokenID = 0;
-                token = address(0);
-                hypervisor = address(0);
+                (address _smartVault, uint256 _usdsRedeemed) = runAutoRedemption();
+                if (_usdsRedeemed == 0) {
+                    paused = true;
+                } else {
+                    emit AutoRedemption(_smartVault, token, _usdsRedeemed);
+                    dataReceivedAt = 0;
+                    tokenID = 0;
+                    token = address(0);
+                    hypervisor = address(0);
+                }
             }
         }
     }
