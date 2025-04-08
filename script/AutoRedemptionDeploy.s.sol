@@ -2,15 +2,15 @@
 pragma solidity 0.8.21;
 
 import {Script,console} from "forge-std/Script.sol";
-import {AutoRedemptionV2} from "../contracts/AutoRedemptionV2.sol";
+import {AutoRedemption} from "../contracts/AutoRedemption.sol";
 import {SmartVaultManagerV6} from "../contracts/SmartVaultManagerV6.sol";
 
-contract AutoRedemptionV2Deploy is Script {
+contract AutoRedemptionDeploy is Script {
     function run() external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        AutoRedemptionV2 redemption = new AutoRedemptionV2(
+        AutoRedemption redemption = new AutoRedemption(
             0x97083E831F8F0638855e2A515c90EdCF158DF238,
             hex"66756e2d617262697472756d2d6d61696e6e65742d3100000000000000000000",
             38,

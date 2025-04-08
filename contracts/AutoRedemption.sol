@@ -6,15 +6,14 @@ import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/v1_0_0/l
 import {AutomationCompatibleInterface} from
     "@chainlink/contracts/src/v0.8/automation/interfaces/AutomationCompatibleInterface.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {IQuoter} from "contracts/interfaces/IQuoter.sol";
 import {IRedeemable} from "contracts/interfaces/IRedeemable.sol";
-import {ISmartVault} from "contracts/interfaces/ISmartVault.sol";
 import {ISmartVaultManager} from "contracts/interfaces/ISmartVaultManager.sol";
 import {ISmartVaultYieldManager} from "contracts/interfaces/ISmartVaultYieldManager.sol";
 import {IUniswapV3Pool} from "contracts/interfaces/IUniswapV3Pool.sol";
-import {IQuoter} from "contracts/interfaces/IQuoter.sol";
+import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
 import {LiquidityMath} from "src/uniswap/LiquidityMath.sol";
 import {TickMath} from "src/uniswap/TickMath.sol";
-import {LiquidityAmounts} from "src/uniswap/LiquidityAmounts.sol";
 import {IERC20} from
     "lib/openzeppelin-contracts-upgradeable/lib/openzeppelin-contracts/contracts/token/ERC20/IERC20.sol";
 
@@ -22,19 +21,25 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     using FunctionsRequest for FunctionsRequest.Request;
 
     uint32 private constant MAX_REQ_GAS = 300000;
-    uint160 private constant TARGET_PRICE = 79228162514264337593543;
     uint32 private constant TWAP_INTERVAL = 1800;
     uint256 private constant ENCODED_API_RESPONSE_LENGTH = 96;
+    uint160 private constant TARGET_PRICE = 79228162514264337593543;
 
     bytes32 private immutable donID;
+    uint64 public immutable subscriptionID;
+    IUniswapV3Pool private immutable pool;
     address private immutable smartVaultManager;
     address private immutable yieldManager;
-    IUniswapV3Pool private immutable pool;
-    address private immutable swapRouter;
-    address private immutable quoter;
-    uint64 public immutable subscriptionID;
     uint256 public immutable lastLegacyVaultID;
+    address private immutable quoter;
+    address private immutable swapRouter;
+
     bytes32 private lastRequestId;
+    bool public paused;
+    uint256 public dataReceivedAt;
+    uint256 public tokenID;
+    address public token;
+    address public hypervisor;
     uint160 private triggerPrice;
     mapping(address => SwapPath) swapPaths;
 
@@ -49,28 +54,26 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         "const { ethers } = await import('npm:ethers@6.10.0'); const apiResponse = await Functions.makeHttpRequest({ url: 'https://smart-vault-api.thestandard.io/redemption' }); if (apiResponse.error) { throw Error('Request failed'); } const { data } = apiResponse; const encoded = ethers.AbiCoder.defaultAbiCoder().encode(['uint256', 'address', 'address'], [data.tokenID, data.collateral, data.hypervisor]); return ethers.getBytes(encoded)";
 
     constructor(
-        address _smartVaultManager,
-        address _yieldManager,
         address _functionsRouter,
         bytes32 _donID,
-        address _pool,
-        address _swapRouter,
-        address _quoter,
-        uint160 _triggerPrice,
         uint64 _subscriptionID,
-        uint256 _lastLegacyVaultID
+        address _pool,
+        uint160 _triggerPrice,
+        address _smartVaultManager,
+        address _yieldManager,
+        uint256 _lastLegacyVaultID,
+        address _quoter,
+        address _swapRouter
     ) FunctionsClient(_functionsRouter) ConfirmedOwner(msg.sender) {
+        donID = _donID;
+        subscriptionID = _subscriptionID;
+        pool = IUniswapV3Pool(_pool);
+        triggerPrice = _triggerPrice;
         smartVaultManager = _smartVaultManager;
         yieldManager = _yieldManager;
-        donID = _donID;
-        swapRouter = _swapRouter;
-        quoter = _quoter;
-        // 0x8DEF4Db6697F4885bA4a3f75e9AdB3cEFCca6D6E
-        pool = IUniswapV3Pool(_pool);
-        // around .97-.98
-        triggerPrice = _triggerPrice;
-        subscriptionID = _subscriptionID;
         lastLegacyVaultID = _lastLegacyVaultID;
+        quoter = _quoter;
+        swapRouter = _swapRouter;
     }
 
     function poolTWAP() private returns (uint160) {
@@ -85,24 +88,22 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         return TickMath.getSqrtRatioAtTick(twapTick);
     }
 
-    function redemptionRequired() private returns (bool) {
+    function poolBelowTriggerPrice() private returns (bool) {
         return poolTWAP() <= triggerPrice;
     }
 
+    function shouldRun() private returns (bool) {
+        return !paused && poolBelowTriggerPrice() && lastRequestId == bytes32(0);
+    }
+
     function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData) {
-        upkeepNeeded = redemptionRequired();
+        upkeepNeeded = shouldRun();
     }
 
     function triggerRequest() private {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
         lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionID, MAX_REQ_GAS, donID);
-    }
-
-    function performUpkeep(bytes calldata performData) external {
-        if (lastRequestId == bytes32(0) && redemptionRequired()) {
-            triggerRequest();
-        }
     }
 
     function calculateUSDsToTargetPrice() private view returns (uint256 _usds) {
@@ -125,6 +126,21 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
             _usds += _amount0;
             _lowerTick += _spacing;
             _upperTick += _spacing;
+        }
+    }
+
+    function validData(ISmartVaultManager.SmartVaultData memory _vaultData)
+        private
+        returns (bool)
+    {
+        if (_vaultData.status.vaultAddress == address(0)) return false;
+        for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
+            if (_vaultData.status.collateral[i].token.addr == token) {
+                return (
+                    hypervisor == address(0)
+                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(token) == hypervisor
+                );
+            }
         }
     }
 
@@ -151,62 +167,72 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         } catch {}
     }
 
-    function validData(ISmartVaultManager.SmartVaultData memory _vaultData, address _token, address _hypervisor)
-        private
-        returns (bool)
-    {
-        if (_vaultData.status.vaultAddress == address(0)) return false;
-        for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
-            if (_vaultData.status.collateral[i].token.addr == _token) {
-                return (
-                    _hypervisor == address(0)
-                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(_token) == _hypervisor
-                );
-            }
-        }
+    function autoRedemption(address _smartVault, uint256 _USDsTargetAmount) private returns (uint256) {
+        SwapPath memory _collateralToUSDsPaths = swapPaths[token];
+        try IRedeemable(_smartVault).autoRedemption(
+            swapRouter,
+            quoter,
+            token,
+            _USDsTargetAmount,
+            _collateralToUSDsPaths.input,
+            _collateralToUSDsPaths.output,
+            hypervisor
+        ) returns (uint256 _redeemed) {
+            return _redeemed;
+        } catch {}
     }
 
-    function runAutoRedemption(bytes memory response)
+    function runAutoRedemption()
         private
-        returns (address _smartVault, address _collateralToken, uint256 _usdsRedeemed)
+        returns (address _smartVault, uint256 _usdsRedeemed)
     {
         uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
         if (_USDsTargetAmount > 0) {
-            (uint256 _tokenID, address _token, address _hypervisor) = abi.decode(response, (uint256, address, address));
-            try ISmartVaultManager(smartVaultManager).vaultData(_tokenID) returns (
+            try ISmartVaultManager(smartVaultManager).vaultData(tokenID) returns (
                 ISmartVaultManager.SmartVaultData memory _vaultData
             ) {
-                if (validData(_vaultData, _token, _hypervisor)) {
+                if (validData(_vaultData)) {
                     if (_USDsTargetAmount > _vaultData.status.minted) _USDsTargetAmount = _vaultData.status.minted;
                     _smartVault = _vaultData.status.vaultAddress;
-                    if (_tokenID <= lastLegacyVaultID) {
-                        _usdsRedeemed = legacyAutoRedemption(_smartVault, _token, _USDsTargetAmount);
+                    if (tokenID <= lastLegacyVaultID) {
+                        _usdsRedeemed = legacyAutoRedemption(_smartVault, token, _USDsTargetAmount);
                     } else {
-                        SwapPath memory _collateralToUSDsPaths = swapPaths[_token];
-                        try IRedeemable(_smartVault).autoRedemption(
-                            swapRouter,
-                            quoter,
-                            _token,
-                            _USDsTargetAmount,
-                            _collateralToUSDsPaths.input,
-                            _collateralToUSDsPaths.output,
-                            _hypervisor
-                        ) returns (uint256 _redeemed) {
-                            _usdsRedeemed = _redeemed;
-                        } catch {}
+                        _usdsRedeemed = autoRedemption(_smartVault, _USDsTargetAmount);
                     }
-                    _collateralToken = _token;
                 }
             } catch {}
         }
     }
 
+    function performUpkeep(bytes calldata performData) external {
+        if (shouldRun()) {
+            if ((block.timestamp - dataReceivedAt) > 30 minutes) {
+                triggerRequest();
+            } else {
+                (address _smartVault, uint256 _usdsRedeemed) = runAutoRedemption();
+                if (_usdsRedeemed == 0) {
+                    paused = true;
+                } else {
+                    emit AutoRedemption(_smartVault, token, _usdsRedeemed);
+                    dataReceivedAt = 0;
+                    tokenID = 0;
+                    token = address(0);
+                    hypervisor = address(0);
+                }
+            }
+        }
+    }
+
     function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
-        if (requestId == lastRequestId && response.length == ENCODED_API_RESPONSE_LENGTH && redemptionRequired()) {
-            (address _smartVault, address _token, uint256 _usdsRedeemed) = runAutoRedemption(response);
-            if (_usdsRedeemed > 0) emit AutoRedemption(_smartVault, _token, _usdsRedeemed);
+        if (requestId == lastRequestId && response.length == ENCODED_API_RESPONSE_LENGTH) {
+            (tokenID, token, hypervisor) = abi.decode(response, (uint256, address, address));
+            dataReceivedAt = block.timestamp;
         }
         lastRequestId = bytes32(0);
+    }
+
+    function togglePause() external onlyOwner {
+        paused = !paused;
     }
 
     function setSwapPath(address _token, bytes memory _inputPath, bytes memory _outputPath) external onlyOwner {
