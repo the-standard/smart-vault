@@ -43,12 +43,14 @@ contract ForkTest is ForkFixture {
         _deal(ARB, ARB_WHALE, address(this));
         _deal(LINK, LINK_WHALE, address(this));
         _deal(GMX, GMX_WHALE, address(this));
-        _deal(RDNT, RDNT_WHALE, address(this));
+        _deal(USDT, USDT_WHALE, address(this));
+        _deal(WSTETH, WSTETH_WHALE, address(this));
         WBTC.transfer(address(vault), 1e6);
         ARB.transfer(address(vault), 500e18);
         LINK.transfer(address(vault), 200e18);
         GMX.transfer(address(vault), 10e18);
-        RDNT.transfer(address(vault), 200e18);
+        USDT.transfer(address(vault), 100e6);
+        WSTETH.transfer(address(vault), 1e18);
 
         vm.startPrank(VAULT_OWNER);
         vault.depositYield(NATIVE, 1e4, 5e4, block.timestamp + 60);
@@ -56,14 +58,16 @@ contract ForkTest is ForkFixture {
         vault.depositYield(ARB_SYMBOL, 1e4, 5e4, block.timestamp + 60);
         vault.depositYield(LINK_SYMBOL, 1e4, 5e4, block.timestamp + 60);
         vault.depositYield(GMX_SYMBOL, 1e4, 5e4, block.timestamp + 60);
-        vault.depositYield(RDNT_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(USDT_SYMBOL, 1e4, 5e4, block.timestamp + 60);
+        vault.depositYield(WSTETH_SYMBOL, 1e4, 5e4, block.timestamp + 60);
 
         vault.withdrawYield(USDS_HYPERVISOR_ADDRESS, NATIVE, 5e4, block.timestamp + 60);
         vault.withdrawYield(WBTC_HYPERVISOR_ADDRESS, WBTC_SYMBOL, 5e4, block.timestamp + 60);
         vault.withdrawYield(ARB_HYPERVISOR_ADDRESS, ARB_SYMBOL, 5e4, block.timestamp + 60);
         vault.withdrawYield(LINK_HYPERVISOR_ADDRESS, LINK_SYMBOL, 5e4, block.timestamp + 60);
         vault.withdrawYield(GMX_HYPERVISOR_ADDRESS, GMX_SYMBOL, 5e4, block.timestamp + 60);
-        vault.withdrawYield(RDNT_HYPERVISOR_ADDRESS, RDNT_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(USDT_HYPERVISOR_ADDRESS, USDT_SYMBOL, 5e4, block.timestamp + 60);
+        vault.withdrawYield(WSTETH_HYPERVISOR_ADDRESS, WSTETH_SYMBOL, 5e4, block.timestamp + 60);
 
         // put weth in after eth deposit is done because of eth yield deposit clearing out the weth balance
         WETH.transfer(address(vault), 1e18);
@@ -170,5 +174,20 @@ contract ForkTest is ForkFixture {
         status = legacyVault.status();
         assertEq(status.minted, vaultDebt - _USDsRedeemed);
         assertEq(address(legacyVault).balance, ethCollateral - _ethRedeemAmount);
+    }
+
+    function test_combinedDataFeed() public {
+        uint256 ethAmount = 1e18;
+
+        vm.deal(address(vault), ethAmount);
+        _deal(WSTETH, WSTETH_WHALE, address(this));
+        WSTETH.transfer(address(vault), ethAmount);
+
+        SmartVaultV4.Asset[] memory collateral = vault.status().collateral;
+
+        assertEq(collateral[0].amount, collateral[8].amount);
+        assertLt(collateral[0].collateralValue, collateral[8].collateralValue);
+        console.log(collateral[0].collateralValue);
+        console.log(collateral[8].collateralValue);
     }
 }

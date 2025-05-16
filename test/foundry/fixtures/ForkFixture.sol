@@ -13,6 +13,7 @@ import {SmartVaultIndex} from "src/SmartVaultIndex.sol";
 import {SmartVaultYieldManager} from "src/SmartVaultYieldManager.sol";
 import {SmartVaultV4} from "src/SmartVaultV4.sol";
 import {PriceCalculator} from "src/PriceCalculator.sol";
+import {CombinedDataFeed} from "src/CombinedDataFeed.sol";
 
 import {MockNFTMetadataGenerator} from "src/test_utils/MockNFTMetadataGenerator.sol";
 import {USDsMock} from "src/test_utils/USDsMock.sol";
@@ -47,6 +48,7 @@ contract ForkFixture is Test {
     SmartVaultYieldManager yieldManager;
     SmartVaultV4 vault;
     PriceCalculator priceCalculator;
+    CombinedDataFeed feedWstethUsd;
 
     // State
     struct CollateralData {
@@ -65,6 +67,7 @@ contract ForkFixture is Test {
         // vm.createSelectFork(vm.envOr(ENV_RPC_URL, DEFAULT_RPC_URL));
         vm.selectFork(vm.createFork(DEFAULT_RPC_URL));
 
+        _deployWSTETHDataFeed();
         _labelConstants();
         _pushCollateralSymbols();
         _pushCollateralData();
@@ -96,18 +99,19 @@ contract ForkFixture is Test {
         vm.label(LINK_ADDRESS, "LINK");
         vm.label(ARB_ADDRESS, "ARB");
         vm.label(GMX_ADDRESS, "GMX");
+        vm.label(USDT_ADDRESS, "USDT");
         vm.label(PAXG_ADDRESS, "PAXG");
-        vm.label(RDNT_ADDRESS, "RDNT");
-        vm.label(SUSHI_ADDRESS, "SUSHI");
+        vm.label(WSTETH_ADDRESS, "WSTETH");
 
         vm.label(CL_NATIVE_USD_ADDRESS, "Chainlink ETH/USD");
         vm.label(CL_WBTC_USD_ADDRESS, "Chainlink WBTC/USD");
         vm.label(CL_LINK_USD_ADDRESS, "Chainlink LINK/USD");
         vm.label(CL_ARB_USD_ADDRESS, "Chainlink ARB/USD");
         vm.label(CL_GMX_USD_ADDRESS, "Chainlink GMX/USD");
+        vm.label(CL_USDT_USD_ADDRESS, "Chainlink USDT/USD");
         vm.label(CL_PAXG_USD_ADDRESS, "Chainlink PAXG/USD");
-        vm.label(CL_RDNT_USD_ADDRESS, "Chainlink RDNT/USD");
-        vm.label(CL_SUSHI_USD_ADDRESS, "Chainlink SUSHI/USD");
+        vm.label(CL_WSTETH_ETH_ADDRESS, "Chainlink WSTETH/ETH");
+        vm.label(address(feedWstethUsd), "Feed WSTETH/USD");
 
         vm.label(UNISWAP_ROUTER_ADDRESS, "Uniswap Router");
         vm.label(UNISWAP_QUOTER_ADDRESS, "Uniswap Quoter");
@@ -120,7 +124,8 @@ contract ForkFixture is Test {
         vm.label(LINK_HYPERVISOR_ADDRESS, "LINK Hypervisor");
         vm.label(ARB_HYPERVISOR_ADDRESS, "ARB Hypervisor");
         vm.label(GMX_HYPERVISOR_ADDRESS, "GMX Hypervisor");
-        vm.label(RDNT_HYPERVISOR_ADDRESS, "RDNT Hypervisor");
+        vm.label(USDT_HYPERVISOR_ADDRESS, "USDT Hypervisor");
+        vm.label(WSTETH_HYPERVISOR_ADDRESS, "WSTETH Hypervisor");
     }
 
     function _pushCollateralSymbols() internal {
@@ -131,9 +136,9 @@ contract ForkFixture is Test {
         collateralSymbols.push(LINK_SYMBOL);
         collateralSymbols.push(ARB_SYMBOL);
         collateralSymbols.push(GMX_SYMBOL);
+        collateralSymbols.push(USDT_SYMBOL);
         collateralSymbols.push(PAXG_SYMBOL);
-        collateralSymbols.push(RDNT_SYMBOL);
-        collateralSymbols.push(SUSHI_SYMBOL);
+        collateralSymbols.push(WSTETH_SYMBOL);
     }
 
     function _pushCollateralData() internal {
@@ -185,21 +190,29 @@ contract ForkFixture is Test {
             abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, GMX_ADDRESS)
         );
 
-        collateralData[RDNT_SYMBOL] = CollateralData(
-            RDNT,
-            CL_RDNT_USD,
-            RDNT_HYPERVISOR,
-            abi.encodePacked(RDNT_ADDRESS, RAMSES_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
-            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, RAMSES_FEE, RDNT_ADDRESS)
+        collateralData[USDT_SYMBOL] = CollateralData(
+            USDT,
+            CL_USDT_USD,
+            USDT_HYPERVISOR,
+            abi.encodePacked(USDT_ADDRESS, SMALL_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, SMALL_FEE, USDT_ADDRESS)
         );
 
         collateralData[PAXG_SYMBOL] =
             CollateralData(PAXG, CL_PAXG_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
 
-        collateralData[SUSHI_SYMBOL] =
-            CollateralData(SUSHI, CL_SUSHI_USD, IHypervisor(address(0)), new bytes(0), new bytes(0));
+        collateralData[WSTETH_SYMBOL] = CollateralData(
+            WSTETH,
+            feedWstethUsd,
+            WSTETH_HYPERVISOR,
+            abi.encodePacked(WSTETH_ADDRESS, SMALL_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
+            abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, SMALL_FEE, WSTETH_ADDRESS)
+        );
 
-        // TODO: RDNT configurations not clear
+    }
+
+    function _deployWSTETHDataFeed() internal {
+        feedWstethUsd = new CombinedDataFeed(CL_WSTETH_ETH_ADDRESS, CL_NATIVE_USD_ADDRESS);
     }
 
     function _deployTokenManager() internal {
