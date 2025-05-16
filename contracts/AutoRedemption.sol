@@ -24,6 +24,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint32 private constant TWAP_INTERVAL = 1800;
     uint256 private constant ENCODED_API_RESPONSE_LENGTH = 96;
     uint160 private constant TARGET_PRICE = 79228162514264337593543;
+    address private constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     bytes32 private immutable donID;
     uint64 public immutable subscriptionID;
@@ -40,6 +41,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     uint256 public tokenID;
     address public token;
     address public hypervisor;
+    uint256 public lastVaultRedeemedAt;
     uint160 private triggerPrice;
     mapping(address => SwapPath) swapPaths;
 
@@ -93,7 +95,8 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
     }
 
     function shouldRun() private returns (bool) {
-        return !paused && poolBelowTriggerPrice() && lastRequestId == bytes32(0);
+        return !paused && block.timestamp - lastVaultRedeemedAt > 30 minutes && poolBelowTriggerPrice()
+            && lastRequestId == bytes32(0);
     }
 
     function checkUpkeep(bytes calldata checkData) external returns (bool upkeepNeeded, bytes memory performData) {
@@ -129,16 +132,16 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         }
     }
 
-    function validData(ISmartVaultManager.SmartVaultData memory _vaultData)
-        private
-        returns (bool)
-    {
+    function validData(ISmartVaultManager.SmartVaultData memory _vaultData) private returns (bool) {
         if (_vaultData.status.vaultAddress == address(0)) return false;
         for (uint256 i = 0; i < _vaultData.status.collateral.length; i++) {
             if (_vaultData.status.collateral[i].token.addr == token) {
                 return (
                     hypervisor == address(0)
-                        || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(token) == hypervisor
+                        || (
+                            token == address(0)
+                                && ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(WETH) == hypervisor
+                        ) || ISmartVaultYieldManager(yieldManager).getHypervisorForCollateral(token) == hypervisor
                 );
             }
         }
@@ -182,10 +185,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
         } catch {}
     }
 
-    function runAutoRedemption()
-        private
-        returns (address _smartVault, uint256 _usdsRedeemed)
-    {
+    function runAutoRedemption() private returns (address _smartVault, uint256 _usdsRedeemed) {
         uint256 _USDsTargetAmount = calculateUSDsToTargetPrice();
         if (_USDsTargetAmount > 0) {
             try ISmartVaultManager(smartVaultManager).vaultData(tokenID) returns (
@@ -218,6 +218,7 @@ contract AutoRedemption is AutomationCompatibleInterface, FunctionsClient, Confi
                     tokenID = 0;
                     token = address(0);
                     hypervisor = address(0);
+                    lastVaultRedeemedAt = block.timestamp;
                 }
             }
         }
