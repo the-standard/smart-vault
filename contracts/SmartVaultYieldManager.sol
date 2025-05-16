@@ -331,7 +331,7 @@ contract SmartVaultYieldManager is ISmartVaultYieldManager, Ownable {
         IERC20(_token).safeTransfer(msg.sender, _withdrawn);
     }
 
-    function getHypervisorForCollateral(address _collateralToken) external returns (address _hypervisor) {
+    function getHypervisorForCollateral(address _collateralToken) external view returns (address _hypervisor) {
         return hypervisorData[_collateralToken].hypervisor;
     }
 
