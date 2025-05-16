@@ -187,7 +187,5 @@ contract ForkTest is ForkFixture {
 
         assertEq(collateral[0].amount, collateral[8].amount);
         assertLt(collateral[0].collateralValue, collateral[8].collateralValue);
-        console.log(collateral[0].collateralValue);
-        console.log(collateral[8].collateralValue);
     }
 }
