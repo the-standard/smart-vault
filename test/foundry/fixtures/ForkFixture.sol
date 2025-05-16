@@ -208,7 +208,6 @@ contract ForkFixture is Test {
             abi.encodePacked(WSTETH_ADDRESS, SMALL_FEE, WETH_ADDRESS, UNISWAP_FEE, USDC_ADDRESS),
             abi.encodePacked(USDC_ADDRESS, UNISWAP_FEE, WETH_ADDRESS, SMALL_FEE, WSTETH_ADDRESS)
         );
-
     }
 
     function _deployWSTETHDataFeed() internal {
