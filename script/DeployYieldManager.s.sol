@@ -60,14 +60,16 @@ contract DeployYieldManager is Script {
             abi.encodePacked(0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a, uint24(10000), 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, uint24(500), 0xaf88d065e77c8cC2239327C5EDb3A432268e5831),
             abi.encodePacked(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, uint24(500), 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, uint24(10000), 0xfc5A1A6EB076a2C7aD06eD22C90d7E710E35ad0a)
         );
-        // rdnt
+        // usdt
         yieldManager.addHypervisorData(
-            0x3082CC23568eA640225c2467653dB90e9250AaA0,
-            0x2BCBDD577616357464CFe307Bc67F9e820A66e80,
-            3000,
-            abi.encodePacked(0x3082CC23568eA640225c2467653dB90e9250AaA0, uint24(3000), 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, uint24(500), 0xaf88d065e77c8cC2239327C5EDb3A432268e5831),
-            abi.encodePacked(0xaf88d065e77c8cC2239327C5EDb3A432268e5831, uint24(500), 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1, uint24(3000), 0x3082CC23568eA640225c2467653dB90e9250AaA0)
+            0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9,
+            0x95375694685E39997828Ed5B17f30f0A3eD90537,
+            500,
+            hex"fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9000064af88d065e77c8cc2239327c5edb3a432268e5831",
+            hex"af88d065e77c8cc2239327c5edb3a432268e5831000064fd086bc7cd5c481dcc9c85ebe478a1c0b69fcbb9"
         );
+
+        yieldManager.setFeeData(500,0x496aB4A155C8fE359Cd28d43650fAFA0A35322Fb);
 
         vm.stopBroadcast();
     }
